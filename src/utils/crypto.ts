@@ -41,7 +41,6 @@ const codifyMessage = (message: string) => {
 export const signMessage = (key: EdDSA.KeyPair, message: string) => {
 // return signature
     if (key) {
-       console.log(message)
         // ~1ms on my machine
         return key.sign(codifyMessage(message)).toHex()
     }

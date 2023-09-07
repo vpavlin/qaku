@@ -16,6 +16,7 @@ import {
     waku,
     SendResult,
     PageDirection,
+    StoreQueryOptions,
   } from "@waku/sdk";
 import { DEFAULT_BOOTSTRAP, PROTOCOLS, STATIC_NODES } from "../constants";
 import { multiaddr } from "@multiformats/multiaddr";
@@ -28,7 +29,7 @@ export type WakuInfo = {
     stop: () => void;
     publish: (contentTopic: string, message: string) => Promise<SendResult | void>;
     subscribe: (contentTopic: string, callback: Callback<DecodedMessage>) => Unsubscribe | Promise<Unsubscribe> | void;
-    query: <T>(contentTopic: string, decode: (msg: any) => any) => Promise<T[]>
+    query: <T>(contentTopic: string, decode: (msg: any) => any, options?: StoreQueryOptions) => Promise<T[]>
 }
 
 export type WakuContextData = {
@@ -78,12 +79,11 @@ export const WakuContextProvider = ({ children }: Props) => {
             for (var n of STATIC_NODES) {
                 const ma = multiaddr(n);
                 await ln.dial(ma, PROTOCOLS)
-                console.log(await ln.libp2p.peerStore.all())
             }
             
             try {
                 await waitForRemotePeer(ln, PROTOCOLS)
-                console.log(await ln.libp2p.peerStore.all())
+                //console.log(await ln.libp2p.peerStore.all())
                 setStatus("connected")
                 setConnected(true)
                 setConnecting(false)
@@ -118,19 +118,23 @@ export const WakuContextProvider = ({ children }: Props) => {
         return node.filter.subscribe(decoder, callback)
     }
 
-    const query = async <T,>(contentTopic: string, decode: (msg: any) => any): Promise<T[]> => {
+    const query = async <T,>(contentTopic: string, decode: (msg: any) => any, options?: StoreQueryOptions): Promise<T[]> => {
         const decoder = createDecoder(contentTopic)
         let result:T[] = []
         if (!node || !connected ) return result
 
         console.log("querying")
 
+        if (!options) {
+            options = {
+                pageDirection: PageDirection.FORWARD,
+              }
+        }
+
         try {
             for await (const messagesPromises of node.store.queryGenerator(
               [decoder],
-              {
-                pageDirection: PageDirection.FORWARD,
-              }
+              options
             )) {
                 const messages = await Promise.all(
                     messagesPromises

@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react"
 import { useQakuContext } from "../hooks/useQaku"
 import { useWakuContext } from "../hooks/useWaku"
-import { CONTENT_TOPIC_CONTROL } from "../constants"
 
 interface IProps {
     id: string
@@ -12,9 +11,6 @@ const Control = ({id}: IProps) => {
     const [enabled, setEnabled] = useState(false)
     
     const {connected, publish} = useWakuContext()
-
-    console.log(isOwner)
-
 
     useEffect(() => {
         if (!controlState) return

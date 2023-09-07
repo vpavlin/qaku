@@ -1,10 +1,10 @@
 import React, { useContext, useEffect, useMemo, useState } from "react";
-import { ControlMessage, QuestionMessage, unique } from "../utils/messages";
+import { ActivityMessage, AnsweredMessage, ControlMessage, MessageType, QakuMessage, QuestionMessage, parseAnsweredMessage, parseControlMessage, parseQakuMessage, parseQuestionMessage, unique } from "../utils/messages";
 import { useWakuContext } from "./useWaku";
-import { DecodedMessage, bytesToUtf8 } from "@waku/sdk";
-import { CONTENT_TOPIC_CONTROL, CONTENT_TOPIC_QUESTIONS } from "../constants";
-import * as noise from "@waku/noise"
+import { DecodedMessage, PageDirection, StoreQueryOptions, bytesToUtf8, createDecoder } from "@waku/sdk";
+import { CONTENT_TOPIC_ACTIVITY, CONTENT_TOPIC_MAIN } from "../constants";
 import { eddsa as EdDSA } from 'elliptic'
+import { sha256 } from "js-sha256";
 import { fromHex, generateKey, loadKey, signMessage, toHex, verifyMessage } from "../utils/crypto";
 
 export type QakuInfo = {
@@ -13,6 +13,8 @@ export type QakuInfo = {
     key: EdDSA.KeyPair | undefined;
     pubKey: string |undefined;
     isOwner: boolean;
+    active: number;
+    isAnswered: (msg:QuestionMessage) => boolean;
     switchState: (newState: boolean) => void;
 }
 
@@ -46,55 +48,72 @@ export const QakuContextProvider = ({ id, children }: Props) => {
     const [ key, setKey] = useState<EdDSA.KeyPair>()
     const [ pubKey, setPubKey] = useState<string>()
     const [ isOwner, setOwner ] = useState<boolean>(false)
+    const [ active, setActive ] = useState<number>(0)
+    const [ activeList, setActiveList ] = useState<ActivityMessage[]>([])
 
-    const {connected, query, subscribe, publish} = useWakuContext()
+    const [ msgCache, setMsgCache ] = useState<QakuMessage[]>([])
+    const [ answeredMsgs, setAnsweredMsgs ] = useState<AnsweredMessage[]>([])
 
-    const callback_control = (msg: DecodedMessage) => {
-        const cmsg = JSON.parse(bytesToUtf8(msg.payload))
+    const {connected, query, subscribe, publish, node} = useWakuContext()
 
-        if (!controlState || controlState.timestamp < cmsg.timestamp) {
-            if (verify(cmsg, fromHex(cmsg.signer))) {
-                setControlState(cmsg)
-            }
-        }
+   
+    const callback_activity = (msg: DecodedMessage) => {
+        const decoded:ActivityMessage = JSON.parse(bytesToUtf8(msg.payload))
+        return decoded
     }
 
     const callback = (msg: DecodedMessage) => {
-        const qmsg:QuestionMessage = {
-            question: bytesToUtf8(msg.payload),
-            timestamp: msg.timestamp!,
-        } 
-        setQuestions((questions) => [...questions, qmsg])
+        const parsed = parseQakuMessage(msg)
+        if (!parsed) return
+        setMsgCache((msgs) => [...msgs, parsed])
     }
 
-    const decode = (msg: DecodedMessage) => {
-        const qmsg:QuestionMessage = {
-            question: bytesToUtf8(msg.payload),
-            timestamp: msg.timestamp!,
-        } 
-       return qmsg
+    const isAnswered = (msg:QuestionMessage):boolean => {
+        const hash = sha256(JSON.stringify(msg))
+
+        return answeredMsgs.find((m, i) => m.hash == hash) !== undefined
     }
 
-    const verify = (msg: ControlMessage, signer: Buffer):boolean => {
-        if (!msg.signature || !key) return false
+    const handleMessage = (msg: QakuMessage, controlState: ControlMessage | undefined): ControlMessage | undefined => {
+        switch (msg.type) {
+            case MessageType.CONTROL_MESSAGE:
+                const cmsg = parseControlMessage(msg)
+                if (cmsg) setControlState(cmsg)
+                return cmsg
 
-        const clone:ControlMessage = { ...msg }
-        clone.signature = undefined
+            case MessageType.QUESTION_MESSAGE:
+                const qmsg = parseQuestionMessage(msg);
+  
+                if (!qmsg) break
+                if (!controlState?.enabled) break
 
-        const valid = verifyMessage(JSON.stringify(clone), msg.signature!, signer)
-        return valid
+                setQuestions((q) => [...q, qmsg])
+
+                break;
+            case MessageType.ANSWERED_MESSAGE:
+                const amsg = parseAnsweredMessage(msg)
+                if (!amsg) break
+                setAnsweredMsgs((m) => [...m, amsg])
+                break;
+            default:
+                return;
+        }
+
+        return controlState
     }
 
     const switchState = (newState: boolean) => {
-        if (!id || !controlState || !connected || !key) return
+        if (!id || !controlState || !connected || !key || !pubKey) return
 
-        const msg:ControlMessage = {title: controlState.title, id: controlState.id, enabled: newState, timestamp: new Date(), signer: controlState.signer, signature: undefined}
-        const sig = signMessage(key, JSON.stringify(msg))
+        const cmsg:ControlMessage = {title: controlState.title, id: controlState.id, enabled: newState, timestamp: new Date(), owner: controlState.owner, admins: controlState.admins}
+        
+        const msg:QakuMessage = {type: MessageType.CONTROL_MESSAGE, payload: JSON.stringify(cmsg), signer: pubKey!, signature: undefined}
+        const sig = signMessage(key, JSON.stringify(cmsg))
         if (!sig) return
    
         msg.signature = sig
 
-        publish(CONTENT_TOPIC_CONTROL(id), JSON.stringify(msg))
+        publish(CONTENT_TOPIC_MAIN(id), JSON.stringify(msg))
     }
 
     useEffect(() => {
@@ -114,55 +133,23 @@ export const QakuContextProvider = ({ id, children }: Props) => {
     }, [key])
 
     useEffect(() => {
-        if (!controlState || !key) return
+        if (!controlState || !pubKey) return
 
-        setOwner(verify(controlState, key.getPublic()))
-    }, [controlState, key])
-
-    useEffect(() => {
-        if (!connected || !id || !key || !pubKey) return 
-
-        console.log("getting control messages")
-
-        const unsubscribe_control = subscribe(CONTENT_TOPIC_CONTROL(id), callback_control)
-
-        query<ControlMessage>(CONTENT_TOPIC_CONTROL(id), callback_control).then((msgs) => {
-            const u:ControlMessage[] = unique<ControlMessage>(msgs)
-            let e = false
-            for(var msg of u) {
-                if (verify(msg, fromHex(msg.signer))) {
-                    setControlState(msg)
-                }
-            }
-        })
-
-        return () => {
-            if (unsubscribe_control) {
-                if (unsubscribe_control instanceof Promise) {
-                    unsubscribe_control.then((unsub)=> unsub())
-                } else {
-                    unsubscribe_control()
-                }
-            }
-        }
-    }, [connected, id, key, pubKey])
-
+        setOwner(controlState.owner == pubKey)
+    }, [controlState, pubKey])
 
     useEffect(() => {
-        if (!id || !connected || !key) return
+        if (!connected || !id || !key || !pubKey || !node) return 
 
-        let unsubscribe:any = undefined
+        node.store.queryOrderedCallback(
+            [createDecoder(CONTENT_TOPIC_MAIN(id))],
+            callback,
+            {
+                pageDirection: PageDirection.FORWARD,
+            },
+        );
 
-        try {
-            unsubscribe = subscribe(CONTENT_TOPIC_QUESTIONS(id), callback)
-        } catch (e) {
-            console.log(e)
-        }
-
-        query<QuestionMessage>(CONTENT_TOPIC_QUESTIONS(id), decode).then((msgs) => {
-            const umsg = unique<QuestionMessage>(msgs)
-            setQuestions((questions) => [...questions, ...umsg])
-        })        
+        const unsubscribe = subscribe(CONTENT_TOPIC_MAIN(id), callback)
 
         return () => {
             if (unsubscribe) {
@@ -173,7 +160,51 @@ export const QakuContextProvider = ({ id, children }: Props) => {
                 }
             }
         }
-    }, [id, connected, key])
+    }, [connected, id, key, pubKey, node])
+
+    useEffect(() => {
+        if (!id || !connected || !key || !pubKey) return
+
+        const tracker = setInterval(() => {
+            const msg:ActivityMessage = {pubKey: pubKey!}
+            publish(CONTENT_TOPIC_ACTIVITY(id), JSON.stringify(msg))
+
+            const start = new Date()
+            const end = new Date()
+
+            start.setSeconds(end.getSeconds() - 30)
+            const options:StoreQueryOptions = {
+                pageDirection: PageDirection.BACKWARD,
+                timeFilter:{
+                    startTime:start,
+                    endTime: end,
+                }
+            }
+            query<ActivityMessage>(CONTENT_TOPIC_ACTIVITY(id), callback_activity, options).then((msgs) => {
+                const umsg = unique<ActivityMessage>(msgs)
+                setActiveList(umsg)
+            })
+        }, 10000)
+
+        return () => {
+            clearInterval(tracker)
+        }
+    }, [id, connected, key, pubKey])
+
+    useEffect(() => {
+        if (!activeList) return
+        setActive(activeList.length)
+    }, [activeList])
+
+    useEffect(() => {
+        if (msgCache.length == 0) return
+
+        const msg:QakuMessage = msgCache[0]
+        setMsgCache([...msgCache.slice(1)])
+        handleMessage(msg, controlState)
+    }, [msgCache])
+
+
 
     const qakuInfo = useMemo(
         () => ({
@@ -182,6 +213,8 @@ export const QakuContextProvider = ({ id, children }: Props) => {
             key,
             pubKey,
             isOwner,
+            isAnswered,
+            active,
             switchState,
         }),
         [
@@ -190,6 +223,8 @@ export const QakuContextProvider = ({ id, children }: Props) => {
             key,
             pubKey,
             isOwner,
+            isAnswered,
+            active,
             switchState,
         ]
     )

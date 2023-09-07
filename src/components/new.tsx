@@ -5,10 +5,10 @@ import { SendResult } from "@waku/sdk";
 import { sha256 } from "js-sha256";
 import { unsubscribe } from "diagnostics_channel";
 import { useNavigate } from "react-router-dom";
-import { CONTENT_TOPIC_CONTROL } from "../constants";
 import { useQakuContext } from "../hooks/useQaku";
 import { signMessage } from "../utils/crypto";
-import { ControlMessage } from "../utils/messages";
+import { ControlMessage, MessageType, QakuMessage } from "../utils/messages";
+import { CONTENT_TOPIC_MAIN } from "../constants";
 
 
 
@@ -27,15 +27,14 @@ const NewQA = () => {
 
         const hash = sha256(title)  
 
-        const msg:ControlMessage = {title: title, id: hash, enabled: true, timestamp: new Date(), signer: pubKey, signature: undefined}
-        const sig = signMessage(key, JSON.stringify(msg))
+        const cmsg:ControlMessage = {title: title, id: hash, enabled: true, timestamp: new Date(), owner: pubKey, admins: []}
+        const msg:QakuMessage = {signer: pubKey, signature: undefined, payload: JSON.stringify(cmsg), type: MessageType.CONTROL_MESSAGE}
+        const sig = signMessage(key, JSON.stringify(cmsg))
         if (!sig) return
-
-        console.log(sig)
         
         msg.signature = sig
 
-        const result = await publish(CONTENT_TOPIC_CONTROL(hash), JSON.stringify(msg))
+        const result = await publish(CONTENT_TOPIC_MAIN(hash), JSON.stringify(msg))
 
         if (result && !result.error) navigate("/q/"+hash)
     }

@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useWakuContext } from "../hooks/useWaku";
-import { CONTENT_TOPIC_QUESTIONS } from "../constants";
+import { CONTENT_TOPIC_MAIN } from "../constants";
+import { MessageType, QakuMessage, QuestionMessage } from "../utils/messages";
+import { useQakuContext } from "../hooks/useQaku";
 
 interface IProps {
     id: string
@@ -8,15 +10,17 @@ interface IProps {
 
 const NewQuestion = ({ id }: IProps) => {
     const {connected, publish} = useWakuContext()
+    const { pubKey } = useQakuContext()
 
     const [submitState, setSubmitState] = useState(true)
     const [question, setQuestion] = useState<string>("")
     const submit = () => {
-        if (!connected || !question) return
+        if (!connected || !question || !pubKey) return
 
+        const qmsg:QuestionMessage = {question: question, timestamp: new Date()}
+        const msg:QakuMessage = {payload: JSON.stringify(qmsg), signer: pubKey, signature: undefined, type: MessageType.QUESTION_MESSAGE}
         setSubmitState(false)
-        publish(CONTENT_TOPIC_QUESTIONS(id), question).then((v) => {
-            console.log(v)
+        publish(CONTENT_TOPIC_MAIN(id), JSON.stringify(msg)).then((v) => {
             setQuestion("")
             
         }).finally(() => setSubmitState(true))
