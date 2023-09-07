@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useMemo, useState } from "react";
-import { ActivityMessage, AnsweredMessage, ControlMessage, MessageType, QakuMessage, QuestionMessage, parseAnsweredMessage, parseControlMessage, parseQakuMessage, parseQuestionMessage, unique } from "../utils/messages";
+import { ActivityMessage, AnsweredMessage, ControlMessage, MessageType, QakuMessage, QuestionMessage, parseAnsweredMessage, parseControlMessage, parseQakuMessage, parseQuestionMessage, parseUpvoteMessage, unique } from "../utils/messages";
 import { useWakuContext } from "./useWaku";
 import { DecodedMessage, PageDirection, StoreQueryOptions, bytesToUtf8, createDecoder } from "@waku/sdk";
 import { CONTENT_TOPIC_ACTIVITY, CONTENT_TOPIC_MAIN } from "../constants";
@@ -14,6 +14,9 @@ export type QakuInfo = {
     pubKey: string |undefined;
     isOwner: boolean;
     active: number;
+    msgEvents: number;
+    loading: boolean;
+    upvoted: (msq: QuestionMessage) => number;
     isAnswered: (msg:QuestionMessage) => boolean;
     switchState: (newState: boolean) => void;
 }
@@ -53,6 +56,9 @@ export const QakuContextProvider = ({ id, children }: Props) => {
 
     const [ msgCache, setMsgCache ] = useState<QakuMessage[]>([])
     const [ answeredMsgs, setAnsweredMsgs ] = useState<AnsweredMessage[]>([])
+    const [ upvotes, setUpvotes ] = useState<Map<string, string[]>>(new Map<string, string[]>())
+    const [ msgEvents, setMsgEvents ] = useState<number>(0)
+    const [loading, setLoading] = useState(false)
 
     const {connected, query, subscribe, publish, node} = useWakuContext()
 
@@ -74,7 +80,16 @@ export const QakuContextProvider = ({ id, children }: Props) => {
         return answeredMsgs.find((m, i) => m.hash == hash) !== undefined
     }
 
+    const upvoted = (msg:QuestionMessage):number => {
+        const hash = sha256(JSON.stringify(msg))
+
+        const u = upvotes.get(hash)
+
+        return u ? u.length : 0
+    }
+
     const handleMessage = (msg: QakuMessage, controlState: ControlMessage | undefined): ControlMessage | undefined => {
+        setMsgEvents((me) => me + 1)
         switch (msg.type) {
             case MessageType.CONTROL_MESSAGE:
                 const cmsg = parseControlMessage(msg)
@@ -86,14 +101,30 @@ export const QakuContextProvider = ({ id, children }: Props) => {
   
                 if (!qmsg) break
                 if (!controlState?.enabled) break
+                console.log(msg.payload)
 
-                setQuestions((q) => [...q, qmsg])
+                setQuestions((q) => unique<QuestionMessage>([...q, qmsg]))
 
                 break;
             case MessageType.ANSWERED_MESSAGE:
                 const amsg = parseAnsweredMessage(msg)
                 if (!amsg) break
                 setAnsweredMsgs((m) => [...m, amsg])
+                break;
+
+            case MessageType.UPVOTE_MESSAGE:
+                const umsg = parseUpvoteMessage(msg)
+                if (!umsg) break
+                setUpvotes((m) => {
+                    if (!m.has(umsg.hash))
+                        m.set(umsg.hash, [])
+                    const signers = m.get(umsg.hash)
+                    if (!signers?.find((it) => it == msg.signer))
+                        signers?.push(msg.signer)
+                    
+                    m.set(umsg.hash, signers!)
+                    return new Map<string, string[]>(m)
+                })
                 break;
             default:
                 return;
@@ -139,7 +170,8 @@ export const QakuContextProvider = ({ id, children }: Props) => {
     }, [controlState, pubKey])
 
     useEffect(() => {
-        if (!connected || !id || !key || !pubKey || !node) return 
+        if (!connected || !id || !key || !pubKey || !node) return
+        setLoading(true) 
 
         node.store.queryOrderedCallback(
             [createDecoder(CONTENT_TOPIC_MAIN(id))],
@@ -147,7 +179,7 @@ export const QakuContextProvider = ({ id, children }: Props) => {
             {
                 pageDirection: PageDirection.FORWARD,
             },
-        );
+        ).then(() => setLoading(false));
 
         const unsubscribe = subscribe(CONTENT_TOPIC_MAIN(id), callback)
 
@@ -213,8 +245,11 @@ export const QakuContextProvider = ({ id, children }: Props) => {
             key,
             pubKey,
             isOwner,
+            msgEvents,
+            loading,
             isAnswered,
             active,
+            upvoted,
             switchState,
         }),
         [
@@ -223,8 +258,11 @@ export const QakuContextProvider = ({ id, children }: Props) => {
             key,
             pubKey,
             isOwner,
+            msgEvents,
+            loading,
             isAnswered,
             active,
+            upvoted,
             switchState,
         ]
     )

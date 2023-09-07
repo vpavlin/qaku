@@ -25,7 +25,8 @@ const NewQA = () => {
     const submit = async () => {
         if (!connected || !title || !key || !pubKey) return
 
-        const hash = sha256(title)  
+        const ts = new Date();
+        const hash = sha256(title + ts.toString()).slice(0, 8)
 
         const cmsg:ControlMessage = {title: title, id: hash, enabled: true, timestamp: new Date(), owner: pubKey, admins: []}
         const msg:QakuMessage = {signer: pubKey, signature: undefined, payload: JSON.stringify(cmsg), type: MessageType.CONTROL_MESSAGE}

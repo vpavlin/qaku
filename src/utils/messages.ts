@@ -13,10 +13,10 @@ export type ActivityMessage = {
 
 export enum MessageType {
     CONTROL_MESSAGE = "control_msg",
-    SEEN_MESSAGE = "seen_msg",
     QUESTION_MESSAGE = "question_msg",
     ANSWER_MESSAGE = "answer_msg",
     ANSWERED_MESSAGE = "answered_msg",
+    UPVOTE_MESSAGE = "upvote_msg",
 }
 
 export type QakuMessage = {
@@ -26,6 +26,9 @@ export type QakuMessage = {
     signature: string | undefined;
 }
 
+export type UpvoteMessage = {
+    hash: string;
+}
 
 export type AnsweredMessage = {
     hash: string;
@@ -68,12 +71,21 @@ export const parseQuestionMessage = (msg: QakuMessage): QuestionMessage | undefi
     return parsed
 }
 
+export const parseUpvoteMessage = (msg: QakuMessage): UpvoteMessage | undefined => {
+    const parsed: UpvoteMessage = JSON.parse(msg.payload)
+    if (!parsed.hash || parsed.hash == "") return
+    if (!msg.signature || msg.signature == "") return
+    if (!verifyMessage(msg.payload, msg.signature, fromHex(msg.signer))) return
+
+    return parsed
+}
+
 export const parseAnsweredMessage = (msg: QakuMessage): AnsweredMessage | undefined => {
     const parsed: AnsweredMessage = JSON.parse(msg.payload)
     if (!parsed.hash || parsed.hash == "") return
     if (!msg.signature || msg.signature == "") return
     if (!verifyMessage(msg.payload, msg.signature, fromHex(msg.signer))) return
-    
+
     return parsed
 }
 
