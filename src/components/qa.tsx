@@ -73,23 +73,26 @@ const QA = () => {
                 <NewQuestion id={controlState.id} />
             }
             {
-                localQuestions.map((msg, i) => 
-                    <div key={i.toString()} className={`border rounded-xl p-2 m-1 ${isAnswered(msg) && "opacity-60 bg-red-100"} hover:opacity-100`}>
+                localQuestions.map((msg, i) => {
+                    const d = new Date(msg.timestamp)
+                    const formatter = new Intl.DateTimeFormat('cs-CZ', { day: '2-digit', month: '2-digit', year: 'numeric', hour: 'numeric', minute: 'numeric',  });
+
+                    return <div key={i.toString()} className={`border rounded-xl p-2 m-1 ${isAnswered(msg) && "opacity-60 bg-red-100"} hover:opacity-100`}>
                         <div className="text-left">{msg.question}</div>
                         <div className={`text-right text-sm flex gap-x-2 justify-end items-center`}>
                             <div className="font-bold">
-                                {!isAnswered(msg) && <button className="btn btn-sm" onClick={() => upvote(msg)}>Upvote </button>} <span className="bg-secondary border rounded-md p-1 text-secondary-content border-secondary">{upvoted(msg)}</span>
+                                {!isOwner && !isAnswered(msg) && <button className="btn btn-sm" onClick={() => upvote(msg)}>Upvote </button>} <span className="bg-secondary border rounded-md p-1 text-secondary-content border-secondary">{upvoted(msg)}</span>
                             </div>
                             <div>
                                 {isOwner && !isAnswered(msg) && <button className="btn btn-sm" onClick={() => publishAnswer(msg)}>Answered</button>}
                             </div>
                             <div className="bg-secondary border rounded-md p-1 text-secondary-content border-secondary">
-                                {msg.timestamp.toLocaleString()}
+                                {`${formatter.format(d)}`}
                             </div>
                         </div>
                         
                     </div>
-                )
+})
             }
         </div>
     )

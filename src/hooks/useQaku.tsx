@@ -197,9 +197,13 @@ export const QakuContextProvider = ({ id, children }: Props) => {
     useEffect(() => {
         if (!id || !connected || !key || !pubKey) return
 
-        const tracker = setInterval(() => {
+        const tracker = setInterval(async () => {
             const msg:ActivityMessage = {pubKey: pubKey!}
-            publish(CONTENT_TOPIC_ACTIVITY(id), JSON.stringify(msg))
+            try {
+                await publish(CONTENT_TOPIC_ACTIVITY(id), JSON.stringify(msg))
+            } catch (e) {
+                console.log(e)
+            }
 
             const start = new Date()
             const end = new Date()
