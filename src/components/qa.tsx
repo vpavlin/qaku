@@ -8,7 +8,7 @@ import { sha256 } from "js-sha256";
 import { signMessage } from "../utils/crypto";
 import { CONTENT_TOPIC_MAIN } from "../constants";
 import { useWakuContext } from "../hooks/useWaku";
-
+import { PiThumbsUpLight} from "react-icons/pi";
 
 const QA = () => {
 
@@ -35,6 +35,7 @@ const QA = () => {
     }
 
     const upvote = async (qmsg: QuestionMessage) => {
+
         if (!key || !pubKey || !connected || !controlState) return
         const hash = sha256(JSON.stringify(qmsg))
 
@@ -53,8 +54,8 @@ const QA = () => {
     useEffect(() => {
         if (!questions) return
         setLocalQuestions([...questions.sort((a, b) => {
-            const ua = upvoted(a)
-            const ub = upvoted(b)
+            const [ua] = upvoted(a)
+            const [ub] = upvoted(b)
             const aa = isAnswered(a)
             const ab = isAnswered(b)
             
@@ -74,14 +75,20 @@ const QA = () => {
             }
             {
                 localQuestions.map((msg, i) => {
+                    const [upvotedBy, upvoters] = upvoted(msg)
+                    const alreadyUpvoted = upvoters && pubKey && upvoters.indexOf(pubKey) >= 0
                     const d = new Date(msg.timestamp)
                     const formatter = new Intl.DateTimeFormat('cs-CZ', { day: '2-digit', month: '2-digit', year: 'numeric', hour: 'numeric', minute: 'numeric',  });
 
-                    return <div key={i.toString()} className={`border rounded-xl p-2 m-1 ${isAnswered(msg) && "opacity-60 bg-red-100"} hover:opacity-100`}>
+                    return <div key={i.toString()} className={`border rounded-xl p-3 my-2 focus:shadow-md hover:shadow-md hover:-mx-1 hover:transition-all ${isAnswered(msg) && "opacity-60 bg-red-100"} hover:opacity-100`}>
                         <div className="text-left">{msg.question}</div>
                         <div className={`text-right text-sm flex gap-x-2 justify-end items-center`}>
-                            <div className="font-bold">
-                                {!isOwner && !isAnswered(msg) && <button className="btn btn-sm" onClick={() => upvote(msg)}>Upvote </button>} <span className="bg-secondary border rounded-md p-1 text-secondary-content border-secondary">{upvoted(msg)}</span>
+                            <div className="font-bold items-center">
+                            {!isOwner && !isAnswered(msg) && !alreadyUpvoted &&
+                                <span className="inline-block items-center cursor-pointer focus:border focus:rounded-md" onClick={() => upvote(msg)}>
+                                    <PiThumbsUpLight size={20} />
+                                </span>
+                            } <span className="bg-secondary border rounded-md p-1 text-secondary-content border-secondary">{upvotedBy}</span>
                             </div>
                             <div>
                                 {isOwner && !isAnswered(msg) && <button className="btn btn-sm" onClick={() => publishAnswer(msg)}>Answered</button>}

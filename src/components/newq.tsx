@@ -27,10 +27,10 @@ const NewQuestion = ({ id }: IProps) => {
 
     }
     return (
-        <div className="form-control text-center m-auto max-w-md">
+        <div className="form-control text-center m-auto">
             Ask your question: 
-            <textarea onChange={(e) => setQuestion(e.target.value)} value={question} className="textarea textarea-bordered w-full max-w-md m-auto mb-1"></textarea>
-            <button onClick={() => submit()} disabled={!connected || !submitState} className="btn btn-lg">Submit</button>
+            <textarea onChange={(e) => setQuestion(e.target.value)} value={question} className="textarea textarea-bordered w-full h-44 m-auto mb-1"></textarea>
+            <button onClick={() => submit()} disabled={!connected || !submitState} className="btn btn-lg  lg:w-2/4 w-full md:max-w-full m-auto">Submit</button>
         </div>
     )
 }

@@ -42,7 +42,7 @@ const NewQA = () => {
 
     return (
         <>
-        <div className="border rounded-sm p-10 form-control max-w-md m-auto">
+        <div className="border rounded-md p-10 form-control max-w-md m-auto">
     
             <label className="label">
             <span className="label-text">Title</span>
