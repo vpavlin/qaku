@@ -5,7 +5,7 @@ import { Outlet, useParams } from "react-router-dom";
 import { QakuContextProvider } from "../hooks/useQaku";
 import Control from "../components/control";
 import Activity from "../components/active";
-import logo from "../assets/logo192.png"
+import logo from "../assets/logo512.png"
 
 const Main = () => {
     const {connected, status, start, publish} = useWakuContext()
@@ -37,7 +37,7 @@ const Main = () => {
                     <Outlet />
                 </div>
             </QakuContextProvider>
-            <div className="m-auto my-10 text-center text-lg font-bold"><a href="/"><img className="mask mask-circle" src={logo} />QAKU: Q&A over Waku</a></div>
+            <div className="m-auto my-10 text-center text-lg font-bold"><a href="/"><img className="mask mask-circle" src={logo} width={256} />QAKU: Q&A over Waku</a></div>
         </div>
     )
 }
