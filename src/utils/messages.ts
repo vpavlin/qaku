@@ -32,6 +32,7 @@ export type UpvoteMessage = {
 
 export type AnsweredMessage = {
     hash: string;
+    text: string | undefined
 }
 
 export type ControlMessage = {

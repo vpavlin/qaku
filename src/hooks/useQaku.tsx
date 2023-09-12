@@ -17,7 +17,7 @@ export type QakuInfo = {
     msgEvents: number;
     loading: boolean;
     upvoted: (msq: QuestionMessage) => [number, string[] | undefined];
-    isAnswered: (msg:QuestionMessage) => boolean;
+    isAnswered: (msg:QuestionMessage) => [boolean, AnsweredMessage | undefined];
     switchState: (newState: boolean) => void;
 }
 
@@ -74,10 +74,12 @@ export const QakuContextProvider = ({ id, children }: Props) => {
         setMsgCache((msgs) => [...msgs, parsed])
     }
 
-    const isAnswered = (msg:QuestionMessage):boolean => {
+    const isAnswered = (msg:QuestionMessage): [boolean, AnsweredMessage | undefined] => {
         const hash = sha256(JSON.stringify(msg))
 
-        return answeredMsgs.find((m, i) => m.hash == hash) !== undefined
+        const answerMsg: AnsweredMessage | undefined = answeredMsgs.find((m, i) => m.hash == hash)
+
+        return [answerMsg !== undefined, answerMsg]
     }
 
     const upvoted = (msg:QuestionMessage):[number, string[] | undefined] => {
