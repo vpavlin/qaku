@@ -7,6 +7,11 @@ import { eddsa as EdDSA } from 'elliptic'
 import { sha256 } from "js-sha256";
 import { fromHex, generateKey, loadKey, signMessage, toHex, verifyMessage } from "../utils/crypto";
 
+export type HistoryEntry = {
+    id: string;
+    title: string;
+}
+
 export type QakuInfo = {
     controlState: ControlMessage | undefined;
     questions: QuestionMessage[];
@@ -16,6 +21,8 @@ export type QakuInfo = {
     active: number;
     msgEvents: number;
     loading: boolean;
+    historyAdd: (id: string, title: string) => void
+    getHistory: () => HistoryEntry[]
     upvoted: (msq: QuestionMessage) => [number, string[] | undefined];
     isAnswered: (msg:QuestionMessage) => [boolean, AnsweredMessage | undefined];
     switchState: (newState: boolean) => void;
@@ -46,6 +53,7 @@ interface Props {
 
 
 export const QakuContextProvider = ({ id, children }: Props) => {
+    const [ lastId, setLastId ] = useState(id)
     const [ controlState, setControlState ] = useState<ControlMessage>()
     const [ questions, setQuestions ] = useState<QuestionMessage[]>([])
     const [ key, setKey] = useState<EdDSA.KeyPair>()
@@ -60,8 +68,17 @@ export const QakuContextProvider = ({ id, children }: Props) => {
     const [ msgEvents, setMsgEvents ] = useState<number>(0)
     const [loading, setLoading] = useState(false)
 
+    const [ history, setHistory ] = useState<HistoryEntry[]>([])
+
     const {connected, query, subscribe, publish, node} = useWakuContext()
 
+    const historyAdd = (id: string, title: string) => {
+        setHistory((h) => [...h, {id: id, title: title}])
+    }
+
+    const getHistory = (): HistoryEntry[] => {
+        return history
+    }
    
     const callback_activity = (msg: DecodedMessage) => {
         const decoded:ActivityMessage = JSON.parse(bytesToUtf8(msg.payload))
@@ -150,6 +167,17 @@ export const QakuContextProvider = ({ id, children }: Props) => {
     }
 
     useEffect(() => {
+        if (id != lastId) {
+            setLastId(id)
+            setControlState(undefined)
+            setOwner(false)
+            setQuestions([])
+            setMsgCache([])
+            setActive(1)
+        }
+    }, [id])
+
+    useEffect(() => {
         let k = localStorage.getItem("qaku-key")
         if (!k) {
             const newKey = generateKey()
@@ -158,7 +186,16 @@ export const QakuContextProvider = ({ id, children }: Props) => {
         }
 
         setKey(loadKey(fromHex(k)))
+
+        let h = localStorage.getItem("qaku-history")
+        if (h) {
+            setHistory(JSON.parse(h))
+        }
     }, [])
+
+    useEffect(() => {
+        if (history.length > 0)  localStorage.setItem("qaku-history", JSON.stringify(history))
+    }, [history])
 
     useEffect(() => {
         if (!key) return
@@ -180,6 +217,7 @@ export const QakuContextProvider = ({ id, children }: Props) => {
             callback,
             {
                 pageDirection: PageDirection.FORWARD,
+                pageSize: 100,
             },
         ).then(() => setLoading(false));
 
@@ -257,6 +295,8 @@ export const QakuContextProvider = ({ id, children }: Props) => {
             active,
             upvoted,
             switchState,
+            getHistory,
+            historyAdd,
         }),
         [
             controlState,
@@ -270,6 +310,8 @@ export const QakuContextProvider = ({ id, children }: Props) => {
             active,
             upvoted,
             switchState,
+            getHistory,
+            historyAdd
         ]
     )
 

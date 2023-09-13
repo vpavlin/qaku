@@ -14,7 +14,7 @@ import { CONTENT_TOPIC_MAIN } from "../constants";
 
 const NewQA = () => {
     const {connected, subscribe, publish} = useWakuContext()
-    const { key, pubKey } = useQakuContext()
+    const { key, pubKey, historyAdd } = useQakuContext()
     const navigate = useNavigate();
 
 
@@ -37,7 +37,10 @@ const NewQA = () => {
 
         const result = await publish(CONTENT_TOPIC_MAIN(hash), JSON.stringify(msg))
 
-        if (result && !result.error) navigate("/q/"+hash)
+        if (result && !result.error) {
+            historyAdd(hash, title)
+            navigate("/q/"+hash)
+        }
     }
 
     return (

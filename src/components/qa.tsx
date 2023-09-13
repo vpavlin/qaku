@@ -9,6 +9,7 @@ import { signMessage } from "../utils/crypto";
 import { CONTENT_TOPIC_MAIN } from "../constants";
 import { useWakuContext } from "../hooks/useWaku";
 import { PiThumbsUpLight} from "react-icons/pi";
+import ReactMarkdown from "react-markdown";
 
 const QA = () => {
 
@@ -83,8 +84,10 @@ const QA = () => {
                     const [answered, answerMsg] = isAnswered(msg)
 
                     return <div key={i.toString()} className={`border rounded-xl p-3 my-2 focus:shadow-md hover:shadow-md hover:-mx-1 hover:transition-all ${answered && "opacity-60 bg-success text-success-content"} hover:opacity-100`}>
-                        <div className="text-left">{msg.question}</div>
-                        { answered && answerMsg!.text && <div className="text-right pl-2 mb-2 font-bold border-t border-white"><pre className="font-sans">{answerMsg?.text}</pre></div>}
+                        <div className="text-left">
+                            <ReactMarkdown children={msg.question} />
+                        </div>
+                        { answered && answerMsg!.text && <div className="text-right pl-2 mb-2 font-bold border-t border-white"> <ReactMarkdown children={answerMsg?.text!} /></div>}
                         <div className={`text-right text-sm flex gap-x-2 justify-end items-center`}>
                             <div className="font-bold items-center">
                             {!isOwner && !answered && !alreadyUpvoted &&
@@ -99,10 +102,9 @@ const QA = () => {
                                         setAnswer("");
                                         (document.getElementById('answer_modal') as HTMLDialogElement).showModal()
                                         }}>Answer</button>
-                                    <button className="btn btn-sm mx-1" onClick={() => publishAnswer(msg)}>Mark answered</button>     
                                     <dialog id="answer_modal" className="modal">
                                         <div className="modal-box text-left">
-                                            <div className="text-left m-2">{msg.question}</div>
+                                            <div className="text-left m-2"><ReactMarkdown>{msg.question}</ReactMarkdown></div>
                                             <div className="font-bold m-1">Answer</div>
                                             <textarea onChange={(e) => setAnswer(e.target.value)} value={answer} className="textarea textarea-bordered w-full h-44 m-auto mb-1"></textarea>
                                             <div className="modal-action">
