@@ -44,14 +44,16 @@ const Main = () => {
                             <div></div>
                         }
                         <Outlet />
-                        <div className="lg:absolute left-10 top-10 items-center justify-center text-center">
-                            <div className="text-2xl">Share this Q&A:</div>
-                            <div className="m-2 underline">
-                                <a target="_blank" href={link}>{link}</a>
+                        { id &&
+                            <div className="lg:absolute left-10 top-10 items-center justify-center text-center">
+                                <div className="text-2xl">Share this Q&A:</div>
+                                <div className="m-2 underline">
+                                    <a target="_blank" href={link}>{link}</a>
+                                </div>
+                                <div><QRCode value={link} className="m-auto" /></div>
+                                <div><a className="btn m-1" target="_blank" href={`https://twitter.com/intent/tweet?text=${escape(`Come ask your questions at\n\n ${link}`.replaceAll("\\n", "%0a"))}`}>Tweet the Q&A</a></div>
                             </div>
-                            <div><QRCode value={link} className="m-auto" /></div>
-                            <div><a className="btn m-1" target="_blank" href={`https://twitter.com/intent/tweet?text=${escape(`Come ask your questions at\n\n ${link}`.replaceAll("\\n", "%0a"))}`}>Tweet the Q&A</a></div>
-                        </div>
+                        }
                     </div> 
                     
                 </div>
@@ -65,7 +67,7 @@ const Main = () => {
                             <li><Link to={"/"}>New Q&A</Link></li>
                             <li>
                             <details open>
-                                <summary>History</summary>
+                                <summary>Your Q&As</summary>
                                 <ul>
                                     <History />
                                 </ul>
