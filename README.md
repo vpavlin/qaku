@@ -1,6 +1,10 @@
-# Getting Started with Create React App
+# QAKU: Q&A over Waku
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+This repository contains a simple app based on [Waku](https://waku.org) - a family of robust, censorship-resistant communication protocols designed to enable privacy-focused messaging for web3 apps.
+
+QAKU, or Questions & Answers over Waku is an application allowing you to create a Q&A board, share a link and let users post questions. You as an owner have a control over the Q&A - can enable/disable it or answer the questions. Users can also upvote questions which then bubble up to the top of the list.
+
+You can use it at qaku.myrandomdemos.online
 
 ## Available Scripts
 

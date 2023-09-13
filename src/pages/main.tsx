@@ -1,19 +1,22 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import NewQA from "../components/new";
 import { useWakuContext } from "../hooks/useWaku";
-import { Link, Outlet, useParams } from "react-router-dom";
+import { Link, Outlet, useNavigate, useParams } from "react-router-dom";
 import { QakuContextProvider } from "../hooks/useQaku";
 import Control from "../components/control";
-import History from "../components/history";
+import History, { Visited } from "../components/history";
 import Status from "../components/status";
 import logo from "../assets/logo512.png"
-import { HiOutlineMenu } from "react-icons/hi"
+import { HiChevronDoubleRight, HiOutlineMenu } from "react-icons/hi"
 import QRCode from "react-qr-code";
 
 const Main = () => {
     const {connected, start} = useWakuContext()
     let { id } = useParams<"id">();
+    const [ searchId, setSearchId ] = useState<string>()
 
+    const navigate = useNavigate();
+    
     const link = `${window.location.protocol}//${window.location.host}/q/${id}`
     
     useEffect(() => {
@@ -27,8 +30,8 @@ const Main = () => {
         <QakuContextProvider id={id}>
             <div className="drawer lg:drawer-open">
                 <input id="my-drawer-2" type="checkbox" className="drawer-toggle" />
-                <div className="drawer-content flex flex-col items-center justify-center">
-                <div className="p-4 text- w-full">
+                <div className="drawer-content flex justify-center">
+                <div className="p-4  w-full">
                     <div className="flex bg-accent h-fit rounded-lg items-center p-1 mb-2">
                         <label htmlFor="my-drawer-2" className="btn btn-neutral drawer-button lg:hidden flex-col"><HiOutlineMenu /></label>
                         <Status />
@@ -50,7 +53,7 @@ const Main = () => {
                                 <div className="m-2 underline">
                                     <a target="_blank" href={link}>{link}</a>
                                 </div>
-                                <div><QRCode value={link} className="m-auto" /></div>
+                                <div className="m-auto w-fit"><QRCode value={link} className="m-auto" /></div>
                                 <div><a className="btn m-1" target="_blank" href={`https://twitter.com/intent/tweet?text=${escape(`Come ask your questions at\n\n ${link}`.replaceAll("\\n", "%0a"))}`}>Tweet the Q&A</a></div>
                             </div>
                         }
@@ -72,8 +75,18 @@ const Main = () => {
                                     <History />
                                 </ul>
                             </details>
+                            <details>
+                                <summary>Visited Q&As</summary>
+                                <ul>
+                                    <Visited />
+                                </ul>
+                            </details>
                             </li>
                     </ul>
+                    <div className="divider">Go To</div>
+                    <div className="flex mx-auto items-center place-items-center align-middle">
+                        <input type="text" className="input flex-col" placeholder="Q&A ID" size={10} onChange={(e) => setSearchId(e.target.value)} /><div className="btn mx-2 h-full flex-col bg-base-300" onClick={() => searchId && navigate(`/q/${searchId}`)}><HiChevronDoubleRight size={22} /></div>
+                    </div>
                     <div className="m-auto my-10 text-center text-lg font-bold items-center justify-center">
                        
                         <a href="/">

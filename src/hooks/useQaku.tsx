@@ -21,6 +21,7 @@ export type QakuInfo = {
     active: number;
     msgEvents: number;
     loading: boolean;
+    visited: HistoryEntry[]
     historyAdd: (id: string, title: string) => void
     getHistory: () => HistoryEntry[]
     upvoted: (msq: QuestionMessage) => [number, string[] | undefined];
@@ -53,7 +54,7 @@ interface Props {
 
 
 export const QakuContextProvider = ({ id, children }: Props) => {
-    const [ lastId, setLastId ] = useState(id)
+    const [ lastId, setLastId ] = useState<string>()
     const [ controlState, setControlState ] = useState<ControlMessage>()
     const [ questions, setQuestions ] = useState<QuestionMessage[]>([])
     const [ key, setKey] = useState<EdDSA.KeyPair>()
@@ -69,6 +70,7 @@ export const QakuContextProvider = ({ id, children }: Props) => {
     const [loading, setLoading] = useState(false)
 
     const [ history, setHistory ] = useState<HistoryEntry[]>([])
+    const [ visited, setVisited ] = useState<HistoryEntry[]>([])
 
     const {connected, query, subscribe, publish, node} = useWakuContext()
 
@@ -191,6 +193,11 @@ export const QakuContextProvider = ({ id, children }: Props) => {
         if (h) {
             setHistory(JSON.parse(h))
         }
+
+        let v = localStorage.getItem("qaku-visited")
+        if (v) {
+            setVisited(JSON.parse(v))
+        }
     }, [])
 
     useEffect(() => {
@@ -198,12 +205,23 @@ export const QakuContextProvider = ({ id, children }: Props) => {
     }, [history])
 
     useEffect(() => {
+        if (visited.length > 0)  localStorage.setItem("qaku-visited", JSON.stringify(visited))
+    }, [visited])
+
+    useEffect(() => {
         if (!key) return
         setPubKey(toHex(key.getPublic()))
     }, [key])
 
     useEffect(() => {
-        if (!controlState || !pubKey) return
+        if (!controlState || !pubKey || !id) return
+
+        setVisited((v) => {
+            const exist = v.find((e) => e.id == id)
+            if (!exist) return [...v, {id: id!, title: controlState.title}]
+
+            return v
+        })
 
         setOwner(controlState.owner == pubKey)
     }, [controlState, pubKey])
@@ -291,6 +309,7 @@ export const QakuContextProvider = ({ id, children }: Props) => {
             isOwner,
             msgEvents,
             loading,
+            visited,
             isAnswered,
             active,
             upvoted,
@@ -306,6 +325,7 @@ export const QakuContextProvider = ({ id, children }: Props) => {
             isOwner,
             msgEvents,
             loading,
+            visited,
             isAnswered,
             active,
             upvoted,

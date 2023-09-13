@@ -89,10 +89,10 @@ const QA = () => {
                         </div>
                         { answered && answerMsg!.text && <div className="text-right pl-2 mb-2 font-bold border-t border-white"> <ReactMarkdown children={answerMsg?.text!} /></div>}
                         <div className={`text-right text-sm flex gap-x-2 justify-end items-center`}>
-                            <div className="font-bold items-center">
+                            <div className="font-bold items-center flex">
                             {!isOwner && !answered && !alreadyUpvoted &&
-                                <span className="inline-block items-center cursor-pointer focus:border focus:rounded-md" onClick={() => upvote(msg)}>
-                                    <PiThumbsUpLight size={20} />
+                                <span className="items-center cursor-pointer m-1 hover:bg-secondary p-1 hover:rounded-lg" onClick={() => upvote(msg)}>
+                                    <PiThumbsUpLight size={25} className="" />
                                 </span>
                             } <span className={`bg-secondary border rounded-md p-1 text-secondary-content border-secondary ${answered && "bg-primary"}`}>{upvotedBy}</span>
                             </div>

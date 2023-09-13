@@ -12,4 +12,15 @@ const History = () => {
     )
 }
 
+export const Visited = () => {
+    const {visited} = useQakuContext()
+    return (
+        <>
+            {
+                visited.reverse().map((entry) => <li key={entry.id} className="m-1"><Link to={`/q/${entry.id}/`}>{entry.title}</Link></li>)
+            }
+        </>
+    )
+}
+
 export default History;
