@@ -17,7 +17,7 @@ export const Visited = () => {
     return (
         <>
             {
-                visited.reverse().map((entry) => <li key={entry.id} className="m-1"><Link to={`/q/${entry.id}/`}>{entry.title}</Link></li>)
+                visited.slice(0).reverse().map((entry) => <li key={entry.id} className="m-1"><Link to={`/q/${entry.id}/`}>{entry.title}</Link></li>)
             }
         </>
     )
