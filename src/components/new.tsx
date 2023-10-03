@@ -1,20 +1,14 @@
 import { useState } from "react";
 import { useWakuContext } from "../hooks/useWaku";
-import { DecodedMessage, bytesToUtf8 } from "@waku/sdk";
-import { SendResult } from "@waku/sdk";
 import { sha256 } from "js-sha256";
-import { unsubscribe } from "diagnostics_channel";
 import { useNavigate } from "react-router-dom";
 import { useQakuContext } from "../hooks/useQaku";
-import { signMessage } from "../utils/crypto";
 import { ControlMessage, MessageType, QakuMessage } from "../utils/messages";
 import { CONTENT_TOPIC_MAIN } from "../constants";
 
-
-
 const NewQA = () => {
     const {connected, subscribe, publish} = useWakuContext()
-    const { key, pubKey, historyAdd } = useQakuContext()
+    const { wallet, historyAdd } = useQakuContext()
     const navigate = useNavigate();
 
 
@@ -23,14 +17,14 @@ const NewQA = () => {
 
 
     const submit = async () => {
-        if (!connected || !title || !key || !pubKey) return
+        if (!connected || !title || !wallet) return
 
         const ts = new Date();
         const hash = sha256(title + ts.toString()).slice(0, 8)
 
-        const cmsg:ControlMessage = {title: title, id: hash, enabled: true, timestamp: new Date(), owner: pubKey, admins: []}
-        const msg:QakuMessage = {signer: pubKey, signature: undefined, payload: JSON.stringify(cmsg), type: MessageType.CONTROL_MESSAGE}
-        const sig = signMessage(key, JSON.stringify(cmsg))
+        const cmsg:ControlMessage = {title: title, id: hash, enabled: true, timestamp: new Date(), owner: wallet.address, admins: []}
+        const msg:QakuMessage = {signer: wallet.address, signature: undefined, payload: JSON.stringify(cmsg), type: MessageType.CONTROL_MESSAGE}
+        const sig = wallet.signMessageSync(JSON.stringify(cmsg))
         if (!sig) return
         
         msg.signature = sig

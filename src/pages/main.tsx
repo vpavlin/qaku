@@ -9,6 +9,7 @@ import Status from "../components/status";
 import logo from "../assets/logo512.png"
 import { HiChevronDoubleRight, HiOutlineMenu } from "react-icons/hi"
 import QRCode from "react-qr-code";
+import User from "../components/user";
 
 const Main = () => {
     const {connected, start} = useWakuContext()
@@ -87,12 +88,16 @@ const Main = () => {
                     <div className="flex mx-auto items-center place-items-center align-middle">
                         <input type="text" className="input flex-col" placeholder="Q&A ID" size={10} onChange={(e) => setSearchId(e.target.value)} /><div className="btn mx-2 h-full flex-col bg-base-300" onClick={() => searchId && navigate(`/q/${searchId}`)}><HiChevronDoubleRight size={22} /></div>
                     </div>
+                    <div className="divider">User</div>
+                    <div>
+                       <User />
+                    </div>
                     <div className="m-auto my-10 text-center text-lg font-bold items-center justify-center">
                        
-                        <a href="/">
+                        <Link to="/">
                             <img className="mask mask-circle" src={logo} width={256} />
                             QAKU: Q&A over Waku
-                        </a>
+                        </Link>
                         </div>               
                     </div>
 

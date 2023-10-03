@@ -59,7 +59,7 @@ export const parseControlMessage = (msg: QakuMessage): ControlMessage | undefine
 
     if (parsed.title == "") return
     if (!msg.signature || msg.signature == "") return
-    if (!verifyMessage(msg.payload, msg.signature, fromHex(msg.signer))) return
+    if (!verifyMessage(msg.payload, msg.signature, msg.signer)) return
 
     return parsed
 }
@@ -76,7 +76,7 @@ export const parseUpvoteMessage = (msg: QakuMessage): UpvoteMessage | undefined 
     const parsed: UpvoteMessage = JSON.parse(msg.payload)
     if (!parsed.hash || parsed.hash == "") return
     if (!msg.signature || msg.signature == "") return
-    if (!verifyMessage(msg.payload, msg.signature, fromHex(msg.signer))) return
+    if (!verifyMessage(msg.payload, msg.signature, msg.signer)) return
 
     return parsed
 }
@@ -85,7 +85,7 @@ export const parseAnsweredMessage = (msg: QakuMessage): AnsweredMessage | undefi
     const parsed: AnsweredMessage = JSON.parse(msg.payload)
     if (!parsed.hash || parsed.hash == "") return
     if (!msg.signature || msg.signature == "") return
-    if (!verifyMessage(msg.payload, msg.signature, fromHex(msg.signer))) return
+    if (!verifyMessage(msg.payload, msg.signature, msg.signer)) return
 
     return parsed
 }

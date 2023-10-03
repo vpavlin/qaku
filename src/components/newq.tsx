@@ -10,15 +10,15 @@ interface IProps {
 
 const NewQuestion = ({ id }: IProps) => {
     const {connected, publish} = useWakuContext()
-    const { pubKey } = useQakuContext()
+    const { wallet } = useQakuContext()
 
     const [submitState, setSubmitState] = useState(true)
     const [question, setQuestion] = useState<string>("")
     const submit = () => {
-        if (!connected || !question || !pubKey) return
+        if (!connected || !question || !wallet) return
 
         const qmsg:QuestionMessage = {question: question, timestamp: new Date()}
-        const msg:QakuMessage = {payload: JSON.stringify(qmsg), signer: pubKey, signature: undefined, type: MessageType.QUESTION_MESSAGE}
+        const msg:QakuMessage = {payload: JSON.stringify(qmsg), signer: wallet.address, signature: undefined, type: MessageType.QUESTION_MESSAGE}
         setSubmitState(false)
         publish(CONTENT_TOPIC_MAIN(id), JSON.stringify(msg)).then((v) => {
             setQuestion("")

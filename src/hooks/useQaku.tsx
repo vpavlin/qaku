@@ -3,9 +3,10 @@ import { ActivityMessage, AnsweredMessage, ControlMessage, MessageType, QakuMess
 import { useWakuContext } from "./useWaku";
 import { DecodedMessage, PageDirection, StoreQueryOptions, bytesToUtf8, createDecoder } from "@waku/sdk";
 import { CONTENT_TOPIC_ACTIVITY, CONTENT_TOPIC_MAIN } from "../constants";
-import { eddsa as EdDSA } from 'elliptic'
 import { sha256 } from "js-sha256";
-import { fromHex, generateKey, loadKey, signMessage, toHex, verifyMessage } from "../utils/crypto";
+import { toHex } from "../utils/crypto";
+import { generatePrivateKey, getPublicKey } from "@waku/message-encryption";
+import { Wallet } from "ethers";
 
 export type HistoryEntry = {
     id: string;
@@ -15,8 +16,7 @@ export type HistoryEntry = {
 export type QakuInfo = {
     controlState: ControlMessage | undefined;
     questions: QuestionMessage[];
-    key: EdDSA.KeyPair | undefined;
-    pubKey: string |undefined;
+    wallet: Wallet | undefined;
     isOwner: boolean;
     active: number;
     msgEvents: number;
@@ -27,6 +27,7 @@ export type QakuInfo = {
     upvoted: (msq: QuestionMessage) => [number, string[] | undefined];
     isAnswered: (msg:QuestionMessage) => [boolean, AnsweredMessage | undefined];
     switchState: (newState: boolean) => void;
+    importPrivateKey: (key: string) => void;
 }
 
 export type QakuContextData = {
@@ -57,8 +58,7 @@ export const QakuContextProvider = ({ id, children }: Props) => {
     const [ lastId, setLastId ] = useState<string>()
     const [ controlState, setControlState ] = useState<ControlMessage>()
     const [ questions, setQuestions ] = useState<QuestionMessage[]>([])
-    const [ key, setKey] = useState<EdDSA.KeyPair>()
-    const [ pubKey, setPubKey] = useState<string>()
+    const [ wallet, setWallet] = useState<Wallet>()
     const [ isOwner, setOwner ] = useState<boolean>(false)
     const [ active, setActive ] = useState<number>(0)
     const [ activeList, setActiveList ] = useState<ActivityMessage[]>([])
@@ -103,9 +103,7 @@ export const QakuContextProvider = ({ id, children }: Props) => {
 
     const upvoted = (msg:QuestionMessage):[number, string[] | undefined] => {
         const hash = sha256(JSON.stringify(msg))
-
         const u = upvotes.get(hash)
-
         return [u ? u.length : 0, u]
     }
 
@@ -122,7 +120,6 @@ export const QakuContextProvider = ({ id, children }: Props) => {
   
                 if (!qmsg) break
                 if (!controlState?.enabled) break
-                console.log(msg.payload)
 
                 setQuestions((q) => unique<QuestionMessage>([...q, qmsg]))
 
@@ -155,17 +152,28 @@ export const QakuContextProvider = ({ id, children }: Props) => {
     }
 
     const switchState = (newState: boolean) => {
-        if (!id || !controlState || !connected || !key || !pubKey) return
+        if (!id || !controlState || !connected || !wallet) return
 
         const cmsg:ControlMessage = {title: controlState.title, id: controlState.id, enabled: newState, timestamp: new Date(), owner: controlState.owner, admins: controlState.admins}
         
-        const msg:QakuMessage = {type: MessageType.CONTROL_MESSAGE, payload: JSON.stringify(cmsg), signer: pubKey!, signature: undefined}
-        const sig = signMessage(key, JSON.stringify(cmsg))
+        const msg:QakuMessage = {type: MessageType.CONTROL_MESSAGE, payload: JSON.stringify(cmsg), signer: wallet.address, signature: undefined}
+        const sig = wallet.signMessageSync(JSON.stringify(cmsg))
         if (!sig) return
    
         msg.signature = sig
 
         publish(CONTENT_TOPIC_MAIN(id), JSON.stringify(msg))
+    }
+
+    const importPrivateKey = (result: string) => {
+        const parsed = JSON.parse(result)
+        const w = new Wallet(parsed.key)
+        localStorage.setItem("qaku-key", w.privateKey)
+
+        setHistory(parsed.history)
+        
+        window.location.reload()
+
     }
 
     useEffect(() => {
@@ -182,12 +190,16 @@ export const QakuContextProvider = ({ id, children }: Props) => {
     useEffect(() => {
         let k = localStorage.getItem("qaku-key")
         if (!k) {
-            const newKey = generateKey()
-            k = toHex(newKey.getSecret())
-            localStorage.setItem("qaku-key", k)
+            const newKey = generatePrivateKey()
+            const w = new Wallet(toHex(newKey))
+            localStorage.setItem("qaku-key", w.privateKey)
+            k = w.privateKey
         }
 
-        setKey(loadKey(fromHex(k)))
+        const w = new Wallet(k)
+        setWallet(w)
+  
+        //setKey(new Wallet(k))
 
         let h = localStorage.getItem("qaku-history")
         if (h) {
@@ -209,12 +221,7 @@ export const QakuContextProvider = ({ id, children }: Props) => {
     }, [visited])
 
     useEffect(() => {
-        if (!key) return
-        setPubKey(toHex(key.getPublic()))
-    }, [key])
-
-    useEffect(() => {
-        if (!controlState || !pubKey || !id) return
+        if (!controlState || !wallet || !id) return
 
         setVisited((v) => {
             const exist = v.find((e) => e.id == id)
@@ -223,11 +230,11 @@ export const QakuContextProvider = ({ id, children }: Props) => {
             return v
         })
 
-        setOwner(controlState.owner == pubKey)
-    }, [controlState, pubKey])
+        setOwner(controlState.owner == wallet.address)
+    }, [controlState, wallet])
 
     useEffect(() => {
-        if (!connected || !id || !key || !pubKey || !node) return
+        if (!connected || !id || !wallet || !node) return
         setLoading(true) 
 
         node.store.queryOrderedCallback(
@@ -250,13 +257,13 @@ export const QakuContextProvider = ({ id, children }: Props) => {
                 }
             }
         }
-    }, [connected, id, key, pubKey, node])
+    }, [connected, id, wallet, node])
 
     useEffect(() => {
-        if (!id || !connected || !key || !pubKey) return
+        if (!id || !connected || !wallet) return
 
         const tracker = setInterval(async () => {
-            const msg:ActivityMessage = {pubKey: pubKey!}
+            const msg:ActivityMessage = {pubKey: wallet.address!}
             try {
                 await publish(CONTENT_TOPIC_ACTIVITY(id), JSON.stringify(msg))
             } catch (e) {
@@ -283,7 +290,7 @@ export const QakuContextProvider = ({ id, children }: Props) => {
         return () => {
             clearInterval(tracker)
         }
-    }, [id, connected, key, pubKey])
+    }, [id, connected, wallet])
 
     useEffect(() => {
         if (!activeList) return
@@ -298,14 +305,11 @@ export const QakuContextProvider = ({ id, children }: Props) => {
         handleMessage(msg, controlState)
     }, [msgCache])
 
-
-
     const qakuInfo = useMemo(
         () => ({
             controlState,
             questions,
-            key,
-            pubKey,
+            wallet,
             isOwner,
             msgEvents,
             loading,
@@ -316,12 +320,12 @@ export const QakuContextProvider = ({ id, children }: Props) => {
             switchState,
             getHistory,
             historyAdd,
+            importPrivateKey,
         }),
         [
             controlState,
             questions,
-            key,
-            pubKey,
+            wallet,
             isOwner,
             msgEvents,
             loading,
@@ -331,7 +335,8 @@ export const QakuContextProvider = ({ id, children }: Props) => {
             upvoted,
             switchState,
             getHistory,
-            historyAdd
+            historyAdd,
+            importPrivateKey,
         ]
     )
 

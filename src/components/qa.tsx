@@ -1,11 +1,9 @@
-import { useParams } from "react-router-dom";
 import NewQuestion from "./newq";
 import { useEffect, useState } from "react";
 
 import { AnsweredMessage, MessageType, QakuMessage, QuestionMessage, UpvoteMessage, unique } from "../utils/messages";
 import { useQakuContext } from "../hooks/useQaku";
 import { sha256 } from "js-sha256";
-import { signMessage } from "../utils/crypto";
 import { CONTENT_TOPIC_MAIN } from "../constants";
 import { useWakuContext } from "../hooks/useWaku";
 import { PiThumbsUpLight} from "react-icons/pi";
@@ -22,7 +20,7 @@ type EnhancedQuestionMessage = {
 
 const QA = () => {
 
-    const  { controlState, questions, isAnswered, isOwner, pubKey, key, upvoted, msgEvents } = useQakuContext()
+    const  { controlState, questions, isAnswered, isOwner, wallet, upvoted, msgEvents } = useQakuContext()
     const {connected, publish} = useWakuContext()
     const [localQuestions, setLocalQuestions] = useState<EnhancedQuestionMessage[]>([])
     const [ answer, setAnswer ] = useState<string>()
@@ -30,14 +28,14 @@ const QA = () => {
 
 
     const publishAnswer =  async (qmsg:QuestionMessage, answer?: string) => {
-        if (!key || !pubKey || !connected || !controlState) return
+        if (!wallet || !connected || !controlState) return
         const hash = sha256(JSON.stringify(qmsg))
 
         const amsg:AnsweredMessage = { hash: hash, text: answer }
-        const msg:QakuMessage = {payload: JSON.stringify(amsg), type: MessageType.ANSWERED_MESSAGE, signer: pubKey!, signature: undefined}
+        const msg:QakuMessage = {payload: JSON.stringify(amsg), type: MessageType.ANSWERED_MESSAGE, signer: wallet.address, signature: undefined}
 
 
-        const sig = signMessage(key, JSON.stringify(amsg))
+        const sig = wallet.signMessageSync(JSON.stringify(amsg))
         if (!sig) return
 
         msg.signature = sig
@@ -47,14 +45,14 @@ const QA = () => {
     }
 
     const upvote = async (qmsg: QuestionMessage) => {
-
-        if (!key || !pubKey || !connected || !controlState) return
+        if (!wallet || !connected || !controlState) return
+        
         const hash = sha256(JSON.stringify(qmsg))
 
         const amsg:UpvoteMessage = {hash: hash}
-        const msg:QakuMessage = {payload: JSON.stringify(amsg), type: MessageType.UPVOTE_MESSAGE, signer: pubKey!, signature: undefined}
+        const msg:QakuMessage = {payload: JSON.stringify(amsg), type: MessageType.UPVOTE_MESSAGE, signer: wallet.address, signature: undefined}
 
-        const sig = signMessage(key, JSON.stringify(amsg))
+        const sig = wallet.signMessageSync(JSON.stringify(amsg))
         if (!sig) return
 
         msg.signature = sig
@@ -90,7 +88,7 @@ const QA = () => {
             const [u, upvoters] = upvoted(q)
             const [answered, answerMsg] = isAnswered(q)
 
-            const lq: EnhancedQuestionMessage = {question: q.question, timestamp: q.timestamp, answer: answerMsg && answerMsg.text, answered: answered, upvotes: u, upvotedByMe: !!(upvoters && pubKey && upvoters.indexOf(pubKey) >= 0)}
+            const lq: EnhancedQuestionMessage = {question: q.question, timestamp: q.timestamp, answer: answerMsg && answerMsg.text, answered: answered, upvotes: u, upvotedByMe: !!(upvoters && wallet && upvoters.indexOf(wallet.address) >= 0)}
             return lq
         }).sort((a:EnhancedQuestionMessage, b:EnhancedQuestionMessage) => {
             
@@ -125,7 +123,7 @@ const QA = () => {
                         <div className={`text-right text-sm flex gap-x-2 justify-end items-center`}>
                             <div className="font-bold items-center flex">
                             {!isOwner && !msg.answered && !msg.upvotedByMe &&
-                                <span className="items-center cursor-pointer m-1 hover:bg-secondary p-1 hover:rounded-lg" onClick={() => upvote(msg)}>
+                                <span className="items-center cursor-pointer m-1 hover:bg-secondary p-1 hover:rounded-lg" onClick={() => upvote({question: msg.question, timestamp: msg.timestamp})}>
                                     <PiThumbsUpLight size={25} className="" />
                                 </span>
                             } <span className={`bg-secondary border rounded-md p-1 text-secondary-content border-secondary ${msg.answered && "bg-primary"}`}>{msg.upvotes}</span>
