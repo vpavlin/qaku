@@ -168,7 +168,7 @@ export const QakuContextProvider = ({ id, children }: Props) => {
     const importPrivateKey = (result: string) => {
         const parsed = JSON.parse(result)
         const w = new Wallet(parsed.key)
-        localStorage.setItem("qaku-key", w.privateKey)
+        localStorage.setItem("qaku-key-v2", w.privateKey)
 
         setHistory(parsed.history)
         
@@ -188,19 +188,17 @@ export const QakuContextProvider = ({ id, children }: Props) => {
     }, [id])
 
     useEffect(() => {
-        let k = localStorage.getItem("qaku-key")
+        let k = localStorage.getItem("qaku-key-v2")
         if (!k) {
             const newKey = generatePrivateKey()
             const w = new Wallet(toHex(newKey))
-            localStorage.setItem("qaku-key", w.privateKey)
+            localStorage.setItem("qaku-key-v2", w.privateKey)
             k = w.privateKey
         }
 
         const w = new Wallet(k)
         setWallet(w)
   
-        //setKey(new Wallet(k))
-
         let h = localStorage.getItem("qaku-history")
         if (h) {
             setHistory(JSON.parse(h))

@@ -19,15 +19,15 @@ const Control = ({id}: IProps) => {
     }, [controlState])
     return (
         <>
-            { isOwner &&
-                
+            { controlState &&
+                <>
                 <div className="m-auto max-w-md text-center">
-                    {controlState && <>
+                    {isOwner && <div>
                         <h1 className="font-bold">{controlState.title} ({ enabled ? "enabled" : "disabled"})</h1>
-                        <div><button onClick={() => switchState(!enabled)} disabled={!id || !controlState} className={`btn`}>{ enabled ? "disable" : "enable"}</button></div>
-                    </>
-                    }
+                        <div className=""><button onClick={() => switchState(!enabled)} disabled={!id || !controlState} className={`btn`}>{ enabled ? "disable" : "enable"}</button></div>
+                    </div>}
                 </div>
+                </>
             }
         </>
     )

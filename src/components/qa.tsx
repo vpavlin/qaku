@@ -103,6 +103,9 @@ const QA = () => {
     
     return (
         <div className="mt-5 text-center max-w-2xl m-auto">
+            { controlState &&
+                <div>Owner: {controlState.owner.slice(0, 7)+"..."+controlState.owner.slice(controlState.owner.length-5)}</div>
+            }
             <div className="mb-5">
                 { localQuestions.length > 0 && isOwner && <button className="btn" onClick={()=> saveTemplateAsFile("data.json", localQuestions)}>Download</button>}
             </div>
