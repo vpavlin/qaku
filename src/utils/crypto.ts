@@ -5,8 +5,13 @@ import { ethers } from 'ethers';
 
 
 export const verifyMessage = (message:string, signature:string, publicKey: string) => {
-    const signer = ethers.verifyMessage(message, signature)
-    return signer == publicKey
+    try {
+      const signer = ethers.verifyMessage(message, signature)
+      return signer == publicKey
+    } catch {
+      return false
+    }
+
 }
 
 export const toHex = (arr:any):string => {
