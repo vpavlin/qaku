@@ -82,7 +82,7 @@ const User = () => {
                     />}
                     <div className="modal-action">
                     <form method="dialog">
-                        <button className="btn btn-sm m-1">Close</button>
+                        <button className="btn btn-sm m-1" onClick={() => setScanner(false)}>Close</button>
                     </form>
                     </div>
                 </div>

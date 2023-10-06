@@ -49,7 +49,7 @@ const Main = () => {
                         }
                         <Outlet />
                         { id &&
-                            <div className="lg:absolute left-10 top-10 items-center justify-center text-center">
+                            <div className="min-[1750px]:absolute left-10 top-10 items-center justify-center text-center">
                                 <div className="text-2xl">Share this Q&A:</div>
                                 <div className="m-2 underline">
                                     <a target="_blank" href={link}>{link}</a>
