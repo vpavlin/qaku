@@ -14,6 +14,7 @@ const NewQA = () => {
 
     const [title, setTitle] = useState<string>()
     const [enabled, setEnabled] = useState<boolean>(true)
+    const [moderation, SetModeration] = useState<boolean>(false)
 
 
     const submit = async () => {
@@ -22,7 +23,7 @@ const NewQA = () => {
         const ts = new Date();
         const hash = sha256(title + ts.toString()).slice(0, 8)
 
-        const cmsg:ControlMessage = {title: title, id: hash, enabled: true, timestamp: new Date(), owner: wallet.address, admins: []}
+        const cmsg:ControlMessage = {title: title, id: hash, enabled: enabled, timestamp: new Date(), owner: wallet.address, admins: [], moderation: moderation}
         const msg:QakuMessage = {signer: wallet.address, signature: undefined, payload: JSON.stringify(cmsg), type: MessageType.CONTROL_MESSAGE}
         const sig = wallet.signMessageSync(JSON.stringify(cmsg))
         if (!sig) return
@@ -48,6 +49,10 @@ const NewQA = () => {
             <label className="label">
                 <input type="checkbox" checked={enabled} className="checkbox" onChange={(e) => setEnabled(e.target.checked)} />
                 <span className="label-text">Enabled</span>
+            </label>
+            <label className="label">
+                <input type="checkbox" checked={moderation} className="checkbox" onChange={(e) => SetModeration(e.target.checked)} />
+                <span className="label-text">Enable Owner Moderation</span>
             </label>
             
             <button onClick={() => submit()} disabled={!connected} className="btn">Submit</button>

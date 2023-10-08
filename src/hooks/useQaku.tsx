@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useMemo, useState } from "react";
-import { ActivityMessage, AnsweredMessage, ControlMessage, MessageType, QakuMessage, QuestionMessage, parseAnsweredMessage, parseControlMessage, parseQakuMessage, parseQuestionMessage, parseUpvoteMessage, unique } from "../utils/messages";
+import { ActivityMessage, AnsweredMessage, ControlMessage, MessageType, ModerationMessage, QakuMessage, QuestionMessage, parseAnsweredMessage, parseControlMessage, parseModerationMessage, parseQakuMessage, parseQuestionMessage, parseUpvoteMessage, unique } from "../utils/messages";
 import { useWakuContext } from "./useWaku";
 import { DecodedMessage, PageDirection, StoreQueryOptions, bytesToUtf8, createDecoder } from "@waku/sdk";
 import { CONTENT_TOPIC_ACTIVITY, CONTENT_TOPIC_MAIN } from "../constants";
@@ -28,6 +28,7 @@ export type QakuInfo = {
     isAnswered: (msg:QuestionMessage) => [boolean, AnsweredMessage | undefined];
     switchState: (newState: boolean) => void;
     importPrivateKey: (key: string) => void;
+    isModerated: (msg: QuestionMessage) => boolean;
 }
 
 export type QakuContextData = {
@@ -65,6 +66,7 @@ export const QakuContextProvider = ({ id, children }: Props) => {
 
     const [ msgCache, setMsgCache ] = useState<QakuMessage[]>([])
     const [ answeredMsgs, setAnsweredMsgs ] = useState<AnsweredMessage[]>([])
+    const [ moderatedMsgs, setModeratedMsgs ] = useState<Map<string, boolean>>(new Map<string, boolean>())
     const [ upvotes, setUpvotes ] = useState<Map<string, string[]>>(new Map<string, string[]>())
     const [ msgEvents, setMsgEvents ] = useState<number>(0)
     const [loading, setLoading] = useState(false)
@@ -91,6 +93,15 @@ export const QakuContextProvider = ({ id, children }: Props) => {
         const parsed = parseQakuMessage(msg)
         if (!parsed) return
         setMsgCache((msgs) => [...msgs, parsed])
+    }
+
+    const isModerated = (msg:QuestionMessage): boolean => {
+        const hash = sha256(JSON.stringify(msg))
+
+        // @ts-ignore
+        const moderated:boolean | undefined = moderatedMsgs.get(hash)
+
+        return moderated !== undefined && moderated
     }
 
     const isAnswered = (msg:QuestionMessage): [boolean, AnsweredMessage | undefined] => {
@@ -130,6 +141,15 @@ export const QakuContextProvider = ({ id, children }: Props) => {
                 setAnsweredMsgs((m) => [...m, amsg])
                 break;
 
+            case MessageType.MODERATION_MESSAGE:
+                const mmsg = parseModerationMessage(msg)
+                if (!mmsg) break
+                setModeratedMsgs((m) => {
+                    m.set(mmsg.hash, !mmsg.show)
+                    return new Map<string, boolean>(m)
+                })
+                break;
+
             case MessageType.UPVOTE_MESSAGE:
                 const umsg = parseUpvoteMessage(msg)
                 if (!umsg) break
@@ -154,7 +174,7 @@ export const QakuContextProvider = ({ id, children }: Props) => {
     const switchState = (newState: boolean) => {
         if (!id || !controlState || !connected || !wallet) return
 
-        const cmsg:ControlMessage = {title: controlState.title, id: controlState.id, enabled: newState, timestamp: new Date(), owner: controlState.owner, admins: controlState.admins}
+        const cmsg:ControlMessage = {title: controlState.title, id: controlState.id, enabled: newState, timestamp: new Date(), owner: controlState.owner, admins: controlState.admins, moderation: controlState.moderation}
         
         const msg:QakuMessage = {type: MessageType.CONTROL_MESSAGE, payload: JSON.stringify(cmsg), signer: wallet.address, signature: undefined}
         const sig = wallet.signMessageSync(JSON.stringify(cmsg))
@@ -319,6 +339,7 @@ export const QakuContextProvider = ({ id, children }: Props) => {
             getHistory,
             historyAdd,
             importPrivateKey,
+            isModerated,
         }),
         [
             controlState,
@@ -335,6 +356,7 @@ export const QakuContextProvider = ({ id, children }: Props) => {
             getHistory,
             historyAdd,
             importPrivateKey,
+            isModerated,
         ]
     )
 

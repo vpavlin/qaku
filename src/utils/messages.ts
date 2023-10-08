@@ -17,6 +17,7 @@ export enum MessageType {
     ANSWER_MESSAGE = "answer_msg",
     ANSWERED_MESSAGE = "answered_msg",
     UPVOTE_MESSAGE = "upvote_msg",
+    MODERATION_MESSAGE = "moderation_msg"
 }
 
 export type QakuMessage = {
@@ -35,6 +36,11 @@ export type AnsweredMessage = {
     text: string | undefined
 }
 
+export type ModerationMessage = {
+    hash: string;
+    show: boolean;
+}
+
 export type ControlMessage = {
     title: string;
     id: string;
@@ -42,6 +48,7 @@ export type ControlMessage = {
     timestamp: Date;
     owner: string;
     admins: string[];
+    moderation: boolean;
 }
 
 export const parseQakuMessage = (msg: DecodedMessage): QakuMessage | undefined => {
@@ -83,6 +90,15 @@ export const parseUpvoteMessage = (msg: QakuMessage): UpvoteMessage | undefined 
 
 export const parseAnsweredMessage = (msg: QakuMessage): AnsweredMessage | undefined => {
     const parsed: AnsweredMessage = JSON.parse(msg.payload)
+    if (!parsed.hash || parsed.hash == "") return
+    if (!msg.signature || msg.signature == "") return
+    if (!verifyMessage(msg.payload, msg.signature, msg.signer)) return
+
+    return parsed
+}
+
+export const parseModerationMessage = (msg: QakuMessage): ModerationMessage | undefined => {
+    const parsed: ModerationMessage = JSON.parse(msg.payload)
     if (!parsed.hash || parsed.hash == "") return
     if (!msg.signature || msg.signature == "") return
     if (!verifyMessage(msg.payload, msg.signature, msg.signer)) return
