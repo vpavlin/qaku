@@ -38,7 +38,7 @@ export type AnsweredMessage = {
 
 export type ModerationMessage = {
     hash: string;
-    show: boolean;
+    moderated: boolean;
 }
 
 export type ControlMessage = {
@@ -118,6 +118,16 @@ export const parseMessage = (msg: DecodedMessage): QuestionMessage | ControlMess
         default:
             return;
     }
+}
+
+export type EnhancedQuestionMessage = {
+    question: string;
+    timestamp: Date;
+    answer: string | undefined;
+    answered: boolean;
+    upvotes: number;
+    upvotedByMe: boolean;
+    moderated: boolean;
 }
 
 

@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useMemo, useState } from "react";
-import { ActivityMessage, AnsweredMessage, ControlMessage, MessageType, ModerationMessage, QakuMessage, QuestionMessage, parseAnsweredMessage, parseControlMessage, parseModerationMessage, parseQakuMessage, parseQuestionMessage, parseUpvoteMessage, unique } from "../utils/messages";
+import { ActivityMessage, AnsweredMessage, ControlMessage, EnhancedQuestionMessage, MessageType, ModerationMessage, QakuMessage, QuestionMessage, parseAnsweredMessage, parseControlMessage, parseModerationMessage, parseQakuMessage, parseQuestionMessage, parseUpvoteMessage, unique } from "../utils/messages";
 import { useWakuContext } from "./useWaku";
 import { DecodedMessage, PageDirection, StoreQueryOptions, bytesToUtf8, createDecoder } from "@waku/sdk";
 import { CONTENT_TOPIC_ACTIVITY, CONTENT_TOPIC_MAIN } from "../constants";
@@ -15,20 +15,16 @@ export type HistoryEntry = {
 
 export type QakuInfo = {
     controlState: ControlMessage | undefined;
-    questions: QuestionMessage[];
     wallet: Wallet | undefined;
     isOwner: boolean;
     active: number;
-    msgEvents: number;
     loading: boolean;
     visited: HistoryEntry[]
     historyAdd: (id: string, title: string) => void
     getHistory: () => HistoryEntry[]
-    upvoted: (msq: QuestionMessage) => [number, string[] | undefined];
-    isAnswered: (msg:QuestionMessage) => [boolean, AnsweredMessage | undefined];
     switchState: (newState: boolean) => void;
     importPrivateKey: (key: string) => void;
-    isModerated: (msg: QuestionMessage) => boolean;
+    localQuestions: EnhancedQuestionMessage[]
 }
 
 export type QakuContextData = {
@@ -73,6 +69,8 @@ export const QakuContextProvider = ({ id, children }: Props) => {
 
     const [ history, setHistory ] = useState<HistoryEntry[]>([])
     const [ visited, setVisited ] = useState<HistoryEntry[]>([])
+
+    const [localQuestions, setLocalQuestions] = useState<EnhancedQuestionMessage[]>([])
 
     const {connected, query, subscribe, publish, node} = useWakuContext()
 
@@ -144,8 +142,9 @@ export const QakuContextProvider = ({ id, children }: Props) => {
             case MessageType.MODERATION_MESSAGE:
                 const mmsg = parseModerationMessage(msg)
                 if (!mmsg) break
+                console.log(mmsg)
                 setModeratedMsgs((m) => {
-                    m.set(mmsg.hash, !mmsg.show)
+                    m.set(mmsg.hash, mmsg.moderated)
                     return new Map<string, boolean>(m)
                 })
                 break;
@@ -323,40 +322,71 @@ export const QakuContextProvider = ({ id, children }: Props) => {
         handleMessage(msg, controlState)
     }, [msgCache])
 
+    useEffect(() => {
+        if (!questions) return
+
+        let questionsCopy = questions.slice(0)
+
+        if (controlState?.moderation && !isOwner) {
+            questionsCopy = questionsCopy.filter((m) => !isModerated(m))
+        }
+
+        setLocalQuestions(questionsCopy.map((q)=> {
+            const [u, upvoters] = upvoted(q)
+            const [answered, answerMsg] = isAnswered(q)
+
+            const lq: EnhancedQuestionMessage = {
+                question: q.question,
+                timestamp: q.timestamp,
+                answer: answerMsg && answerMsg.text,
+                answered: answered,
+                upvotes: u,
+                upvotedByMe: !!(upvoters && wallet && upvoters.indexOf(wallet.address) >= 0),
+                moderated: false
+            }
+            console.log(isModerated(q))
+            if (isOwner && controlState?.moderation) lq.moderated = isModerated(q)
+
+            return lq
+        }).sort((a:EnhancedQuestionMessage, b:EnhancedQuestionMessage) => {
+            
+            if (a.moderated) return 1
+            if (b.moderated) return -1
+            if (a.answered && b.answered) return b.upvotes - a.upvotes
+            if (a.answered && !b.answered) return 1
+            if (!a.answered && b.answered) return -1
+
+            return b.upvotes - a.upvotes
+        }))
+
+    }, [questions, msgEvents, controlState])
+
     const qakuInfo = useMemo(
         () => ({
             controlState,
-            questions,
             wallet,
             isOwner,
-            msgEvents,
             loading,
             visited,
-            isAnswered,
+            localQuestions,
             active,
-            upvoted,
             switchState,
             getHistory,
             historyAdd,
             importPrivateKey,
-            isModerated,
         }),
         [
             controlState,
-            questions,
             wallet,
             isOwner,
-            msgEvents,
             loading,
             visited,
-            isAnswered,
+            localQuestions,
             active,
-            upvoted,
             switchState,
             getHistory,
             historyAdd,
             importPrivateKey,
-            isModerated,
         ]
     )
 

@@ -33,7 +33,7 @@ const Main = () => {
                 <input id="my-drawer-2" type="checkbox" className="drawer-toggle" />
                 <div className="drawer-content flex justify-center">
                 <div className="p-4  w-full">
-                    <div className="flex bg-accent h-fit rounded-lg items-center p-1 mb-2">
+                    <div className="flex bg-base-100 h-fit rounded-lg items-center p-1 mb-2">
                         <label htmlFor="my-drawer-2" className="btn btn-neutral drawer-button lg:hidden flex-col"><HiOutlineMenu /></label>
                         <Status />
                     </div>
@@ -54,7 +54,7 @@ const Main = () => {
                                 <div className="m-2 underline">
                                     <a target="_blank" href={link}>{link}</a>
                                 </div>
-                                <div className="m-auto w-fit"><QRCode value={link} className="m-auto" /></div>
+                                <div className="m-auto w-fit border-4 border-white"><QRCode value={link} className="m-auto" /></div>
                                 <div><a className="btn m-1" target="_blank" href={`https://twitter.com/intent/tweet?text=${escape(`Come ask your questions at\n\n ${link}`.replaceAll("\\n", "%0a"))}`}>Tweet the Q&A</a></div>
                             </div>
                         }
