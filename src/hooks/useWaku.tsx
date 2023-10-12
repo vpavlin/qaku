@@ -97,9 +97,9 @@ export const WakuContextProvider = ({ children }: Props) => {
         setStatus("stopped")
     }
 
-    const publish = async (contentTopic: string, message: string): Promise<void | SendResult> => {
+    const publish = async (contentTopic: string, message: string, ephemeral:boolean = false): Promise<void | SendResult> => {
         if (!node || !connected) return
-        const encoder = createEncoder({contentTopic})
+        const encoder = createEncoder({contentTopic, ephemeral})
         const wakuMessage:IMessage = {payload: utf8ToBytes(message), timestamp: new Date()}
         return await node.lightPush.send(encoder, wakuMessage)
     }

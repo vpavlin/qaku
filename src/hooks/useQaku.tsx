@@ -142,7 +142,6 @@ export const QakuContextProvider = ({ id, children }: Props) => {
             case MessageType.MODERATION_MESSAGE:
                 const mmsg = parseModerationMessage(msg)
                 if (!mmsg) break
-                console.log(mmsg)
                 setModeratedMsgs((m) => {
                     m.set(mmsg.hash, mmsg.moderated)
                     return new Map<string, boolean>(m)
@@ -173,7 +172,16 @@ export const QakuContextProvider = ({ id, children }: Props) => {
     const switchState = (newState: boolean) => {
         if (!id || !controlState || !connected || !wallet) return
 
-        const cmsg:ControlMessage = {title: controlState.title, id: controlState.id, enabled: newState, timestamp: new Date(), owner: controlState.owner, admins: controlState.admins, moderation: controlState.moderation}
+        const cmsg:ControlMessage = {
+            title: controlState.title,
+            description: controlState.description,
+            id: controlState.id,
+            enabled: newState,
+            timestamp: new Date(),
+            owner: controlState.owner,
+            admins: controlState.admins,
+            moderation: controlState.moderation
+        }
         
         const msg:QakuMessage = {type: MessageType.CONTROL_MESSAGE, payload: JSON.stringify(cmsg), signer: wallet.address, signature: undefined}
         const sig = wallet.signMessageSync(JSON.stringify(cmsg))
@@ -344,7 +352,6 @@ export const QakuContextProvider = ({ id, children }: Props) => {
                 upvotedByMe: !!(upvoters && wallet && upvoters.indexOf(wallet.address) >= 0),
                 moderated: false
             }
-            console.log(isModerated(q))
             if (isOwner && controlState?.moderation) lq.moderated = isModerated(q)
 
             return lq

@@ -49,6 +49,7 @@ export type ControlMessage = {
     owner: string;
     admins: string[];
     moderation: boolean;
+    description: string;
 }
 
 export const parseQakuMessage = (msg: DecodedMessage): QakuMessage | undefined => {
@@ -67,6 +68,8 @@ export const parseControlMessage = (msg: QakuMessage): ControlMessage | undefine
     if (parsed.title == "") return
     if (!msg.signature || msg.signature == "") return
     if (!verifyMessage(msg.payload, msg.signature, msg.signer)) return
+
+    if (!parsed.description) parsed.description = ""
 
     return parsed
 }

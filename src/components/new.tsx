@@ -11,11 +11,10 @@ const NewQA = () => {
     const { wallet, historyAdd } = useQakuContext()
     const navigate = useNavigate();
 
-
     const [title, setTitle] = useState<string>()
+    const [desc, setDesc] = useState<string>()
     const [enabled, setEnabled] = useState<boolean>(true)
     const [moderation, SetModeration] = useState<boolean>(false)
-
 
     const submit = async () => {
         if (!connected || !title || !wallet) return
@@ -23,7 +22,16 @@ const NewQA = () => {
         const ts = new Date();
         const hash = sha256(title + ts.toString()).slice(0, 8)
 
-        const cmsg:ControlMessage = {title: title, id: hash, enabled: enabled, timestamp: new Date(), owner: wallet.address, admins: [], moderation: moderation}
+        const cmsg:ControlMessage = {
+            title: title,
+            description: desc || "",
+            id: hash,
+            enabled: enabled,
+            timestamp: new Date(),
+            owner: wallet.address,
+            admins: [],
+            moderation: moderation
+        }
         const msg:QakuMessage = {signer: wallet.address, signature: undefined, payload: JSON.stringify(cmsg), type: MessageType.CONTROL_MESSAGE}
         const sig = wallet.signMessageSync(JSON.stringify(cmsg))
         if (!sig) return
@@ -43,9 +51,13 @@ const NewQA = () => {
         <div className="border rounded-md p-10 form-control max-w-md m-auto">
     
             <label className="label">
-            <span className="label-text">Title</span>
-            <input type="text" name="title" onChange={(e) => setTitle(e.target.value)} className="input input-bordered w-full max-w-xs m-5"/>
+                <span className="label-text">Title</span>
+                <input type="text" name="title" onChange={(e) => setTitle(e.target.value)} className="input input-bordered w-full max-w-xs m-5"/>
             </label>
+            <label className="label">
+            <span className="label-text">Description</span>
+            </label>
+                <textarea className="textarea textarea-bordered textarea-lg w-full" onChange={(e) => setDesc(e.target.value)}></textarea>
             <label className="label">
                 <input type="checkbox" checked={enabled} className="checkbox" onChange={(e) => setEnabled(e.target.checked)} />
                 <span className="label-text">Enabled</span>
