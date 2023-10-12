@@ -54,7 +54,7 @@ const User = () => {
             {wallet  &&
                 <dialog id="export_modal" className="modal">
                     <div className="modal-box text-left">
-                        { key && <QRCode value={JSON.stringify({key: key, history: getHistory()})} className="m-auto border border-white " />}
+                        { key && <QRCode value={JSON.stringify({key: key})} className="m-auto border border-white " />}
                         <div className="font-bold text-center text-lg">{ timer > 0 && "Closing in " + timer}</div>
                         <div className="modal-action">
                         <form method="dialog">
