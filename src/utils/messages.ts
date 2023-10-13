@@ -17,7 +17,7 @@ export enum MessageType {
     ANSWER_MESSAGE = "answer_msg",
     ANSWERED_MESSAGE = "answered_msg",
     UPVOTE_MESSAGE = "upvote_msg",
-    MODERATION_MESSAGE = "moderation_msg"
+    MODERATION_MESSAGE = "moderation_msg",
 }
 
 export type QakuMessage = {

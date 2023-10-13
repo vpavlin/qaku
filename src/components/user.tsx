@@ -4,7 +4,7 @@ import QRCode from "react-qr-code"
 import { QrScanner } from "@yudiel/react-qr-scanner"
 
 const User = () => {
-    const { wallet, importPrivateKey, getHistory } = useQakuContext()
+    const { wallet, importPrivateKey } = useQakuContext()
     const [ tooltip, setTooltip] = useState(wallet && wallet.address) 
     const [ key, setKey] = useState<string>()
     const [ timer, setTimer] = useState<number>(0)
@@ -32,13 +32,14 @@ const User = () => {
                         <button className="text-center" onClick={() => {
                             setKey(wallet?.privateKey!);
                             (document.getElementById('export_modal') as HTMLDialogElement).showModal()
-                            setTimer(5)
+                            const timeout = 10
+                            setTimer(timeout)
                             const i = setInterval(() => setTimer((t) => t-1), 1000)
                             setTimeout(() => {
                                 setKey("");
                                 clearInterval(i);
                                 (document.getElementById('export_modal') as HTMLDialogElement).close()
-                            }, 5000)
+                            }, timeout* 1000)
                             }}>Export Private Key</button>
                     </li>
                     <li>
@@ -54,7 +55,9 @@ const User = () => {
             {wallet  &&
                 <dialog id="export_modal" className="modal">
                     <div className="modal-box text-left">
-                        { key && <QRCode value={JSON.stringify({key: key})} className="m-auto border border-white " />}
+                        { key && <div>
+                                <QRCode value={JSON.stringify({key: key})} className="m-auto border border-white " />
+                            </div>}
                         <div className="font-bold text-center text-lg">{ timer > 0 && "Closing in " + timer}</div>
                         <div className="modal-action">
                         <form method="dialog">

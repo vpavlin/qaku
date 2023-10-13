@@ -68,7 +68,7 @@ export const WakuContextProvider = ({ children }: Props) => {
         if (connected || connecting || node) return
         setConnecting(true)
         setStatus("starting")
-        createLightNode({ defaultBootstrap: DEFAULT_BOOTSTRAP }).then( async (ln: LightNode) => {
+        createLightNode({ defaultBootstrap: DEFAULT_BOOTSTRAP, pingKeepAlive: 10 }).then( async (ln: LightNode) => {
             if (node) return
             setNode(ln)
             setStatus("connecting")

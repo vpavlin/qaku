@@ -192,7 +192,7 @@ export const QakuContextProvider = ({ id, children }: Props) => {
         publish(CONTENT_TOPIC_MAIN(id), JSON.stringify(msg))
     }
 
-    const importPrivateKey = (result: string) => {
+    const importPrivateKey = async (result: string) => {
         const parsed = JSON.parse(result)
         const w = new Wallet(parsed.key)
         localStorage.setItem("qaku-key-v2", w.privateKey)
