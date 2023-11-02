@@ -4,11 +4,12 @@ import { sha256 } from "js-sha256";
 import { useNavigate } from "react-router-dom";
 import { useQakuContext } from "../hooks/useQaku";
 import { ControlMessage, MessageType, QakuMessage } from "../utils/messages";
-import { CONTENT_TOPIC_MAIN } from "../constants";
+import { CONTENT_TOPIC_MAIN, DISPATCHER_DB_NAME } from "../constants";
+import getDispatcher, { destroyDispatcher } from "waku-dispatcher";
 
 const NewQA = () => {
-    const {connected, subscribe, publish} = useWakuContext()
     const { wallet, historyAdd } = useQakuContext()
+    const {connected, node} = useWakuContext()
     const navigate = useNavigate();
 
     const [title, setTitle] = useState<string>()
@@ -17,7 +18,7 @@ const NewQA = () => {
     const [moderation, SetModeration] = useState<boolean>(false)
 
     const submit = async () => {
-        if (!connected || !title || !wallet) return
+        if (!connected || !title || !wallet || !node) return
 
         const ts = new Date();
         const hash = sha256(title + ts.toString()).slice(0, 8)
@@ -32,15 +33,16 @@ const NewQA = () => {
             admins: [],
             moderation: moderation
         }
-        const msg:QakuMessage = {signer: wallet.address, signature: undefined, payload: JSON.stringify(cmsg), type: MessageType.CONTROL_MESSAGE}
-        const sig = wallet.signMessageSync(JSON.stringify(cmsg))
-        if (!sig) return
-        
-        msg.signature = sig
 
-        const result = await publish(CONTENT_TOPIC_MAIN(hash), JSON.stringify(msg))
+        const dispatcher = await getDispatcher(node, CONTENT_TOPIC_MAIN(hash), DISPATCHER_DB_NAME, false)
+        console.log(dispatcher)
+        if (!dispatcher) return
+        console.log(cmsg)
+        const result = await dispatcher.emit(MessageType.CONTROL_MESSAGE, cmsg, wallet) //FIXME: We don't have a content topic at this point - what do we do?
+        console.log(result)
+        destroyDispatcher()
 
-        if (result && !result.error) {
+        if (result && result.errors?.length == 0) {
             historyAdd(hash, title)
             navigate("/q/"+hash)
         }

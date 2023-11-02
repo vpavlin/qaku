@@ -1,12 +1,7 @@
-import React from 'react';
-import logo from './logo.svg';
 import './App.css';
 import Main from './pages/main';
 import {
-  BrowserRouter,
-  createBrowserRouter,
   Route,
-  RouterProvider,
   Routes,
   useParams,
 } from "react-router-dom";
