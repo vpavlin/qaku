@@ -2,6 +2,7 @@ import NewQuestion from "./newq";
 import { useQakuContext } from "../hooks/useQaku";
 
 import Question from "./question";
+import { PageDirection } from "@waku/sdk";
 
 const QA = () => {
 
@@ -10,7 +11,7 @@ const QA = () => {
     return (
         <div className="mt-5 text-center max-w-2xl m-auto">
             <div>
-                <button className="btn btn-sm" disabled={!dispatcher} onClick={() => dispatcher?.dispatchQuery() }>Force Reload</button>
+                <button className="btn btn-sm" disabled={!dispatcher} onClick={() => {dispatcher?.clearDuplicateCache();dispatcher?.dispatchQuery({pageDirection: PageDirection.FORWARD, pageSize: 20}, true)} }>Force Reload</button>
             </div>
             { controlState &&
             <>
