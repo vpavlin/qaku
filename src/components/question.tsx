@@ -15,65 +15,40 @@ interface IProps {
 const Question = ({msg, moderation}:IProps) => {
     const [ answer, setAnswer ] = useState<string>()
 
-    const  { controlState, isOwner, wallet } = useQakuContext()
-    const {connected, publish} = useWakuContext()
-
+    const { controlState, isOwner, dispatcher , wallet} = useQakuContext()
 
     const hash = sha256(JSON.stringify(msg))
     const d = new Date(msg.timestamp)
     const formatter = new Intl.DateTimeFormat('cs-CZ', { day: '2-digit', month: '2-digit', year: 'numeric', hour: 'numeric', minute: 'numeric',  });
 
     const publishAnswer =  async (qmsg:QuestionMessage, answer?: string) => {
-        if (!wallet || !connected || !controlState) return
+        if (!wallet || !dispatcher || !controlState) return
+
         const hash = sha256(JSON.stringify(qmsg))
-
         const amsg:AnsweredMessage = { hash: hash, text: answer }
-        const msg:QakuMessage = {payload: JSON.stringify(amsg), type: MessageType.ANSWERED_MESSAGE, signer: wallet.address, signature: undefined}
+        const result = await dispatcher.emit(MessageType.ANSWERED_MESSAGE, amsg, wallet)
 
-
-        const sig = wallet.signMessageSync(JSON.stringify(amsg))
-        if (!sig) return
-
-        msg.signature = sig
-        const result = await publish(CONTENT_TOPIC_MAIN(controlState.id), JSON.stringify(msg))
-
-        if (!result || result.error) console.log(result)
+        if (!result || result.errors) console.log(result)
     }
 
     const upvote = async (qmsg: QuestionMessage) => {
-        if (!wallet || !connected || !controlState) return
+        if (!wallet || !dispatcher || !controlState) return
         
         const hash = sha256(JSON.stringify(qmsg))
-
         const amsg:UpvoteMessage = {hash: hash}
-        const msg:QakuMessage = {payload: JSON.stringify(amsg), type: MessageType.UPVOTE_MESSAGE, signer: wallet.address, signature: undefined}
+        const result = await dispatcher.emit(MessageType.UPVOTE_MESSAGE, amsg, wallet)
 
-        const sig = wallet.signMessageSync(JSON.stringify(amsg))
-        if (!sig) return
-
-        msg.signature = sig
-        const result = await publish(CONTENT_TOPIC_MAIN(controlState.id), JSON.stringify(msg))
-
-        if (!result || result.error) console.log(result)
+        if (!result || result.errors) console.log(result)
     }
 
     const moderate = async (qmsg:QuestionMessage, moderated:boolean) => {
-        if (!wallet || !connected || !controlState) return
-
-        console.log(moderated)
+        if (!wallet || !dispatcher || !controlState) return
 
         const hash = sha256(JSON.stringify(qmsg))
-
         const mmsg:ModerationMessage = {hash:hash, moderated: moderated}
-        const msg:QakuMessage = {payload: JSON.stringify(mmsg), type: MessageType.MODERATION_MESSAGE, signer: wallet.address, signature: undefined}
+        const result = await dispatcher.emit(MessageType.MODERATION_MESSAGE, mmsg, wallet)
 
-        const sig = wallet.signMessageSync(JSON.stringify(mmsg))
-        if (!sig) return
-
-        msg.signature = sig
-        const result = await publish(CONTENT_TOPIC_MAIN(controlState.id), JSON.stringify(msg))
-
-        if (!result || result.error) console.log(result)
+        if (!result || result.errors) console.log(result)
 
     }
 

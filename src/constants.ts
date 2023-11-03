@@ -10,3 +10,4 @@ export const PROTOCOLS = [Protocols.LightPush, Protocols.Filter, Protocols.Store
 //export const CONTENT_TOPIC_QUESTIONS = (hash: string) => `/0/qaku/1/questions-${hash}/json`
 export const CONTENT_TOPIC_MAIN = (hash: string) => `/0/qaku/1/main-${hash}/json`
 export const CONTENT_TOPIC_ACTIVITY = (hash: string) => `/0/qaku/1/activity-${hash}/json`
+export const DISPATCHER_DB_NAME = "qaku"

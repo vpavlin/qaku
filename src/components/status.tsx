@@ -2,7 +2,7 @@ import { useQakuContext } from "../hooks/useQaku";
 import { useWakuContext } from "../hooks/useWaku";
 
 const Status = () => {
-    const { active, loading } = useQakuContext()
+    const { active, dispatcher } = useQakuContext()
     const {status} = useWakuContext()
 
     return (  
@@ -10,7 +10,7 @@ const Status = () => {
             <div className="grid  place-items-center">Waku Status: {status}</div>  
             <div className="divider divider-horizontal"></div>  
             <div className="grid  place-items-center">Active: {active}</div>
-            {loading && <><div className="divider divider-horizontal"></div><div className="grid  place-items-center">loading...</div></>}
+            {!dispatcher && <><div className="divider divider-horizontal"></div><div className="grid  place-items-center">loading...</div></>}
         </div>
         
            

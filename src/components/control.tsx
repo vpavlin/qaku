@@ -29,8 +29,6 @@ const Control = ({id}: IProps) => {
     const {controlState, switchState, isOwner, localQuestions} = useQakuContext()
     const [enabled, setEnabled] = useState(false)
     
-    const {connected, publish} = useWakuContext()
-
     useEffect(() => {
         if (!controlState) return
         setEnabled(controlState.enabled)
