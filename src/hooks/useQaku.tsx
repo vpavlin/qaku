@@ -142,12 +142,17 @@ export const QakuContextProvider = ({ id, children }: Props) => {
     }
 
     useEffect(() => {
-        if (dispatcher || !id || !node) return
+        if (dispatcher || !id || !node) return;
+
         (async () => {
-            const d = await getDispatcher(node, CONTENT_TOPIC_MAIN(id), "qaku", false)
+            let d: Dispatcher | null = null
+            while(!d) {
+                d = await getDispatcher(node, CONTENT_TOPIC_MAIN(id), "qaku", false)
+                await new Promise((r) => setTimeout(r, 100))
+            }
             if (!d) return
             d.on(MessageType.CONTROL_MESSAGE, (payload: ControlMessage, signer: Signer, meta: DispatchMetadata) => {
-                console.log(payload)
+                console.debug(payload)
                 if (!payload.title) return
                 if (!payload.description) payload.description = ""
                 if (signer != payload.owner) return
@@ -189,13 +194,15 @@ export const QakuContextProvider = ({ id, children }: Props) => {
 
     useEffect(() => {
         if (id != lastId) {
-            setLastId(id)
-            setControlState(undefined)
-            setOwner(false)
-            setQuestions([])
-            setActive(1)
-            destroyDispatcher() //FIXME: Will this work?
-            setDispatcher(undefined)
+            (async () =>{
+                setLastId(id)
+                setControlState(undefined)
+                setOwner(false)
+                setQuestions([])
+                setActive(1)
+                await destroyDispatcher() //FIXME: Will this work?
+                setDispatcher(undefined)
+            })()
         }
     }, [id])
 

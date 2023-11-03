@@ -11,14 +11,19 @@ const NewQuestion = ({ id }: IProps) => {
 
     const [submitState, setSubmitState] = useState(true)
     const [question, setQuestion] = useState<string>("")
-    const submit = () => {
+    const submit = async () => {
         if (!dispatcher || !question) return
+        setSubmitState(false)
 
         const qmsg:QuestionMessage = {question: question, timestamp: new Date()}
 
-        dispatcher.emit(MessageType.QUESTION_MESSAGE, qmsg).then((v:any) => {
+        const res = await dispatcher.emit(MessageType.QUESTION_MESSAGE, qmsg)
+        if (res && res.errors && res.errors.length > 0) {
+            console.log(res.errors)
+        } else {
             setQuestion("")
-        }).finally(() => setSubmitState(true))
+        }
+        setSubmitState(true)
     }
     return (
         <div className="form-control text-center m-auto">

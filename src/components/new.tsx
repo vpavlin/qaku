@@ -34,13 +34,12 @@ const NewQA = () => {
             moderation: moderation
         }
 
+        await destroyDispatcher()
         const dispatcher = await getDispatcher(node, CONTENT_TOPIC_MAIN(hash), DISPATCHER_DB_NAME, false)
-        console.log(dispatcher)
         if (!dispatcher) return
-        console.log(cmsg)
-        const result = await dispatcher.emit(MessageType.CONTROL_MESSAGE, cmsg, wallet) //FIXME: We don't have a content topic at this point - what do we do?
-        console.log(result)
-        destroyDispatcher()
+        dispatcher.on(MessageType.CONTROL_MESSAGE, () => {})
+        const result = await dispatcher.emit(MessageType.CONTROL_MESSAGE, cmsg, wallet)
+        await destroyDispatcher()
 
         if (result && result.errors?.length == 0) {
             historyAdd(hash, title)
