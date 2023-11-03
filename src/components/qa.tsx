@@ -5,10 +5,13 @@ import Question from "./question";
 
 const QA = () => {
 
-    const  { controlState, localQuestions } = useQakuContext()
+    const  { controlState, localQuestions, dispatcher } = useQakuContext()
     
     return (
         <div className="mt-5 text-center max-w-2xl m-auto">
+            <div>
+                <button className="btn btn-sm" disabled={!dispatcher} onClick={() => dispatcher?.dispatchQuery() }>Force Reload</button>
+            </div>
             { controlState &&
             <>
                 <div>Owner: {controlState.owner.slice(0, 7)+"..."+controlState.owner.slice(controlState.owner.length-5)}</div>
