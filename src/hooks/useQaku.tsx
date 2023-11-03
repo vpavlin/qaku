@@ -146,9 +146,11 @@ export const QakuContextProvider = ({ id, children }: Props) => {
 
         (async () => {
             let d: Dispatcher | null = null
-            while(!d) {
-                d = await getDispatcher(node, CONTENT_TOPIC_MAIN(id), "qaku", false)
+            let retries = 0
+            while(!d && retries < 10) {
+                d = await getDispatcher(node, CONTENT_TOPIC_MAIN(id), "qaku-"+id, false)
                 await new Promise((r) => setTimeout(r, 100))
+                retries++
             }
             if (!d) return
             d.on(MessageType.CONTROL_MESSAGE, (payload: ControlMessage, signer: Signer, meta: DispatchMetadata) => {
