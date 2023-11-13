@@ -61,10 +61,14 @@ const QA = () => {
                 </div>
                 <div>
                 {
-                    activeTab == Tabs.Questions &&
-                        localQuestions.map((msg, i) => 
-                            <Question moderation={controlState!.moderation} msg={msg} key={i.toString()} />
-                        )
+                    activeTab == Tabs.Questions && (
+                        localQuestions.length == 0 ?
+                            <div className="p-5">There are no questions yet.</div>
+                        :
+                            localQuestions.map((msg, i) =>
+                                <Question moderation={controlState!.moderation} msg={msg} key={i.toString()} />
+                            )
+                    )
                 }
                 {
                     activeTab == Tabs.Polls &&
