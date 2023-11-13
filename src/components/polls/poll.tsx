@@ -57,13 +57,13 @@ const Polls = () => {
                         <button className="btn btn-xs" disabled={!dispatcher || !wallet || submitting} onClick={() => handleActiveSwitch(p.id, !p.active)}>{p.active ? "Deactivate" : "Activate"}</button>
                     </div>
                 }
-                <div className="flex flex-row justify-end relative">
-                    <div className="text-lg font-bold w-full min-h-[1.5rem]">{p.title}</div>
-                    <div className="space-x-2 absolute right-0">
+                <div className="lg:flex lg:flex-row justify-end relative">
+                    <div className="space-x-2 lg:absolute right-0">
                         <div className="badge">{p.active ? "active" : "inactive"}</div>
                         <div className="badge">{p.voteCount || 0} votes</div>
                         {alreadyVoted && <div className="badge badge-primary">voted</div>}
                     </div>
+                    <div className="text-lg font-bold w-full lg:min-h-[1.5rem]">{p.title}</div>
                 </div>
                 <div className="p-1">{p.question}</div>
                 <div className="space-y-1">
