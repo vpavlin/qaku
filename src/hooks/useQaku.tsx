@@ -7,6 +7,7 @@ import { sha256 } from "js-sha256";
 import { Wallet } from "ethers";
 import getDispatcher, { DispatchMetadata, Dispatcher, Signer, destroyDispatcher } from "waku-dispatcher"
 import useIdentity from "./useIdentity";
+import { LocalPoll, NewPoll, Poll, PollActive, PollVote } from "../components/polls/types";
 
 export type HistoryEntry = {
     id: string;
@@ -19,6 +20,7 @@ export type QakuInfo = {
     isOwner: boolean;
     active: number;
     visited: HistoryEntry[]
+    polls: LocalPoll[]
     historyAdd: (id: string, title: string) => void
     getHistory: () => HistoryEntry[]
     switchState: (newState: boolean) => void;
@@ -76,6 +78,9 @@ export const QakuContextProvider = ({ id, children }: Props) => {
 
     const {connected, query, publish, node} = useWakuContext()
     const { wallet } = useIdentity("qaku-key-v2", "qaku-wallet")
+
+    const [polls, setPolls] = useState<LocalPoll[]>([])
+
 
     const historyAdd = (id: string, title: string) => {
         setHistory((h) => [...h, {id: id, title: title}])
@@ -187,6 +192,46 @@ export const QakuContextProvider = ({ id, children }: Props) => {
                 setModeratedMsgs((m) => {
                     m.set(payload.hash, payload.moderated)
                     return new Map<string, boolean>(m)
+                })
+            }, true)
+            d.on(MessageType.POLL_CREATE_MESSAGE, (payload: NewPoll, signer: Signer, meta: DispatchMetadata) => {
+                console.log(payload)
+                if (controlStateRef.current?.owner != signer || signer != payload.creator) {
+                    console.log("Poll creator not owner")
+                    return
+                }
+
+                const poll:LocalPoll = {...payload.poll, owner: signer}
+    
+                setPolls((x) => [poll, ...x.filter((p) => p.id !== payload.poll.id)])
+            }, true)
+            d.on(MessageType.POLL_VOTE_MESSAGE, (payload: PollVote, signer: Signer, meta: DispatchMetadata) => {
+                setPolls((x) => {
+                    const poll = x.find((p) => p.id == payload.id)
+                    if (!poll) return x
+                    if (!poll.active) return x
+
+                    if (!poll.votes) poll.votes = [...poll.options.map(() => ({voters: []}))]
+                    if (!poll.votes[payload.option].voters) poll.votes[payload.option].voters = []
+
+                    if (poll.votes[payload.option].voters.indexOf(signer as string) < 0) {
+                        poll.votes[payload.option].voters.push(signer as string)
+                    }
+
+                    if (!poll.voteCount) poll.voteCount = 0
+                    poll.voteCount++
+
+                    return [...x]
+                })
+            }, true)
+            d.on(MessageType.POLL_ACTIVE_MESSAGE, (payload: PollActive, signer: Signer, meta: DispatchMetadata) => {
+                setPolls((x) => {
+                    const poll = x.find((p) => p.id == payload.id)
+                    if (!poll) return x
+                    if (poll.owner === signer)
+                    poll.active = payload.active
+
+                    return [...x]
                 })
             }, true)
             await d.dispatchLocalQuery()
@@ -325,6 +370,7 @@ export const QakuContextProvider = ({ id, children }: Props) => {
             visited,
             localQuestions,
             active,
+            polls,
             switchState,
             getHistory,
             historyAdd,
@@ -338,6 +384,7 @@ export const QakuContextProvider = ({ id, children }: Props) => {
             visited,
             localQuestions,
             active,
+            polls,
             switchState,
             getHistory,
             historyAdd,

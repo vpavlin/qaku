@@ -3,11 +3,23 @@ import { useQakuContext } from "../hooks/useQaku";
 
 import Question from "./question";
 import { PageDirection } from "@waku/sdk";
+import CreatePoll from "./polls/create";
+import { useState } from "react";
+import Poll from "./polls/poll";
+import Polls from "./polls/poll";
+
+enum Tabs {
+    Questions,
+    Polls
+}
 
 const QA = () => {
 
-    const  { controlState, localQuestions, dispatcher } = useQakuContext()
+    const  { controlState, localQuestions, dispatcher, isOwner } = useQakuContext()
     
+
+    const [activeTab, setActiveTab] = useState<Tabs>(Tabs.Questions)
+
     return (
         <div className="mt-5 text-center max-w-2xl m-auto">
             <div>
@@ -24,11 +36,25 @@ const QA = () => {
                 {controlState.enabled &&
                     <NewQuestion id={controlState.id} />
                 }
-                {
-                    localQuestions.map((msg, i) => 
-                        <Question moderation={controlState!.moderation} msg={msg} key={i.toString()} />
-                    )
+                {isOwner &&
+                    <CreatePoll />
                 }
+                <div className="tabs m-auto ">
+                    <a className={`tab tab-lg tab-bordered ${activeTab == Tabs.Questions && "tab-active"}`} onClick={() => setActiveTab(Tabs.Questions)}>Questions</a> 
+                    <a className={`tab tab-lg tab-bordered ${activeTab == Tabs.Polls && "tab-active"}`} onClick={() => setActiveTab(Tabs.Polls)}>Polls</a> 
+                </div>
+                <div>
+                {
+                    activeTab == Tabs.Questions &&
+                        localQuestions.map((msg, i) => 
+                            <Question moderation={controlState!.moderation} msg={msg} key={i.toString()} />
+                        )
+                }
+                {
+                    activeTab == Tabs.Polls &&
+                        <Polls />
+                }
+                </div>
             </>
         }
         </div>

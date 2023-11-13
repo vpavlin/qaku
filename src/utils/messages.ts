@@ -18,6 +18,9 @@ export enum MessageType {
     ANSWERED_MESSAGE = "answered_msg",
     UPVOTE_MESSAGE = "upvote_msg",
     MODERATION_MESSAGE = "moderation_msg",
+    POLL_CREATE_MESSAGE = "poll_create_msg",
+    POLL_VOTE_MESSAGE = "poll_vote_msg",
+    POLL_ACTIVE_MESSAGE = "poll_active_msg"
 }
 
 export type QakuMessage = {
