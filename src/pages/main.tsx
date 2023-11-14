@@ -33,20 +33,19 @@ const Main = () => {
             <div className="drawer lg:drawer-open">
                 <input id="my-drawer-2" type="checkbox" className="drawer-toggle" checked={drawer} />
                 <div className="drawer-content flex justify-center">
-                <div className="p-4  w-full">
-                    <div className="flex bg-base-100 h-fit rounded-lg items-center p-1 mb-2">
+                <div className="w-full">
+                    <div className="flex bg-base-100 h-fit rounded-lg items-center p-1 mb-2 lg:absolute lg:right-0">
                         <label htmlFor="my-drawer-2" className="btn btn-neutral drawer-button lg:hidden flex-col" onClick={() => setDrawer(!drawer)}><HiOutlineMenu /></label>
                         <Status />
                     </div>
                     
-                    <div className="lg:relative">
+                    <div className="lg:relative lg:h-full">
                         { connected ?
-                            id ?
-                                <Control id={id} />
-                            :
-                                <NewQA />
+                            !id && <NewQA />
                         :
-                            <div></div>
+                            <div className="h-full w-full flex justify-center items-center">
+                                <div className="loading loading-lg"></div>
+                            </div>
                         }
                         <Outlet />
                         { id &&
@@ -57,6 +56,7 @@ const Main = () => {
                                 </div>
                                 <div className="m-auto w-fit border-4 border-white"><QRCode value={link} className="m-auto" /></div>
                                 <div><a className="btn m-1" target="_blank" href={`https://twitter.com/intent/tweet?text=${escape(`Come ask your questions at\n\n ${link}`.replaceAll("\\n", "%0a"))}`}>Tweet the Q&A</a></div>
+                                <Control id={id} />
                             </div>
                         }
                     </div> 

@@ -37,18 +37,21 @@ const QA = () => {
     }, [hash])
 
     return (
-        <div className="mt-5 text-center max-w-2xl m-auto">
+        <div className="text-center max-w-5xl m-auto space-y-3 bg-base-300 h-full p-3">
             <div>
-                <button className="btn btn-sm" disabled={!dispatcher} onClick={() => {dispatcher?.clearDuplicateCache();dispatcher?.dispatchQuery({pageDirection: PageDirection.FORWARD, pageSize: 20}, true)} }>Force Reload</button>
+                <button className="btn btn-sm" disabled={!dispatcher} onClick={() => {dispatcher?.clearDuplicateCache();dispatcher?.dispatchQuery({pageDirection: PageDirection.FORWARD, pageSize: 100}, true)} }>Force Reload</button>
             </div>
             { controlState &&
-            <>
-                <div>Owner: {controlState.owner.slice(0, 7)+"..."+controlState.owner.slice(controlState.owner.length-5)}</div>
+            <div  className="space-y-3">
                 {controlState.moderation && <div className="bg-error text-error-content text-xl rounded-md m-3 p-3"> This Q&A can be moderated by owner (i.e. questions can be hidden!)</div>}
-                <h2 className="text-2xl">{controlState?.title}</h2>
-                <div>
+                <h2 className="text-5xl">{controlState?.title}</h2>
+                <div className="divider"></div>
+                <div className="text-justify m-auto max-w-2xl">
                     {controlState?.description}
                 </div>
+                <div className="badge badge-lg badge-neutral">{controlState.owner.slice(0, 7)+"..."+controlState.owner.slice(controlState.owner.length-5)}</div>
+                <div className="divider"></div>
+
                 {controlState.enabled &&
                     <NewQuestion id={controlState.id} />
                 }
@@ -75,7 +78,7 @@ const QA = () => {
                         <Polls />
                 }
                 </div>
-            </>
+            </div>
         }
         </div>
     )

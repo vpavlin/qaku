@@ -48,17 +48,17 @@ const NewQA = () => {
     }
 
     return (
-        <>
-        <div className="border rounded-md p-10 form-control max-w-md m-auto">
-    
-            <label className="label">
+        <div className="h-full w-full flex justify-center items-center">
+        <div className="bg-base-300 my-3 w-full max-w-3xl p-10 form-control m-auto justify-center space-y-3">
+            <div className="text-xl">Create new Q&A</div>
+            <label className="label flex-wrap">
                 <span className="label-text">Title</span>
-                <input type="text" name="title" onChange={(e) => setTitle(e.target.value)} className="input input-bordered w-full max-w-xs m-5"/>
+                <input type="text" name="title" onChange={(e) => setTitle(e.target.value)} className="input input-bordered w-full max-w-sm"/>
             </label>
-            <label className="label">
-            <span className="label-text">Description</span>
-            </label>
+            <label className="label flex-wrap">
+                <span className="label-text">Description</span>
                 <textarea className="textarea textarea-bordered textarea-lg w-full" onChange={(e) => setDesc(e.target.value)}></textarea>
+            </label>
             <label className="label">
                 <input type="checkbox" checked={enabled} className="checkbox" onChange={(e) => setEnabled(e.target.checked)} />
                 <span className="label-text">Enabled</span>
@@ -68,9 +68,9 @@ const NewQA = () => {
                 <span className="label-text">Enable Owner Moderation</span>
             </label>
             
-            <button onClick={() => submit()} disabled={!connected} className="btn">Submit</button>
+            <button onClick={() => submit()} disabled={!connected} className="btn btn-lg">Submit</button>
         </div>
-        </>
+        </div>
     )
 }
 

@@ -36,10 +36,10 @@ const Control = ({id}: IProps) => {
     }, [controlState])
     return (
         <>
-            { controlState &&
+            { controlState && isOwner &&
                 <>
                 <div className="m-auto max-w-md text-center bg-neutral p-2 w-fill rounded-xl">
-                    {isOwner && <div>
+                    <div>
                         <h1 className="font-bold">{controlState.title}</h1>
                         <div className="flex m-auto items-center justify-center">
                             <div className="flex-col m-2"><button onClick={() => switchState(!enabled)} disabled={!id || !controlState} className={`btn`}>{ enabled ? "disable" : "enable"}</button></div>
@@ -47,7 +47,7 @@ const Control = ({id}: IProps) => {
                                 { localQuestions.length > 0 && <button className="btn" onClick={()=> saveTemplateAsFile("data.json", localQuestions)}>Download</button>}
                             </div>
                         </div>
-                    </div>}
+                    </div>
                 </div>
                 </>
             }

@@ -78,7 +78,7 @@ const CreatePoll = () => {
 
     return (
         <>  
-            <div className="collapse collapse-arrow border border-base-300 my-5">
+            <div className="collapse collapse-arrow border border-base-100 my-5">
                 <input type="checkbox" checked={collapsed} onChange={(e) => {console.log(e.target.checked);setCollapsed(e.target.checked)}} />
                 <div className="collapse-title">Add Poll</div>
                 <div className="bg-neutral collapse-content">
