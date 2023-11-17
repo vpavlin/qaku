@@ -15,13 +15,11 @@ function App() {
 
   return (
     <div className="App">
-      <QakuContextProvider id={id}>
-        <Routes>
-          <Route path='/' element={<Main />}>
-            <Route path='q/:id' element={<QA />} />
-          </Route>
-        </Routes>
-        </QakuContextProvider>
+      <Routes>
+        <Route path='/' element={<Main />}>
+          <Route path='q/:id' element={<QA />} />
+        </Route>
+      </Routes>
     </div>
   );
 }
