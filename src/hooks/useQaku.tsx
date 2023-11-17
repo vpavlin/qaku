@@ -286,7 +286,7 @@ export const QakuContextProvider = ({ id, children }: Props) => {
         setOwner(controlState.owner == wallet.address)
     }, [controlState, wallet])
 
-    useEffect(() => {
+    /*useEffect(() => {
         if (!id || !connected || !wallet) return
 
         const tracker = setInterval(async () => {
@@ -317,7 +317,7 @@ export const QakuContextProvider = ({ id, children }: Props) => {
         return () => {
             clearInterval(tracker)
         }
-    }, [id, connected, wallet])
+    }, [id, connected, wallet])*/
 
     useEffect(() => {
         if (!activeList) return
