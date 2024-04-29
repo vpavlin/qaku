@@ -5,7 +5,6 @@ import ReactMarkdown from "react-markdown";
 import { useState } from "react";
 import { CONTENT_TOPIC_MAIN } from "../constants";
 import { useQakuContext } from "../hooks/useQaku";
-import { useWakuContext } from "../hooks/useWaku";
 
 interface IProps {
     msg: EnhancedQuestionMessage
@@ -28,7 +27,7 @@ const Question = ({msg, moderation}:IProps) => {
         const amsg:AnsweredMessage = { hash: hash, text: answer }
         const result = await dispatcher.emit(MessageType.ANSWERED_MESSAGE, amsg, wallet)
 
-        if (!result || result.errors) console.log(result)
+        if (!result || result.failures) console.log(result)
     }
 
     const upvote = async (qmsg: QuestionMessage) => {
@@ -38,7 +37,7 @@ const Question = ({msg, moderation}:IProps) => {
         const amsg:UpvoteMessage = {hash: hash}
         const result = await dispatcher.emit(MessageType.UPVOTE_MESSAGE, amsg, wallet)
 
-        if (!result || result.errors) console.log(result)
+        if (!result || result.failures) console.log(result)
     }
 
     const moderate = async (qmsg:QuestionMessage, moderated:boolean) => {
@@ -48,7 +47,7 @@ const Question = ({msg, moderation}:IProps) => {
         const mmsg:ModerationMessage = {hash:hash, moderated: moderated}
         const result = await dispatcher.emit(MessageType.MODERATION_MESSAGE, mmsg, wallet)
 
-        if (!result || result.errors) console.log(result)
+        if (!result || result.failures) console.log(result)
 
     }
 

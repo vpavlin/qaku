@@ -4,16 +4,8 @@ import {
     waitForRemotePeer,
     createDecoder,
     LightNode,
-    Callback,
-    DecodedMessage,
-    Unsubscribe,
-    createEncoder,
-    IMessage,
-    utf8ToBytes,
-    SendResult,
-    PageDirection,
-    StoreQueryOptions,
   } from "@waku/sdk";
+  import { DefaultPubsubTopic } from "@waku/interfaces";
 import { DEFAULT_BOOTSTRAP, PROTOCOLS, STATIC_NODES } from "../constants";
 import { multiaddr } from "@multiformats/multiaddr";
 
@@ -23,9 +15,6 @@ export type WakuInfo = {
     connected: boolean;
     start: () => void;
     stop: () => void;
-    publish: (contentTopic: string, message: string) => Promise<SendResult | void>;
-    subscribe: (contentTopic: string, callback: Callback<DecodedMessage>) => Unsubscribe | Promise<Unsubscribe> | void;
-    query: <T>(contentTopic: string, decode: (msg: any) => any, options?: StoreQueryOptions) => Promise<T[]>
 }
 
 export type WakuContextData = {
@@ -56,6 +45,12 @@ interface Props {
     children: React.ReactNode
 }
 
+const bootstrapNodes = [
+    "/dns4/node-01.do-ams3.status.prod.statusim.net/tcp/443/wss/p2p/16Uiu2HAm6HZZr7aToTvEBPpiys4UxajCTU97zj5v7RNR2gbniy1D",
+    "/dns4/node-02.do-ams3.status.prod.statusim.net/tcp/443/wss/p2p/16Uiu2HAmSve7tR5YZugpskMv2dmJAsMUKmfWYEKRXNUxRaTCnsXV",
+    "/dns4/node-01.ac-cn-hongkong-c.waku.test.statusim.net/tcp/8000/wss/p2p/16Uiu2HAkzHaTP5JsUwfR9NR8Rj9HC24puS6ocaU8wze4QrXr9iXp",
+]
+
 
 export const WakuContextProvider = ({ children }: Props) => {
     const [status, setStatus] = useState<string>("disconnected")
@@ -68,14 +63,16 @@ export const WakuContextProvider = ({ children }: Props) => {
         if (connected || connecting || node) return
         setConnecting(true)
         setStatus("starting")
-        createLightNode({ defaultBootstrap: DEFAULT_BOOTSTRAP, pingKeepAlive: 10 }).then( async (ln: LightNode) => {
+        await createLightNode({
+            pubsubTopics: [DefaultPubsubTopic],
+            defaultBootstrap: false,
+            pingKeepAlive: 60,
+            bootstrapPeers: bootstrapNodes,
+            numPeersToUse: 3,
+        }).then( async (ln: LightNode) => {
             if (node) return
             setNode(ln)
             setStatus("connecting")
-            for (var n of STATIC_NODES) {
-                const ma = multiaddr(n);
-                await ln.dial(ma, PROTOCOLS)
-            }
             
             try {
                 await waitForRemotePeer(ln, PROTOCOLS)
@@ -97,62 +94,6 @@ export const WakuContextProvider = ({ children }: Props) => {
         setStatus("stopped")
     }
 
-    const publish = async (contentTopic: string, message: string, ephemeral:boolean = false): Promise<void | SendResult> => {
-        if (!node || !connected) return
-        const encoder = createEncoder({contentTopic, ephemeral})
-        const wakuMessage:IMessage = {payload: utf8ToBytes(message), timestamp: new Date()}
-        return await node.lightPush.send(encoder, wakuMessage)
-    }
-
-    const subscribe = (contentTopic: string, callback: Callback<DecodedMessage>): Unsubscribe | Promise<Unsubscribe> | void => {
-        if (!node || !connected) return
-        const decoder = createDecoder(contentTopic)
-
-        console.log(contentTopic)
-     
-
-        return node.filter.subscribe(decoder, callback)
-    }
-
-    const query = async <T,>(contentTopic: string, decode: (msg: any) => any, options?: StoreQueryOptions): Promise<T[]> => {
-        const decoder = createDecoder(contentTopic)
-        let result:T[] = []
-        if (!node || !connected ) return result
-
-        console.log("querying")
-
-        if (!options) {
-            options = {
-                pageDirection: PageDirection.FORWARD,
-              }
-        }
-
-        try {
-            for await (const messagesPromises of node.store.queryGenerator(
-              [decoder],
-              options
-            )) {
-                const messages = await Promise.all(
-                    messagesPromises
-                        .map(async (p) => {
-                            const msg = await p;
-                            return decode(msg);
-                        })
-                        .filter(Boolean)
-                    );
-
-                if (messages) {
-                    result = result.concat(messages)
-                }
-
-                return result
-            }
-        } catch (e) {
-            console.log("Failed to retrieve messages", e);
-        }
-
-        return result
-    }
 
     const wakuInfo = useMemo(
         () => ({
@@ -161,9 +102,7 @@ export const WakuContextProvider = ({ children }: Props) => {
             connected,
             start,
             stop,
-            publish,
-            subscribe,
-            query,
+
         }),
         [
             node,
@@ -171,9 +110,6 @@ export const WakuContextProvider = ({ children }: Props) => {
             connected,
             start,
             stop,
-            publish,
-            subscribe,
-            query,
         ]
     )
 

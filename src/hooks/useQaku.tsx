@@ -1,6 +1,5 @@
 import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityMessage, AnsweredMessage, ControlMessage, EnhancedQuestionMessage, MessageType, ModerationMessage, QakuMessage, QuestionMessage, UpvoteMessage, unique } from "../utils/messages";
-import { useWakuContext } from "./useWaku";
 import { DecodedMessage, PageDirection, StoreQueryOptions, bytesToUtf8, createDecoder } from "@waku/sdk";
 import { CONTENT_TOPIC_ACTIVITY, CONTENT_TOPIC_MAIN } from "../constants";
 import { sha256 } from "js-sha256";
@@ -8,6 +7,7 @@ import { Wallet } from "ethers";
 import getDispatcher, { DispatchMetadata, Dispatcher, Signer, destroyDispatcher } from "waku-dispatcher"
 import useIdentity from "./useIdentity";
 import { LocalPoll, NewPoll, Poll, PollActive, PollVote } from "../components/polls/types";
+import { useWakuContext } from "./useWaku";
 
 export type HistoryEntry = {
     id: string;
@@ -27,6 +27,7 @@ export type QakuInfo = {
     importPrivateKey: (key: string) => void;
     localQuestions: EnhancedQuestionMessage[]
     dispatcher: Dispatcher | undefined;
+    loading: boolean
 }
 
 export type QakuContextData = {
@@ -54,6 +55,7 @@ interface Props {
 
 
 export const QakuContextProvider = ({ id, children }: Props) => {
+    const { node } = useWakuContext()
     const [ dispatcher, setDispatcher ] = useState<Dispatcher>()
     const [ lastId, setLastId ] = useState<string>()
     const [ controlState, _setControlState ] = useState<ControlMessage>()
@@ -76,10 +78,11 @@ export const QakuContextProvider = ({ id, children }: Props) => {
 
     const [localQuestions, setLocalQuestions] = useState<EnhancedQuestionMessage[]>([])
 
-    const {connected, query, publish, node} = useWakuContext()
     const { wallet } = useIdentity("qaku-key-v2", "qaku-wallet")
 
     const [polls, setPolls] = useState<LocalPoll[]>([])
+
+    const [ loading, setLoading ] = useState<boolean>(false)
 
 
     const historyAdd = (id: string, title: string) => {
@@ -150,6 +153,7 @@ export const QakuContextProvider = ({ id, children }: Props) => {
         if (dispatcher || !id || !node) return;
 
         (async () => {
+            setLoading(true)
             let d: Dispatcher | null = null
             let retries = 0
             while(!d && retries < 10) {
@@ -157,7 +161,10 @@ export const QakuContextProvider = ({ id, children }: Props) => {
                 await new Promise((r) => setTimeout(r, 100))
                 retries++
             }
-            if (!d) return
+            if (!d) {
+                setLoading(false)
+                return
+            }
             d.on(MessageType.CONTROL_MESSAGE, (payload: ControlMessage, signer: Signer, meta: DispatchMetadata) => {
                 console.debug(payload)
                 if (!payload.title) return
@@ -234,8 +241,11 @@ export const QakuContextProvider = ({ id, children }: Props) => {
                     return [...x]
                 })
             }, true)
+            console.debug("Dispatching local query")
             await d.dispatchLocalQuery()
+            console.debug("Local query done")
             setDispatcher(d)
+            setLoading(false)
         })()
     }, [dispatcher, id, node])
 
@@ -376,6 +386,7 @@ export const QakuContextProvider = ({ id, children }: Props) => {
             historyAdd,
             importPrivateKey,
             dispatcher,
+            loading,
         }),
         [
             controlState,
@@ -390,6 +401,7 @@ export const QakuContextProvider = ({ id, children }: Props) => {
             historyAdd,
             importPrivateKey,
             dispatcher,
+            loading,
         ]
     )
 

@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react"
 import { useQakuContext } from "../hooks/useQaku"
-import { useWakuContext } from "../hooks/useWaku"
 import { EnhancedQuestionMessage } from "../utils/messages"
 
 interface IProps {

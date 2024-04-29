@@ -1,16 +1,18 @@
 import { useState } from "react";
-import { useWakuContext } from "../hooks/useWaku";
 import { sha256 } from "js-sha256";
 import { useNavigate } from "react-router-dom";
 import { useQakuContext } from "../hooks/useQaku";
 import { ControlMessage, MessageType, QakuMessage } from "../utils/messages";
 import { CONTENT_TOPIC_MAIN, DISPATCHER_DB_NAME } from "../constants";
 import getDispatcher, { destroyDispatcher } from "waku-dispatcher";
+import { useWakuContext } from "../hooks/useWaku";
 
 const NewQA = () => {
+    const { node, connected } = useWakuContext()
     const { wallet, historyAdd } = useQakuContext()
-    const {connected, node} = useWakuContext()
     const navigate = useNavigate();
+
+    const [dispatcher, setDispatcher] = useState()
 
     const [title, setTitle] = useState<string>()
     const [desc, setDesc] = useState<string>()
@@ -18,7 +20,7 @@ const NewQA = () => {
     const [moderation, SetModeration] = useState<boolean>(false)
 
     const submit = async () => {
-        if (!connected || !title || !wallet || !node) return
+        if (!node || !title || !wallet) return
 
         const ts = new Date();
         const hash = sha256(title + ts.toString()).slice(0, 8)
@@ -35,19 +37,29 @@ const NewQA = () => {
         }
 
         await destroyDispatcher()
-        const dispatcher = await getDispatcher(node, CONTENT_TOPIC_MAIN(hash), DISPATCHER_DB_NAME, false)
+        const dispatcher = await getDispatcher(node, CONTENT_TOPIC_MAIN(hash), "qaku-"+hash, false)
         if (!dispatcher) return
         dispatcher.on(MessageType.CONTROL_MESSAGE, () => {})
         const result = await dispatcher.emit(MessageType.CONTROL_MESSAGE, cmsg, wallet)
-        await destroyDispatcher()
-
-        if (result && result.errors?.length == 0) {
+        console.log(result)
+        if (result && result.failures?.length == 0) {
             historyAdd(hash, title)
             navigate("/q/"+hash)
         }
+        
+        await destroyDispatcher()
+        console.debug("Destroyed dispatcher...")
+
+        
     }
 
     return (
+        <>
+        { !connected ? 
+            <div className="h-full w-full flex justify-center items-center">
+                                <div className="loading loading-lg"></div>
+                            </div>
+                            :
         <div className="h-full w-full flex justify-center items-center">
         <div className="bg-base-300 my-3 w-full max-w-3xl p-10 form-control m-auto justify-center space-y-3">
             <div className="text-xl">Create new Q&A</div>
@@ -68,9 +80,11 @@ const NewQA = () => {
                 <span className="label-text">Enable Owner Moderation</span>
             </label>
             
-            <button onClick={() => submit()} disabled={!connected} className="btn btn-lg">Submit</button>
+            <button onClick={() => submit()}  className="btn btn-lg">Submit</button>
         </div>
         </div>
+        }
+        </>
     )
 }
 

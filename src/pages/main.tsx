@@ -25,7 +25,7 @@ const Main = () => {
     useEffect(() => {
         if (!start || connected) return
         start()
-    }, [start])
+    }, [start, connected])
 
     return (
         <>

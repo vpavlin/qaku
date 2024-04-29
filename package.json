@@ -11,13 +11,13 @@
     "@types/node": "^16.18.46",
     "@types/react": "^18.2.21",
     "@types/react-dom": "^18.2.7",
-    "@waku/message-encryption": "^0.0.22",
-    "@waku/sdk": "^0.0.20",
+    "@waku/message-encryption": "^0.0.27-fd60cc2.0",
+    "@waku/sdk": "^0.0.25-fd60cc2.0",
     "@yudiel/react-qr-scanner": "^1.1.10",
     "buffer": "^6.0.3",
     "daisyui": "^3.6.4",
     "elliptic": "^6.5.4",
-    "ethers": "^6.8.0",
+    "ethers": "^6.12.0",
     "js-sha256": "^0.10.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -27,8 +27,8 @@
     "react-router-dom": "^6.15.0",
     "react-scripts": "5.0.1",
     "typescript": "^4.9.5",
-    "web-vitals": "^2.1.4",
-    "waku-dispatcher": "^0.0.5"
+    "waku-dispatcher": "^0.0.8",
+    "web-vitals": "^2.1.4"
   },
   "scripts": {
     "start": "react-scripts start",
