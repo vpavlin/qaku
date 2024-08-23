@@ -13,11 +13,6 @@ const Polls = () => {
         if (!dispatcher || !wallet) return
         setSubmitting(true)
         const res = await dispatcher.emit(MessageType.POLL_VOTE_MESSAGE, {id: pollId, option: option} as PollVote, wallet)
-        if (res && res.failures && res.failures.length > 0) {
-            console.error(res)
-        } else {
-            
-        }
 
         setSubmitting(false)
     }
@@ -26,11 +21,6 @@ const Polls = () => {
         if (!dispatcher || !wallet || !isOwner) return
         setSubmitting(true)
         const res = await dispatcher.emit(MessageType.POLL_ACTIVE_MESSAGE, {id: pollId, active: newState} as PollActive, wallet)
-        if (res && res.failures && res.failures.length > 0) {
-            console.error(res)
-        } else {
-            
-        }
         setSubmitting(false)
 
     }

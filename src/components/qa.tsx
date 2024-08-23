@@ -2,7 +2,6 @@ import NewQuestion from "./newq";
 import { useQakuContext } from "../hooks/useQaku";
 
 import Question from "./question";
-import { PageDirection } from "@waku/sdk";
 import CreatePoll from "./polls/create";
 import { useEffect, useState } from "react";
 import Poll from "./polls/poll";
@@ -39,7 +38,7 @@ const QA = () => {
     return (
         <div className="text-center max-w-5xl m-auto space-y-3 bg-base-300 h-full p-3">
             <div>
-                <button className="btn btn-sm" disabled={!dispatcher} onClick={() => {dispatcher?.clearDuplicateCache();dispatcher?.dispatchQuery({pageDirection: PageDirection.FORWARD, pageSize: 100}, true)} }>Force Reload</button>
+                <button className="btn btn-sm" disabled={!dispatcher} onClick={() => {dispatcher?.clearDuplicateCache();dispatcher?.dispatchQuery()} }>Force Reload</button>
             </div>
             {!dispatcher && <span className="loading loading-lg"></span>}
             { controlState &&

@@ -63,9 +63,7 @@ const CreatePoll = () => {
 
         console.log(poll)
         const res = await dispatcher.emit(MessageType.POLL_CREATE_MESSAGE, poll, wallet)
-        if (res && res.failures && res.failures.length > 0) {
-            console.error(res)
-        } else {
+        if (res) {
             setCollapsed(true)
             setQuestion("")
             setTitle("")

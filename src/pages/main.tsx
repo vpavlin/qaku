@@ -10,9 +10,11 @@ import logo from "../assets/logo512.png"
 import { HiChevronDoubleRight, HiOutlineMenu } from "react-icons/hi"
 import QRCode from "react-qr-code";
 import User from "../components/user";
+import { useToastContext } from "../hooks/useToast";
 
 const Main = () => {
-    const {connected, start} = useWakuContext()
+    const {Element} = useToastContext()
+    const {connected, start, filterPeers, lightpushPeers, storePeers} = useWakuContext()
     let { id } = useParams<"id">();
     const [ searchId, setSearchId ] = useState<string>()
 
@@ -112,6 +114,7 @@ const Main = () => {
 
                 </div>
             </div>
+            <Element />
         </QakuContextProvider>
         
         </>

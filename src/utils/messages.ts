@@ -65,6 +65,14 @@ export type EnhancedQuestionMessage = {
     moderated: boolean;
 }
 
+export type QakuHash = {
+    hash: string;
+}
+
+export type QakuHashList = {
+    hashes: string[];
+}
+
 export const unique = <T>(msgs: T[]): T[] => {
     var distinct_hashes:string[] = []
 

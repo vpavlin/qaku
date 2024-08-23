@@ -6,8 +6,10 @@ import { ControlMessage, MessageType, QakuMessage } from "../utils/messages";
 import { CONTENT_TOPIC_MAIN, DISPATCHER_DB_NAME } from "../constants";
 import getDispatcher, { destroyDispatcher } from "waku-dispatcher";
 import { useWakuContext } from "../hooks/useWaku";
+import { useToastContext } from "../hooks/useToast";
 
 const NewQA = () => {
+    const { error } = useToastContext()
     const { node, connected } = useWakuContext()
     const { wallet, historyAdd } = useQakuContext()
     const navigate = useNavigate();
@@ -41,16 +43,15 @@ const NewQA = () => {
         if (!dispatcher) return
         dispatcher.on(MessageType.CONTROL_MESSAGE, () => {})
         const result = await dispatcher.emit(MessageType.CONTROL_MESSAGE, cmsg, wallet)
-        console.log(result)
-        if (result && result.failures?.length == 0) {
+        if (result) {
             historyAdd(hash, title)
             navigate("/q/"+hash)
+        } else {
+            error("Failed to create the Q&A")
         }
         
         await destroyDispatcher()
         console.debug("Destroyed dispatcher...")
-
-        
     }
 
     return (

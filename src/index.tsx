@@ -7,6 +7,7 @@ import { WakuContext, WakuContextProvider } from './hooks/useWaku';
 import { BrowserRouter, RouterProvider, createBrowserRouter } from 'react-router-dom';
 import Main from './pages/main';
 import { QakuContextProvider } from './hooks/useQaku';
+import { ToastContextProvider } from './hooks/useToast';
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
@@ -16,7 +17,11 @@ root.render(
   
     <BrowserRouter>
       <WakuContextProvider>
+      <ToastContextProvider>
+
           <App />
+          </ToastContextProvider>
+
       </WakuContextProvider>
     </BrowserRouter>
   
