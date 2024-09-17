@@ -54,8 +54,8 @@ const bootstrapNodes = [
     "/dns4/node-01.ac-cn-hongkong-c.waku.test.statusim.net/tcp/8000/wss/p2p/16Uiu2HAkzHaTP5JsUwfR9NR8Rj9HC24puS6ocaU8wze4QrXr9iXp",
 ]*/
 
-const bootstrapNodes = [
-   "/dns4/waku.bloxy.one/tcp/8000/wss/p2p/16Uiu2HAmMJy3oXGzRjt2iKmYoCnaEkj55rE55YperMpemtGs9Da2",
+const bootstrapNodes: string[] = [
+   //"/dns4/waku.bloxy.one/tcp/8000/wss/p2p/16Uiu2HAmMJy3oXGzRjt2iKmYoCnaEkj55rE55YperMpemtGs9Da2",
 ]
 
 
@@ -76,7 +76,7 @@ export const WakuContextProvider = ({ children }: Props) => {
         await createLightNode({
             defaultBootstrap: true,
             pingKeepAlive: 60,
-            bootstrapPeers: bootstrapNodes,
+            //bootstrapPeers: bootstrapNodes,
             numPeersToUse: 3,
         }).then( async (ln: LightNode) => {
             if (node) return
