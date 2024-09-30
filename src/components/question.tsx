@@ -25,6 +25,7 @@ const Question = ({msg, moderation}:IProps) => {
     const publishAnswer =  async (qmsg:QuestionMessage, answer?: string) => {
         if (!wallet || !dispatcher || !controlState) return
 
+        console.log(qmsg)
         const hash = sha256(JSON.stringify(qmsg))
         const amsg:AnsweredMessage = { hash: hash, text: answer }
         const result = await dispatcher.emit(MessageType.ANSWERED_MESSAGE, amsg, wallet)
@@ -75,9 +76,10 @@ const Question = ({msg, moderation}:IProps) => {
                 <div>
                     <button className="btn btn-sm btn-neutral mx-1" onClick={() => {
                         setAnswer("");
-                        (document.getElementById('answer_modal') as HTMLDialogElement).showModal()
+                        console.log(msg.question);
+                        (document.getElementsByClassName('answer_modal_'+hash)[0] as HTMLDialogElement).showModal()
                         }}>Answer</button>
-                    <dialog id="answer_modal" className="modal">
+                    <dialog className={`modal answer_modal_${hash}`}>
                         <div className="modal-box text-left">
                             <div className="text-left m-2"><ReactMarkdown>{msg.question}</ReactMarkdown></div>
                             <div className="font-bold m-1">Answer</div>
