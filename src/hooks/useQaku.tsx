@@ -242,7 +242,11 @@ export const QakuContextProvider = ({ id, children }: Props) => {
                 })
             }, true)
             console.debug("Dispatching local query")
+            try {
             await d.dispatchLocalQuery()
+            } catch {
+                console.log("Some error")
+            }
             console.debug("Local query done")
             setDispatcher(d)
             setLoading(false)

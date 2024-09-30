@@ -4,6 +4,7 @@ import {
     waitForRemotePeer,
     createDecoder,
     LightNode,
+    EConnectionStateEvents,
   } from "@waku/sdk";
 import { DEFAULT_BOOTSTRAP, PROTOCOLS, STATIC_NODES } from "../constants";
 import { multiaddr } from "@multiformats/multiaddr";
@@ -82,10 +83,17 @@ export const WakuContextProvider = ({ children }: Props) => {
             if (node) return
             setNode(ln)
             setStatus("connecting")
+
+            ln.connectionManager.addEventListener(EConnectionStateEvents.CONNECTION_STATUS, (e) => {
+                console.log(e)
+                setLightpushPeers(ln.lightPush.connectedPeers.length)
+                setFilterPeers(ln.filter.connectedPeers.length)
+                setStorePeers(ln.store.connectedPeers.length)
+            })
             
             try {
                 await waitForRemotePeer(ln, PROTOCOLS)
-                //console.log(await ln.libp2p.peerStore.all())
+                console.log(await ln.libp2p.peerStore.all())
                 setStatus("connected")
                 setConnected(true)
                 setConnecting(false)
@@ -94,7 +102,7 @@ export const WakuContextProvider = ({ children }: Props) => {
                     setLightpushPeers(ln.lightPush.connectedPeers.length)
                     setFilterPeers(ln.filter.connectedPeers.length)
                     setStorePeers(ln.store.connectedPeers.length)
-                }, 1000)
+                }, 500)
             } finally {
                 setConnecting(false)
             }
