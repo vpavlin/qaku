@@ -64,7 +64,6 @@ export const QakuContextProvider = ({ id, children }: Props) => {
         controlStateRef.current = cmsg
         _setControlState(cmsg)
     }
-    const [ questions, setQuestions ] = useState<QuestionMessage[]>([])
     const [ isOwner, setOwner ] = useState<boolean>(false)
     const [ active, setActive ] = useState<number>(0)
     const [ activeList, setActiveList ] = useState<ActivityMessage[]>([])
@@ -76,6 +75,7 @@ export const QakuContextProvider = ({ id, children }: Props) => {
     const [ history, setHistory ] = useState<HistoryEntry[]>([])
     const [ visited, setVisited ] = useState<HistoryEntry[]>([])
 
+    const [questions, setQuestions] = useState<Map<string, EnhancedQuestionMessage>>(new Map<string, EnhancedQuestionMessage>())
     const [localQuestions, setLocalQuestions] = useState<EnhancedQuestionMessage[]>([])
 
     const { wallet } = useIdentity("qaku-key-v2", "qaku-wallet")
@@ -96,29 +96,6 @@ export const QakuContextProvider = ({ id, children }: Props) => {
     const callback_activity = (msg: DecodedMessage) => {
         const decoded:ActivityMessage = JSON.parse(bytesToUtf8(msg.payload))
         return decoded
-    }
-
-    const isModerated = (msg:QuestionMessage): boolean => {
-        const hash = sha256(JSON.stringify(msg))
-
-        // @ts-ignore
-        const moderated:boolean | undefined = moderatedMsgs.get(hash)
-
-        return moderated !== undefined && moderated
-    }
-
-    const isAnswered = (msg:QuestionMessage): [boolean, AnsweredMessage | undefined] => {
-        const hash = sha256(JSON.stringify(msg))
-
-        const answerMsg: AnsweredMessage | undefined = answeredMsgs.find((m, i) => m.hash == hash)
-
-        return [answerMsg !== undefined, answerMsg]
-    }
-
-    const upvoted = (msg:QuestionMessage):[number, string[] | undefined] => {
-        const hash = sha256(JSON.stringify(msg))
-        const u = upvotes.get(hash)
-        return [u ? u.length : 0, u]
     }
 
     const switchState = (newState: boolean) => {
@@ -175,30 +152,68 @@ export const QakuContextProvider = ({ id, children }: Props) => {
             }, true)
             d.on(MessageType.QUESTION_MESSAGE, (payload: QuestionMessage) => {
                 if (!controlStateRef.current?.enabled) return
-                setQuestions((q) => unique<QuestionMessage>([...q, payload]))
+                setQuestions((lq) => {
+                    const hash = sha256(JSON.stringify(payload))
+                    if (lq.has(hash)) return lq
+                    const q: EnhancedQuestionMessage = {
+                        hash: hash,
+                        question: payload.question,
+                        timestamp: payload.timestamp,
+                        moderated: false,
+                        answer: undefined,
+                        answered: false,
+                        upvotedByMe: false,
+                        upvotes: 0,
+                        upvoters: []
+                    }
+                    lq.set(hash, q)
+
+                    return new Map(lq)
+                })
             })
             d.on(MessageType.UPVOTE_MESSAGE, (payload: UpvoteMessage, signer: Signer) => {
-                if (!controlStateRef.current?.enabled) return
-                setUpvotes((m) => {
-                    if (!m.has(payload.hash))
-                        m.set(payload.hash, [])
-                    const signers = m.get(payload.hash)
-                    if (signers && !signers.find((it) => it == signer)) {
-                        signers.push(signer as string)
-                        m.set(payload.hash, signers!)
-                    }
-                    return new Map<string, string[]>(m)
+                if (!controlStateRef.current?.enabled || !signer) return
+
+                setQuestions((lq) => {
+                    const q =  lq.get(payload.hash)
+                    if (!q) return lq
+                    if (q.upvotedByMe || q.answered || q.moderated || q.upvoters.includes(signer)) return lq
+
+                    q.upvotes++
+                    q.upvotedByMe = signer === wallet?.address
+                    q.upvoters.push(signer)
+
+                    lq.set(payload.hash, q)
+
+                    return new Map(lq)
                 })
             }, true)
             d.on(MessageType.ANSWERED_MESSAGE, (payload: AnsweredMessage, signer: Signer) => {
                 if (controlStateRef.current?.owner != signer) return
-                setAnsweredMsgs((m) => [...m, payload])
+                setQuestions((lq) => {
+                    const q =  lq.get(payload.hash)
+                    if (!q) return lq
+                    if (q.answered) return lq
+                    q.answered = true
+                    q.answer = payload.text
+
+                    lq.set(payload.hash, q)
+
+                    return new Map(lq)
+                })
             }, true)
             d.on(MessageType.MODERATION_MESSAGE, (payload: ModerationMessage, signer: Signer) => {
                 if (controlStateRef.current?.owner != signer) return
-                setModeratedMsgs((m) => {
-                    m.set(payload.hash, payload.moderated)
-                    return new Map<string, boolean>(m)
+
+                setQuestions((lq) => {
+                    const q =  lq.get(payload.hash)
+                    if (!q) return lq
+                    if (q.answered) return lq
+                    q.moderated = true
+
+                    lq.set(payload.hash, q)
+
+                    return new Map(lq)
                 })
             }, true)
             d.on(MessageType.POLL_CREATE_MESSAGE, (payload: NewPoll, signer: Signer, meta: DispatchMetadata) => {
@@ -259,7 +274,7 @@ export const QakuContextProvider = ({ id, children }: Props) => {
                 setLastId(id)
                 setControlState(undefined)
                 setOwner(false)
-                setQuestions([])
+                setQuestions(new Map<string, EnhancedQuestionMessage>())
                 setActive(1)
                 await destroyDispatcher() //FIXME: Will this work?
                 setDispatcher(undefined)
@@ -339,42 +354,19 @@ export const QakuContextProvider = ({ id, children }: Props) => {
     }, [activeList])
 
     useEffect(() => {
-        if (!questions) return
+        const q = Array.from(questions.values())
 
-        let questionsCopy = questions.slice(0)
+        q.sort((a:EnhancedQuestionMessage, b:EnhancedQuestionMessage) => {
+                    if (a.moderated) return 1
+                    if (b.moderated) return -1
+                    if (a.answered && b.answered) return b.upvotes - a.upvotes
+                    if (a.answered && !b.answered) return 1
+                    if (!a.answered && b.answered) return -1
 
-        if (controlState?.moderation && !isOwner) {
-            questionsCopy = questionsCopy.filter((m) => !isModerated(m))
-        }
-
-        setLocalQuestions(questionsCopy.map((q)=> {
-            const [u, upvoters] = upvoted(q)
-            const [answered, answerMsg] = isAnswered(q)
-
-            const lq: EnhancedQuestionMessage = {
-                question: q.question,
-                timestamp: q.timestamp,
-                answer: answerMsg && answerMsg.text,
-                answered: answered,
-                upvotes: u,
-                upvotedByMe: !!(upvoters && wallet && upvoters.indexOf(wallet.address) >= 0),
-                moderated: false
-            }
-            if (isOwner && controlState?.moderation) lq.moderated = isModerated(q)
-
-            return lq
-        }).sort((a:EnhancedQuestionMessage, b:EnhancedQuestionMessage) => {
-            
-            if (a.moderated) return 1
-            if (b.moderated) return -1
-            if (a.answered && b.answered) return b.upvotes - a.upvotes
-            if (a.answered && !b.answered) return 1
-            if (!a.answered && b.answered) return -1
-
-            return b.upvotes - a.upvotes
-        }))
-
-    }, [questions, controlState, upvotes, answeredMsgs, moderatedMsgs, wallet])
+                    return b.upvotes - a.upvotes
+                })
+        setLocalQuestions(q)
+    }, [questions, controlState, wallet])
 
     const qakuInfo = useMemo(
         () => ({

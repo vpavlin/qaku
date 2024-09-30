@@ -56,11 +56,13 @@ export type ControlMessage = {
 }
 
 export type EnhancedQuestionMessage = {
+    hash: string,
     question: string;
     timestamp: Date;
     answer: string | undefined;
     answered: boolean;
     upvotes: number;
+    upvoters: string[]
     upvotedByMe: boolean;
     moderated: boolean;
 }
