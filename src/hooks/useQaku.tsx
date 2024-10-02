@@ -1,6 +1,6 @@
 import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityMessage, AnsweredMessage, ControlMessage, EnhancedQuestionMessage, MessageType, ModerationMessage, QakuMessage, QuestionMessage, UpvoteMessage, unique } from "../utils/messages";
-import { DecodedMessage, bytesToUtf8 } from "@waku/sdk";
+import { DecodedMessage, bytesToUtf8, createDecoder, utf8ToBytes } from "@waku/sdk";
 import { CONTENT_TOPIC_ACTIVITY, CONTENT_TOPIC_MAIN } from "../constants";
 import { sha256 } from "js-sha256";
 import { Wallet } from "ethers";
@@ -50,11 +50,12 @@ export const useQakuContext = () => {
 
 interface Props {
     id: string | undefined;
+    password: string | undefined;
     children: React.ReactNode;
 }
 
 
-export const QakuContextProvider = ({ id, children }: Props) => {
+export const QakuContextProvider = ({ id, password, children }: Props) => {
     const { node } = useWakuContext()
     const [ dispatcher, setDispatcher ] = useState<Dispatcher>()
     const [ lastId, setLastId ] = useState<string>()
@@ -127,7 +128,11 @@ export const QakuContextProvider = ({ id, children }: Props) => {
     }
 
     useEffect(() => {
-        if (dispatcher || !id || !node) return;
+        console.log(id)
+        console.log(password)
+        console.log(id && id.startsWith("X") && !password)
+        if (dispatcher || !id || !node || (id && id.startsWith("X") && !password)) return;
+   
 
         (async () => {
             setLoading(true)
@@ -142,6 +147,10 @@ export const QakuContextProvider = ({ id, children }: Props) => {
                 setLoading(false)
                 return
             }
+            if (password) {
+                d.registerKey(utf8ToBytes(sha256(password)).slice(0, 32), 0, true)
+            }
+                
             d.on(MessageType.CONTROL_MESSAGE, (payload: ControlMessage, signer: Signer, meta: DispatchMetadata) => {
                 console.debug(payload)
                 if (!payload.title) return
@@ -149,7 +158,7 @@ export const QakuContextProvider = ({ id, children }: Props) => {
                 if (signer != payload.owner) return
                 if (controlStateRef.current != undefined && controlStateRef.current.owner != signer) return
                 setControlState(payload)
-            }, true)
+            }, true, d.autoEncrypt)
             d.on(MessageType.QUESTION_MESSAGE, (payload: QuestionMessage) => {
                 if (!controlStateRef.current?.enabled) return
                 setQuestions((lq) => {
@@ -170,7 +179,7 @@ export const QakuContextProvider = ({ id, children }: Props) => {
 
                     return new Map(lq)
                 })
-            })
+            }, false, d.autoEncrypt)
             d.on(MessageType.UPVOTE_MESSAGE, (payload: UpvoteMessage, signer: Signer) => {
                 if (!controlStateRef.current?.enabled || !signer) return
 
@@ -187,7 +196,7 @@ export const QakuContextProvider = ({ id, children }: Props) => {
 
                     return new Map(lq)
                 })
-            }, true)
+            }, true, d.autoEncrypt)
             d.on(MessageType.ANSWERED_MESSAGE, (payload: AnsweredMessage, signer: Signer) => {
                 if (controlStateRef.current?.owner != signer) return
                 setQuestions((lq) => {
@@ -201,7 +210,7 @@ export const QakuContextProvider = ({ id, children }: Props) => {
 
                     return new Map(lq)
                 })
-            }, true)
+            }, true, d.autoEncrypt)
             d.on(MessageType.MODERATION_MESSAGE, (payload: ModerationMessage, signer: Signer) => {
                 if (controlStateRef.current?.owner != signer) return
 
@@ -215,7 +224,7 @@ export const QakuContextProvider = ({ id, children }: Props) => {
 
                     return new Map(lq)
                 })
-            }, true)
+            }, true, d.autoEncrypt)
             d.on(MessageType.POLL_CREATE_MESSAGE, (payload: NewPoll, signer: Signer, meta: DispatchMetadata) => {
                 console.log(payload)
                 if (controlStateRef.current?.owner != signer || signer != payload.creator) {
@@ -226,7 +235,7 @@ export const QakuContextProvider = ({ id, children }: Props) => {
                 const poll:LocalPoll = {...payload.poll, owner: signer}
     
                 setPolls((x) => [poll, ...x.filter((p) => p.id !== payload.poll.id)])
-            }, true)
+            }, true, d.autoEncrypt)
             d.on(MessageType.POLL_VOTE_MESSAGE, (payload: PollVote, signer: Signer, meta: DispatchMetadata) => {
                 setPolls((x) => {
                     const poll = x.find((p) => p.id == payload.id)
@@ -245,7 +254,7 @@ export const QakuContextProvider = ({ id, children }: Props) => {
 
                     return [...x]
                 })
-            }, true)
+            }, true, d.autoEncrypt)
             d.on(MessageType.POLL_ACTIVE_MESSAGE, (payload: PollActive, signer: Signer, meta: DispatchMetadata) => {
                 setPolls((x) => {
                     const poll = x.find((p) => p.id == payload.id)
@@ -255,7 +264,7 @@ export const QakuContextProvider = ({ id, children }: Props) => {
 
                     return [...x]
                 })
-            }, true)
+            }, true, d.autoEncrypt)
             console.debug("Dispatching local query")
             try {
             await d.dispatchLocalQuery()

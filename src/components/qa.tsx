@@ -6,7 +6,7 @@ import CreatePoll from "./polls/create";
 import { useEffect, useState } from "react";
 import Poll from "./polls/poll";
 import Polls from "./polls/poll";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 
 enum Tabs {
     Questions = "questions",
@@ -18,8 +18,16 @@ const QA = () => {
     const  { controlState, localQuestions, dispatcher, isOwner } = useQakuContext()
     const {hash} = useLocation()
     
+    const navigate = useNavigate();
 
     const [activeTab, setActiveTab] = useState<Tabs>(Tabs.Questions)
+
+    let { id } = useParams<"id">();
+    let { password } = useParams<"password">();
+
+    const [needsPassword, setNeedsPassword] = useState<boolean>()
+    const [passwordInput, setPasswordInput] = useState<string>()
+
 
     useEffect(() => {
         console.log(hash)
@@ -35,8 +43,20 @@ const QA = () => {
         }
     }, [hash])
 
+    useEffect(() => {
+        setNeedsPassword(!(password || (id && !id.startsWith("X"))))
+    }, [id, password])
+        
+
     return (
         <div className="text-center max-w-5xl m-auto space-y-3 bg-base-300 h-full p-3">
+            {
+                needsPassword &&
+                <div>
+                    <input className="input input-lg input-bordered" type="password" onChange={(e) => setPasswordInput(e.target.value)} />
+                    <div><button className="btn btn-lg" onClick={() => navigate(`/q/${id}/${passwordInput}`)}>Unlock</button></div>
+                </div>
+            }
             <div>
                 <button className="btn btn-sm" disabled={!dispatcher} onClick={() => {dispatcher?.clearDuplicateCache();dispatcher?.dispatchQuery()} }>Force Reload</button>
             </div>

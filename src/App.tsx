@@ -17,7 +17,7 @@ function App() {
     <div className="App">
       <Routes>
         <Route path='/' element={<Main />}>
-          <Route path='q/:id' element={<QA />} />
+          <Route path='q/:id/:password?' element={<QA />} />
         </Route>
       </Routes>
     </div>

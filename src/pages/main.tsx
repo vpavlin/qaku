@@ -16,6 +16,7 @@ const Main = () => {
     const {Element} = useToastContext()
     const {connected, start, filterPeers, lightpushPeers, storePeers} = useWakuContext()
     let { id } = useParams<"id">();
+    let { password } = useParams<"password">();
     const [ searchId, setSearchId ] = useState<string>()
 
     const [drawer, setDrawer] = useState(false)
@@ -31,7 +32,7 @@ const Main = () => {
 
     return (
         <>
-        <QakuContextProvider id={id}>
+        <QakuContextProvider id={id} password={password}>
             <div className="drawer lg:drawer-open">
                 <input id="my-drawer-2" type="checkbox" className="drawer-toggle" checked={drawer} />
                 <div className="drawer-content flex justify-center">
