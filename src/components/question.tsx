@@ -6,6 +6,7 @@ import { useState } from "react";
 import { CONTENT_TOPIC_MAIN } from "../constants";
 import { useQakuContext } from "../hooks/useQaku";
 import { useToastContext } from "../hooks/useToast";
+import { shortAddr } from "../utils/crypto";
 
 interface IProps {
     msg: EnhancedQuestionMessage
@@ -16,7 +17,7 @@ const Question = ({msg, moderation}:IProps) => {
     const [ answer, setAnswer ] = useState<string>()
     const { error } = useToastContext()
 
-    const { controlState, isOwner, dispatcher , wallet} = useQakuContext()
+    const { controlState, isOwner, dispatcher , wallet, isAdmin} = useQakuContext()
 
     const hash = sha256(JSON.stringify(msg))
     const d = new Date(msg.timestamp)
@@ -70,9 +71,9 @@ const Question = ({msg, moderation}:IProps) => {
         <div className="text-left">
             <ReactMarkdown children={msg.question} />
         </div>
-        { msg.answer && <div className="text-right pl-2 mb-2 font-bold border-t border-white"> <ReactMarkdown children={msg.answer!} /></div>}
+        { msg.answer && <div className="text-right pl-2 mb-2 font-bold border-t border-white"> <ReactMarkdown children={msg.answer!} /> (answered by {controlState?.owner == msg.answeredBy && "owner: "}{controlState?.admins.includes(msg.answeredBy!) && "admin: "}{shortAddr(msg.answeredBy!)})</div>}
         <div className={`text-right text-sm flex gap-x-2 justify-end items-center`}>
-            {isOwner && !msg.answered && !msg.moderated &&
+            {(isOwner || isAdmin) && !msg.answered && !msg.moderated &&
                 <div>
                     <button className="btn btn-sm btn-neutral mx-1" onClick={() => {
                         setAnswer("");

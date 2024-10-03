@@ -23,6 +23,8 @@ const NewQA = () => {
     const [enabled, setEnabled] = useState<boolean>(true)
     const [moderation, SetModeration] = useState<boolean>(false)
     const [password, setPassword] = useState<string>()
+    const [admins, setAdmins] = useState<string[]>([])
+
 
     const submit = async () => {
         if (!node || !title || !wallet) return
@@ -37,7 +39,7 @@ const NewQA = () => {
             enabled: enabled,
             timestamp: new Date(),
             owner: wallet.address,
-            admins: [],
+            admins: admins,
             moderation: moderation
         }
 
@@ -100,6 +102,10 @@ const NewQA = () => {
                 <span className="label-text">Password (for encrypted Q&As)</span>
                 <input type="text" name="title" value={password} onChange={(e) => setPassword(e.target.value)} className="input input-bordered w-3/6 max-w-sm"/>
                 <button className="btn btn-sm" onClick={() => setPassword(Math.random().toString(36).slice(2, 8))}>Generate</button>
+            </label>
+            <label className="label flex-wrap">
+                <span className="label-text">Admins (list of addresses separated by a newline)</span>
+                <textarea className="textarea textarea-bordered textarea-lg w-full" onChange={(e) => setAdmins(e.target.value.split("\n"))}></textarea>
             </label>
 
             

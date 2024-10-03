@@ -21,3 +21,7 @@ export const toHex = (arr:any):string => {
 export const fromHex =(hex:string) => {
     return elliptic.utils.toArray(hex, 'hex')
 }
+
+export const shortAddr = (addr:string):string => {
+  return addr.slice(0, 5)+"..."+addr.slice(addr.length-3)
+}

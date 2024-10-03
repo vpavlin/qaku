@@ -18,6 +18,7 @@ export type QakuInfo = {
     controlState: ControlMessage | undefined;
     wallet: Wallet | undefined;
     isOwner: boolean;
+    isAdmin: boolean;
     active: number;
     visited: HistoryEntry[]
     polls: LocalPoll[]
@@ -66,6 +67,8 @@ export const QakuContextProvider = ({ id, password, children }: Props) => {
         _setControlState(cmsg)
     }
     const [ isOwner, setOwner ] = useState<boolean>(false)
+    const [ isAdmin, setAdmin ] = useState<boolean>(false)
+
     const [ active, setActive ] = useState<number>(0)
     const [ activeList, setActiveList ] = useState<ActivityMessage[]>([])
 
@@ -171,6 +174,7 @@ export const QakuContextProvider = ({ id, password, children }: Props) => {
                         moderated: false,
                         answer: undefined,
                         answered: false,
+                        answeredBy: undefined,
                         upvotedByMe: false,
                         upvotes: 0,
                         upvoters: []
@@ -183,13 +187,21 @@ export const QakuContextProvider = ({ id, password, children }: Props) => {
             d.on(MessageType.UPVOTE_MESSAGE, (payload: UpvoteMessage, signer: Signer) => {
                 if (!controlStateRef.current?.enabled || !signer) return
 
+                console.log(payload.hash)
+                console.log(signer)
+                console.log(wallet?.address)
+
                 setQuestions((lq) => {
                     const q =  lq.get(payload.hash)
+                    console.log(q)
                     if (!q) return lq
-                    if (q.upvotedByMe || q.answered || q.moderated || q.upvoters.includes(signer)) return lq
+                    if ((q.upvotedByMe && signer == wallet?.address) || q.answered || q.moderated || q.upvoters.includes(signer)) return lq
 
                     q.upvotes++
-                    q.upvotedByMe = signer === wallet?.address
+
+                    if (signer === wallet?.address) {
+                        q.upvotedByMe = true
+                    }
                     q.upvoters.push(signer)
 
                     lq.set(payload.hash, q)
@@ -198,13 +210,14 @@ export const QakuContextProvider = ({ id, password, children }: Props) => {
                 })
             }, true, d.autoEncrypt)
             d.on(MessageType.ANSWERED_MESSAGE, (payload: AnsweredMessage, signer: Signer) => {
-                if (controlStateRef.current?.owner != signer) return
+                if (!signer || (controlStateRef.current?.owner != signer && !controlStateRef.current?.admins.includes(signer))) return
                 setQuestions((lq) => {
                     const q =  lq.get(payload.hash)
                     if (!q) return lq
                     if (q.answered) return lq
                     q.answered = true
                     q.answer = payload.text
+                    q.answeredBy = signer
 
                     lq.set(payload.hash, q)
 
@@ -212,7 +225,7 @@ export const QakuContextProvider = ({ id, password, children }: Props) => {
                 })
             }, true, d.autoEncrypt)
             d.on(MessageType.MODERATION_MESSAGE, (payload: ModerationMessage, signer: Signer) => {
-                if (controlStateRef.current?.owner != signer) return
+                if (!signer || (controlStateRef.current?.owner != signer && !controlStateRef.current?.admins.includes(signer))) return
 
                 setQuestions((lq) => {
                     const q =  lq.get(payload.hash)
@@ -227,8 +240,8 @@ export const QakuContextProvider = ({ id, password, children }: Props) => {
             }, true, d.autoEncrypt)
             d.on(MessageType.POLL_CREATE_MESSAGE, (payload: NewPoll, signer: Signer, meta: DispatchMetadata) => {
                 console.log(payload)
-                if (controlStateRef.current?.owner != signer || signer != payload.creator) {
-                    console.log("Poll creator not owner")
+                if (!signer || (controlStateRef.current?.owner != signer && !controlStateRef.current?.admins.includes(signer)) || signer != payload.creator) {
+                    console.log("Poll creator not owner %s != %s", signer, payload.creator)
                     return
                 }
 
@@ -256,18 +269,24 @@ export const QakuContextProvider = ({ id, password, children }: Props) => {
                 })
             }, true, d.autoEncrypt)
             d.on(MessageType.POLL_ACTIVE_MESSAGE, (payload: PollActive, signer: Signer, meta: DispatchMetadata) => {
+                if (!signer || (controlStateRef.current?.owner != signer && !controlStateRef.current?.admins.includes(signer))) {
+                    return
+                }
                 setPolls((x) => {
                     const poll = x.find((p) => p.id == payload.id)
                     if (!poll) return x
-                    if (poll.owner === signer)
-                    poll.active = payload.active
-
+                    if (poll.owner === signer || controlStateRef.current?.owner == signer || controlStateRef.current?.admins.includes(signer)) //do we care if only creator can (de)activate
+                        poll.active = payload.active
                     return [...x]
                 })
             }, true, d.autoEncrypt)
             console.debug("Dispatching local query")
             try {
-            await d.dispatchLocalQuery()
+                await d.dispatchLocalQuery() 
+
+                if (localQuestions.length == 0) {
+                    await d.dispatchQuery()
+                }
             } catch {
                 console.log("Some error")
             }
@@ -275,7 +294,7 @@ export const QakuContextProvider = ({ id, password, children }: Props) => {
             setDispatcher(d)
             setLoading(false)
         })()
-    }, [dispatcher, id, node])
+    }, [dispatcher, id, node, password])
 
     useEffect(() => {
         if (id != lastId) {
@@ -283,6 +302,7 @@ export const QakuContextProvider = ({ id, password, children }: Props) => {
                 setLastId(id)
                 setControlState(undefined)
                 setOwner(false)
+                setAdmin(false)
                 setQuestions(new Map<string, EnhancedQuestionMessage>())
                 setActive(1)
                 await destroyDispatcher() //FIXME: Will this work?
@@ -315,6 +335,8 @@ export const QakuContextProvider = ({ id, password, children }: Props) => {
         if (!controlState || !wallet || !id) return
 
         setVisited((v) => {
+            if (password)
+                id = id +"/"+password
             const exist = v.find((e) => e.id == id)
             if (!exist) return [...v, {id: id!, title: controlState.title}]
 
@@ -322,6 +344,7 @@ export const QakuContextProvider = ({ id, password, children }: Props) => {
         })
 
         setOwner(controlState.owner == wallet.address)
+        setAdmin(controlState.admins.includes(wallet.address))
     }, [controlState, wallet])
 
     /*useEffect(() => {
@@ -382,6 +405,7 @@ export const QakuContextProvider = ({ id, password, children }: Props) => {
             controlState,
             wallet,
             isOwner,
+            isAdmin,
             visited,
             localQuestions,
             active,
@@ -397,6 +421,7 @@ export const QakuContextProvider = ({ id, password, children }: Props) => {
             controlState,
             wallet,
             isOwner,
+            isAdmin,
             visited,
             localQuestions,
             active,

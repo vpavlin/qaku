@@ -61,6 +61,7 @@ export type EnhancedQuestionMessage = {
     timestamp: Date;
     answer: string | undefined;
     answered: boolean;
+    answeredBy: string | undefined;
     upvotes: number;
     upvoters: string[]
     upvotedByMe: boolean;

@@ -5,7 +5,7 @@ import { NewPoll, Poll, PollActive, PollVote } from "./types";
 import { DispatchMetadata, Signer } from "waku-dispatcher";
 
 const Polls = () => {
-    const {polls, dispatcher, wallet, isOwner} = useQakuContext()
+    const {polls, dispatcher, wallet, isOwner, isAdmin} = useQakuContext()
     const [submitting, setSubmitting] = useState(false)
    
 
@@ -18,7 +18,7 @@ const Polls = () => {
     }
 
     const handleActiveSwitch = async (pollId: string, newState: boolean) => {
-        if (!dispatcher || !wallet || !isOwner) return
+        if (!dispatcher || !wallet || (!isOwner && !isAdmin) ) return
         setSubmitting(true)
         const res = await dispatcher.emit(MessageType.POLL_ACTIVE_MESSAGE, {id: pollId, active: newState} as PollActive, wallet)
         setSubmitting(false)
@@ -43,7 +43,7 @@ const Polls = () => {
 
             
             return <div className={`bg-neutral p-3 my-2 shadow-md`}>
-                {isOwner && <div className="text-left lg:text-center">
+                {(isOwner || isAdmin)  && <div className="text-left lg:text-center">
                         <button className="btn btn-xs" disabled={!dispatcher || !wallet || submitting} onClick={() => handleActiveSwitch(p.id, !p.active)}>{p.active ? "Deactivate" : "Activate"}</button>
                     </div>
                 }

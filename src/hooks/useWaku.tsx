@@ -56,7 +56,7 @@ const bootstrapNodes = [
 ]*/
 
 const bootstrapNodes: string[] = [
-   //"/dns4/waku.bloxy.one/tcp/8000/wss/p2p/16Uiu2HAmMJy3oXGzRjt2iKmYoCnaEkj55rE55YperMpemtGs9Da2",
+   "/dns4/waku.bloxy.one/tcp/8000/wss/p2p/16Uiu2HAm5i46EuYtCeW7zAKuQskR2BZcy2s7m8jB48DPcaexwEKq",
 ]
 
 
@@ -75,9 +75,10 @@ export const WakuContextProvider = ({ children }: Props) => {
         setConnecting(true)
         setStatus("starting")
         await createLightNode({
+            networkConfig: {clusterId: 1, shards: [0]},
             defaultBootstrap: true,
             pingKeepAlive: 60,
-            //bootstrapPeers: bootstrapNodes,
+            bootstrapPeers: bootstrapNodes,
             numPeersToUse: 3,
         }).then( async (ln: LightNode) => {
             if (node) return

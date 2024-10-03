@@ -15,7 +15,7 @@ enum Tabs {
 
 const QA = () => {
 
-    const  { controlState, localQuestions, dispatcher, isOwner } = useQakuContext()
+    const  { controlState, localQuestions, dispatcher, isOwner, isAdmin } = useQakuContext()
     const {hash} = useLocation()
     
     const navigate = useNavigate();
@@ -69,13 +69,16 @@ const QA = () => {
                 <div className="text-justify m-auto max-w-2xl">
                     {controlState?.description}
                 </div>
-                <div className="badge badge-lg badge-neutral">{controlState.owner.slice(0, 7)+"..."+controlState.owner.slice(controlState.owner.length-5)}</div>
+                <div className="space-x-2">
+                    <div className="badge badge-lg badge-neutral">{controlState.owner.slice(0, 7)+"..."+controlState.owner.slice(controlState.owner.length-5)}</div>
+                    {isAdmin && <div className="badge badge-lg badge-secondary">admin</div>}
+                </div>
                 <div className="divider"></div>
 
                 {controlState.enabled &&
                     <NewQuestion id={controlState.id} />
                 }
-                {isOwner &&
+                {(isOwner || isAdmin) &&
                     <CreatePoll />
                 }
                 <div className="tabs m-auto ">
