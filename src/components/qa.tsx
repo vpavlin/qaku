@@ -15,7 +15,7 @@ enum Tabs {
 
 const QA = () => {
 
-    const  { controlState, localQuestions, dispatcher, isOwner, isAdmin } = useQakuContext()
+    const  { controlState, localQuestions, dispatcher, isOwner, isAdmin, polls } = useQakuContext()
     const {hash} = useLocation()
     
     const navigate = useNavigate();
@@ -82,8 +82,8 @@ const QA = () => {
                     <CreatePoll />
                 }
                 <div className="tabs m-auto ">
-                    <a href={`#${Tabs.Questions}`} className={`tab tab-lg tab-bordered ${activeTab == Tabs.Questions && "tab-active"}`} onClick={() => setActiveTab(Tabs.Questions)}>Questions</a>
-                    <a href={`#${Tabs.Polls}`} className={`tab tab-lg tab-bordered ${activeTab == Tabs.Polls && "tab-active"}`} onClick={() => setActiveTab(Tabs.Polls)}>Polls</a>
+                    <a href={`#${Tabs.Questions}`} className={`tab tab-lg tab-bordered ${activeTab == Tabs.Questions && "tab-active"}`} onClick={() => setActiveTab(Tabs.Questions)}>Questions ({localQuestions.length})</a>
+                    <a href={`#${Tabs.Polls}`} className={`tab tab-lg tab-bordered ${activeTab == Tabs.Polls && "tab-active"}`} onClick={() => setActiveTab(Tabs.Polls)}>Polls ({polls.length})</a>
                 </div>
                 <div>
                 {
