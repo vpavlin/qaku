@@ -82,7 +82,7 @@ export const QakuContextProvider = ({ id, password, children }: Props) => {
     const [questions, setQuestions] = useState<Map<string, EnhancedQuestionMessage>>(new Map<string, EnhancedQuestionMessage>())
     const [localQuestions, setLocalQuestions] = useState<EnhancedQuestionMessage[]>([])
 
-    const { wallet } = useIdentity("qaku-key-v2", "qaku-wallet")
+    const { wallet, storePrivateKey } = useIdentity("qaku-key-v2", "qaku-wallet")
 
     const [polls, setPolls] = useState<LocalPoll[]>([])
 
@@ -121,10 +121,10 @@ export const QakuContextProvider = ({ id, password, children }: Props) => {
 
     const importPrivateKey = async (result: string) => {
         const parsed = JSON.parse(result)
-        const w = new Wallet(parsed.key)
-        localStorage.setItem("qaku-key-v2", w.privateKey)
+        storePrivateKey(parsed.key)
 
-        setHistory(parsed.history)
+        if (parsed.history)
+            setHistory(parsed.history)
         
         window.location.reload()
 

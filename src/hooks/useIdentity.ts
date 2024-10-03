@@ -18,15 +18,20 @@ const useIdentity = (name?: string, password: string = "password") => {
         setPercent(Math.floor(percent * 100) )
     } 
 
+    const storePrivateKey = async (key:string) => {
+        const w = new Wallet(key)
+        const item = await w.encryptSync(password)
+        localStorage.setItem(storageKey, item)
+
+        return item
+    }
+
     useMemo(async () => {
         let item = localStorage.getItem(storageKey)
         if (!item) {
             const newKey = generatePrivateKey()
             
-            const w = new Wallet(utils.bytesToHex(newKey))
-            item = await w.encryptSync(password)
-            localStorage.setItem(storageKey, item)
-
+            item = await storePrivateKey(utils.bytesToHex(newKey))
         }
 
         const w = await Wallet.fromEncryptedJson(item, password, progress) as Wallet
@@ -40,7 +45,8 @@ const useIdentity = (name?: string, password: string = "password") => {
         wallet,
         publicKey: publicKey,
         privateKey: privateKey,
-        percent
+        percent,
+        storePrivateKey
     }), [
         wallet,
         percent])
