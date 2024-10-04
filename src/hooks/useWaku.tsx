@@ -15,9 +15,9 @@ export type WakuInfo = {
     connected: boolean;
     start: () => void;
     stop: () => void;
-    filterPeers: number;
-    lightpushPeers: number;
-    storePeers: number;
+    filterPeers: string[];
+    lightpushPeers: string[];
+    storePeers: string[];
 }
 
 export type WakuContextData = {
@@ -63,14 +63,17 @@ const bootstrapNodes: string[] = [
 export const WakuContextProvider = ({ children }: Props) => {
     const [status, setStatus] = useState<string>("disconnected")
     const [connected, setConnected] = useState<boolean>(false)
-    const [filterPeers, setFilterPeers] = useState<number>(0)
-    const [lightpushPeers, setLightpushPeers] = useState<number>(0)
-    const [storePeers, setStorePeers] = useState<number>(0)
+    const [filterPeers, setFilterPeers] = useState<string[]>([])
+    const [lightpushPeers, setLightpushPeers] = useState<string[]>([])
+    const [storePeers, setStorePeers] = useState<string[]>([])
     const [connecting, setConnecting] = useState<boolean>(false)
     const [node, setNode] = useState<LightNode>()
 
+    const [printPeers, setPrintPeers] = useState<number>(0)
+
     const start = useCallback(async () => {
         let interval: NodeJS.Timeout | undefined = undefined
+
         if (connected || connecting || node) return
         setConnecting(true)
         setStatus("starting")
@@ -87,10 +90,12 @@ export const WakuContextProvider = ({ children }: Props) => {
 
             ln.connectionManager.addEventListener(EConnectionStateEvents.CONNECTION_STATUS, (e) => {
                 console.log(e)
-                setLightpushPeers(ln.lightPush.connectedPeers.length)
-                setFilterPeers(ln.filter.connectedPeers.length)
-                setStorePeers(ln.store.connectedPeers.length)
+                setLightpushPeers(ln.lightPush.connectedPeers.map((p) => p.id.toString()))
+                setFilterPeers(ln.filter.connectedPeers.map((p) => p.id.toString()))
+                setStorePeers(ln.store.connectedPeers.map((p) => p.id.toString()))
+
             })
+
             
             try {
                 await waitForRemotePeer(ln, PROTOCOLS)
@@ -100,10 +105,11 @@ export const WakuContextProvider = ({ children }: Props) => {
                 setConnecting(false)
                     
                 interval = setInterval(() => {
-                    setLightpushPeers(ln.lightPush.connectedPeers.length)
-                    setFilterPeers(ln.filter.connectedPeers.length)
-                    setStorePeers(ln.store.connectedPeers.length)
+                    setLightpushPeers(ln.lightPush.connectedPeers.map((p) => p.id.toString()))
+                    setFilterPeers(ln.filter.connectedPeers.map((p) => p.id.toString()))
+                    setStorePeers(ln.store.connectedPeers.map((p) => p.id.toString()))
                 }, 500)
+
             } finally {
                 setConnecting(false)
             }
@@ -119,7 +125,6 @@ export const WakuContextProvider = ({ children }: Props) => {
         setConnected(false)
         setStatus("stopped")
     }
-
     
 
 
