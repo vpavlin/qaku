@@ -23,7 +23,11 @@ const Main = () => {
 
     const navigate = useNavigate();
     
-    const link = `${window.location.protocol}//${window.location.host}/q/${id}`
+    let link = `${window.location.protocol}//${window.location.host}/q/${id}`
+
+    if (password) {
+        link = `${link}/${password}`
+    }
     
     useEffect(() => {
         if (!start || connected) return
