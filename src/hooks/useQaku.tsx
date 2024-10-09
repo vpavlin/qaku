@@ -260,10 +260,9 @@ export const QakuContextProvider = ({ id, password, children }: Props) => {
 
                     if (poll.votes[payload.option].voters.indexOf(signer as string) < 0) {
                         poll.votes[payload.option].voters.push(signer as string)
+                        if (!poll.voteCount) poll.voteCount = 0
+                        poll.voteCount++
                     }
-
-                    if (!poll.voteCount) poll.voteCount = 0
-                    poll.voteCount++
 
                     return [...x]
                 })
