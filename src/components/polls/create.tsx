@@ -38,7 +38,11 @@ const CreatePoll = () => {
     const [submitting, setSubmitting] = useState<boolean>(false)
 
     const handleOptionChange = (index:number, title:string) => {
-        setOptions((o) => {o[index].title = title; return [...o]})
+        setOptions((o) => {
+            if (title == "") return o
+            o[index].title = title;
+            return [...o]
+        })
     }
 
     const handleSubmit = async () => {

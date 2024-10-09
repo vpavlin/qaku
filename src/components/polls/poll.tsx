@@ -58,7 +58,7 @@ const Polls = () => {
                 <div className="p-1">{p.question}</div>
                 <div className="space-y-1">
                 {
-                    p.options.map((o, i) =>  
+                    p.options.map((o, i) =>  o.title != "" &&
                             <div className="flex flex-row items-center justify-between space-y-2 bg-base-100 p-1 ">
                                 <div className={`tooltip w-1/2 ${ i == maxI ? "tooltip-secondary" : "tooltip-primary"}`} data-tip={p.votes ? p.votes[i].voters.length : 0}>
                                     <progress className={`progress ${ i == maxI ? "progress-secondary" : "progress-primary"}`} value={p.votes ? p.votes[i].voters.length : 0} title={p.votes ? p.votes[i].voters.length.toString() : "0"} max={p.voteCount || 0}></progress>
