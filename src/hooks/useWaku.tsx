@@ -16,7 +16,6 @@ export type WakuInfo = {
     start: () => void;
     stop: () => void;
     filterPeers: string[];
-    lightpushPeers: string[];
     storePeers: string[];
 }
 
@@ -56,7 +55,7 @@ const bootstrapNodes = [
 ]*/
 
 const bootstrapNodes: string[] = [
-   "/dns4/waku.bloxy.one/tcp/8000/wss/p2p/16Uiu2HAm5i46EuYtCeW7zAKuQskR2BZcy2s7m8jB48DPcaexwEKq",
+   //"/dns4/waku.bloxy.one/tcp/8000/wss/p2p/16Uiu2HAm5i46EuYtCeW7zAKuQskR2BZcy2s7m8jB48DPcaexwEKq",
 ]
 
 
@@ -64,7 +63,6 @@ export const WakuContextProvider = ({ children }: Props) => {
     const [status, setStatus] = useState<string>("disconnected")
     const [connected, setConnected] = useState<boolean>(false)
     const [filterPeers, setFilterPeers] = useState<string[]>([])
-    const [lightpushPeers, setLightpushPeers] = useState<string[]>([])
     const [storePeers, setStorePeers] = useState<string[]>([])
     const [connecting, setConnecting] = useState<boolean>(false)
     const [node, setNode] = useState<LightNode>()
@@ -81,7 +79,7 @@ export const WakuContextProvider = ({ children }: Props) => {
             networkConfig: {clusterId: 1, shards: [0]},
             defaultBootstrap: true,
             pingKeepAlive: 60,
-            bootstrapPeers: bootstrapNodes,
+            //bootstrapPeers: bootstrapNodes,
             numPeersToUse: 3,
         }).then( async (ln: LightNode) => {
             if (node) return
@@ -89,8 +87,7 @@ export const WakuContextProvider = ({ children }: Props) => {
             setStatus("connecting")
 
             ln.connectionManager.addEventListener(EConnectionStateEvents.CONNECTION_STATUS, (e) => {
-                console.log(e)
-                setLightpushPeers(ln.lightPush.connectedPeers.map((p) => p.id.toString()))
+                //console.log(e)
                 setFilterPeers(ln.filter.connectedPeers.map((p) => p.id.toString()))
                 setStorePeers(ln.store.connectedPeers.map((p) => p.id.toString()))
 
@@ -105,7 +102,6 @@ export const WakuContextProvider = ({ children }: Props) => {
                 setConnecting(false)
                     
                 interval = setInterval(() => {
-                    setLightpushPeers(ln.lightPush.connectedPeers.map((p) => p.id.toString()))
                     setFilterPeers(ln.filter.connectedPeers.map((p) => p.id.toString()))
                     setStorePeers(ln.store.connectedPeers.map((p) => p.id.toString()))
                 }, 500)
@@ -136,7 +132,6 @@ export const WakuContextProvider = ({ children }: Props) => {
             start,
             stop,
             filterPeers,
-            lightpushPeers,
             storePeers
 
         }),
@@ -147,7 +142,6 @@ export const WakuContextProvider = ({ children }: Props) => {
             start,
             stop,
             filterPeers,
-            lightpushPeers,
             storePeers,
         ]
     )

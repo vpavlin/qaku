@@ -230,8 +230,7 @@ export const QakuContextProvider = ({ id, password, children }: Props) => {
                 setQuestions((lq) => {
                     const q =  lq.get(payload.hash)
                     if (!q) return lq
-                    if (q.answered) return lq
-                    q.moderated = true
+                    q.moderated = payload.moderated
 
                     lq.set(payload.hash, q)
 

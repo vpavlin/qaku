@@ -11,7 +11,6 @@ interface IProps {
 const NewQuestion = ({ id }: IProps) => {
     const { error } = useToastContext()
     const { dispatcher } = useQakuContext()
-    const { lightpushPeers } = useWakuContext()
 
     const [submitState, setSubmitState] = useState(true)
     const [question, setQuestion] = useState<string>("")
@@ -34,7 +33,7 @@ const NewQuestion = ({ id }: IProps) => {
         <div className="form-control text-center m-auto max-w-xl">
             Ask your question: 
             <textarea onChange={(e) => setQuestion(e.target.value)} value={question} className="textarea textarea-bordered  bg-neutral w-full h-44 m-auto mb-5"></textarea>
-            <button onClick={() => submit()} disabled={!dispatcher || !submitState || lightpushPeers.length == 0} className="btn btn-lg lg:w-2/4 w-full md:max-w-full m-auto ">
+            <button onClick={() => submit()} disabled={!dispatcher || !submitState} className="btn btn-lg lg:w-2/4 w-full md:max-w-full m-auto ">
                 Submit
             </button>
         </div>

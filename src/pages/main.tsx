@@ -14,7 +14,7 @@ import { useToastContext } from "../hooks/useToast";
 
 const Main = () => {
     const {Element} = useToastContext()
-    const {connected, start, filterPeers, lightpushPeers, storePeers} = useWakuContext()
+    const {connected, start, filterPeers, storePeers} = useWakuContext()
     let { id } = useParams<"id">();
     let { password } = useParams<"password">();
     const [ searchId, setSearchId ] = useState<string>()

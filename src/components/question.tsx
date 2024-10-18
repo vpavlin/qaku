@@ -102,7 +102,7 @@ const Question = ({msg, moderation}:IProps) => {
                     </div>
             }
             <div className="font-bold items-center flex">
-                {!isOwner && !msg.answered && !msg.upvotedByMe &&
+                {!isOwner && !msg.answered && !msg.upvotedByMe && !msg.moderated &&
                     <span className="items-center cursor-pointer m-1 hover:bg-primary p-1 hover:rounded-lg" onClick={() => upvote({question: msg.question, timestamp: msg.timestamp})}>
                         <PiThumbsUpLight size={25} className="" />
                     </span>

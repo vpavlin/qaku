@@ -91,7 +91,7 @@ const QA = () => {
                         localQuestions.length == 0 ?
                             <div className="p-5">There are no questions yet.</div>
                         :
-                            localQuestions.map((msg, i) =>
+                            localQuestions.filter((msg => isAdmin || isOwner || !msg.moderated)).map((msg, i) =>
                                 <Question moderation={controlState!.moderation} msg={msg} key={i.toString()} />
                             )
                     )
