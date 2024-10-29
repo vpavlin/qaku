@@ -1,6 +1,7 @@
 import { DecodedMessage, bytesToUtf8 } from "@waku/sdk";
 import { sha256 } from "js-sha256"
 import { fromHex, verifyMessage } from "./crypto";
+import { LocalPoll } from "../components/polls/types";
 
 export type QuestionMessage = {
     question: string;
@@ -20,7 +21,10 @@ export enum MessageType {
     MODERATION_MESSAGE = "moderation_msg",
     POLL_CREATE_MESSAGE = "poll_create_msg",
     POLL_VOTE_MESSAGE = "poll_vote_msg",
-    POLL_ACTIVE_MESSAGE = "poll_active_msg"
+    POLL_ACTIVE_MESSAGE = "poll_active_msg",
+    SNAPSHOT = "snapshot",
+
+    PERSIST_SNAPSHOT = "persist_snapshot",
 }
 
 export type QakuMessage = {
@@ -48,7 +52,7 @@ export type ControlMessage = {
     title: string;
     id: string;
     enabled: boolean;
-    timestamp: Date;
+    timestamp: number;
     owner: string;
     admins: string[];
     moderation: boolean;
@@ -89,4 +93,37 @@ export const unique = <T>(msgs: T[]): T[] => {
 
         return false
     })
+}
+
+export type DownloadSnapshot = {
+    metadata: ControlMessage;
+    questions: EnhancedQuestionMessage[];
+    polls: LocalPoll[];
+    signature: string;
+}
+
+// @ts-ignore
+export const replacer = (key: any, value: any) => {
+    if (value instanceof Map) {
+        return {
+            dataType: 'Map',
+            value: Array.from(value.entries()), // or with spread: value: [...value]
+        };
+    } else {
+        return value;
+    }
+}
+
+// @ts-ignore
+export const reviver = (key: any, value: any) => {
+    if (typeof value === 'object' && value !== null) {
+        if (value.dataType === 'Map') {
+            return new Map(value.value);
+        }
+    }
+    return value;
+}
+
+export const qaHash = (title: string, ts:number, owner: string) => {
+    return sha256(title + ts + owner).slice(0, 12)
 }

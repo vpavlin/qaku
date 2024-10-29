@@ -15,7 +15,7 @@ enum Tabs {
 
 const QA = () => {
 
-    const  { controlState, localQuestions, dispatcher, isOwner, isAdmin, polls } = useQakuContext()
+    const  { controlState, localQuestions, dispatcher, isOwner, isAdmin, polls, loading } = useQakuContext()
     const {hash} = useLocation()
     
     const navigate = useNavigate();

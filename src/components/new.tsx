@@ -2,7 +2,7 @@ import { useState } from "react";
 import { sha256 } from "js-sha256";
 import { useNavigate } from "react-router-dom";
 import { useQakuContext } from "../hooks/useQaku";
-import { ControlMessage, MessageType, QakuMessage } from "../utils/messages";
+import { ControlMessage, MessageType, qaHash, QakuMessage } from "../utils/messages";
 import { CONTENT_TOPIC_MAIN, DISPATCHER_DB_NAME } from "../constants";
 import getDispatcher, { destroyDispatcher } from "waku-dispatcher";
 import { useWakuContext } from "../hooks/useWaku";
@@ -30,14 +30,16 @@ const NewQA = () => {
         if (!node || !title || !wallet) return
 
         const ts = new Date();
-        let hash = sha256(title + ts.toString()).slice(0, 8)
+        console.log(title + ts.valueOf() + wallet.address)
+        let hash = qaHash(title, ts.valueOf(), wallet.address)
+        console.log(hash)
 
         const cmsg:ControlMessage = {
             title: title,
             description: desc || "",
             id: hash,
             enabled: enabled,
-            timestamp: new Date(),
+            timestamp: ts.valueOf(),
             owner: wallet.address,
             admins: admins,
             moderation: moderation
