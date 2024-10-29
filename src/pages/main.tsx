@@ -1,15 +1,12 @@
 import { useEffect, useState } from "react";
-import NewQA from "../components/new";
 import { useWakuContext } from "../hooks/useWaku";
 import { Link, Outlet, useNavigate, useParams } from "react-router-dom";
-import { QakuContextProvider } from "../hooks/useQaku";
-import Control from "../components/control";
+import { QakuContextProvider, useQakuContext } from "../hooks/useQaku";
 import History, { Visited } from "../components/history";
 import Status from "../components/status";
 import logo from "../assets/logo512.png"
 import { HiChevronDoubleRight, HiOutlineMenu } from "react-icons/hi"
-import QRCode from "react-qr-code";
-import User from "../components/user";
+import User, { Wallet } from "../components/user";
 import { useToastContext } from "../hooks/useToast";
 
 const Main = () => {
@@ -22,17 +19,13 @@ const Main = () => {
     const [drawer, setDrawer] = useState(false)
 
     const navigate = useNavigate();
-    
-    let link = `${window.location.protocol}//${window.location.host}/q/${id}`
 
-    if (password) {
-        link = `${link}/${password}`
-    }
     
     useEffect(() => {
         if (!start || connected) return
         start()
     }, [start, connected])
+
 
     return (
         <>
@@ -46,27 +39,7 @@ const Main = () => {
                         <Status />
                     </div>
                     
-                    <div className="lg:relative lg:h-full">
-                        { connected ?
-                            !id && <NewQA />
-                        :
-                            <div className="h-full w-full flex justify-center items-center">
-                                <div className="loading loading-lg"></div>
-                            </div>
-                        }
-                        <Outlet />
-                        { id &&
-                            <div className="min-[1750px]:absolute left-10 top-10 items-center justify-center text-center">
-                                <div className="text-2xl">Share this Q&A:</div>
-                                <div className="m-2 underline">
-                                    <a target="_blank" href={link}>{link}</a>
-                                </div>
-                                <div className="m-auto w-fit border-4 border-white"><QRCode value={link} className="m-auto" /></div>
-                                <div><a className="btn m-1" target="_blank" href={`https://twitter.com/intent/tweet?text=${escape(`Come ask your questions at\n\n ${link}`.replaceAll("\\n", "%0a"))}`}>Tweet the Q&A</a></div>
-                                <Control id={id} />
-                            </div>
-                        }
-                    </div> 
+                   <Outlet />
                     
                 </div>
                 
@@ -98,9 +71,11 @@ const Main = () => {
                             <div className="btn mx-2 h-full flex-col bg-base-300" onClick={() => searchId && navigate(`/q/${searchId}`)}><HiChevronDoubleRight size={22} /></div>
                         </div>
                         <div className="divider">User</div>
-                        <div>
-                        <User />
+                        <div className="w-full m-auto text-center flex-wrap">
+                            <Wallet short={true} />
                         </div>
+                        <div className="divider"></div>
+                        <button className="btn btn-lg"><Link to="/settings">Settings</Link></button>
                         <div className="divider"></div>
                         <div className="m-auto text-center text-lg font-bold items-center justify-center">
                             <Link to="/">

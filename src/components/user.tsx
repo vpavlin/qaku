@@ -5,31 +5,23 @@ import { QrScanner } from "@yudiel/react-qr-scanner"
 
 const User = () => {
     const { wallet, importPrivateKey } = useQakuContext()
-    const [ tooltip, setTooltip] = useState(wallet && wallet.address) 
     const [ key, setKey] = useState<string>()
     const [ timer, setTimer] = useState<number>(0)
     const [ scanner, setScanner] = useState(false)
 
-    const copy = async () => {
-        await navigator.clipboard.writeText(wallet?.address!);
-        setTooltip("Copied to clipboard!")
-        setTimeout(() => {
-            setTooltip(wallet && wallet.address)
-        }, 2000)
-    }
+
 
     return (
         <>
-            <ul className="text-center">
-            <li className="tooltip" data-tip={tooltip}>
-                <button className="font-bold" onClick={copy}>{wallet ? wallet.address.slice(0, 7)+"..."+wallet.address.slice(wallet.address.length - 5) : "0x......."}</button>
-            </li>
-            <li>
-                <details>
-                <summary>Key Management</summary>
-                <ul>
-                    <li>
-                        <button className="text-center" onClick={() => {
+            <div className="w-full m-auto text-center flex-wrap">
+            <div className="text-left">Key Management</div>
+            <Wallet />
+            <div>
+
+                
+                <div className="space-x-3">
+                 
+                        <button className="btn btn-lg" onClick={() => {
                             setKey(wallet?.privateKey!);
                             (document.getElementById('export_modal') as HTMLDialogElement).showModal()
                             const timeout = 10
@@ -41,17 +33,16 @@ const User = () => {
                                 (document.getElementById('export_modal') as HTMLDialogElement).close()
                             }, timeout* 1000)
                             }}>Export Private Key</button>
-                    </li>
-                    <li>
-                        <button className="text-center" onClick={() => {
+             
+                  
+                        <button className="btn btn-lg" onClick={() => {
                             (document.getElementById('import_modal') as HTMLDialogElement).showModal()
                         }}>Import Private Key</button>
                         
-                    </li>
-                </ul>
-                </details>
-            </li>
-            </ul>
+                   
+                </div>
+            </div>
+            </div>
             {wallet  &&
                 <dialog id="export_modal" className="modal">
                     <div className="modal-box text-left">
@@ -95,3 +86,28 @@ const User = () => {
 }
 
 export default User
+
+interface IWallet {
+    short?: boolean;
+}
+
+export const Wallet = ({short}: IWallet) => {
+    const { wallet } = useQakuContext()
+    const [ tooltip, setTooltip] = useState(wallet && wallet.address) 
+
+    const addr = short ? (wallet ? wallet.address.substring(0, 6)+ "..." +wallet.address.substring(wallet.address.length - 4) : "0x....." ) : wallet?.address
+
+
+    const copy = async () => {
+        await navigator.clipboard.writeText(wallet?.address!);
+        setTooltip("Copied to clipboard!")
+        setTimeout(() => {
+            setTooltip(wallet && wallet.address)
+        }, 2000)
+    }
+    return (
+        <div className="tooltip text-center" data-tip={tooltip}>
+            <button className="font-bold" onClick={copy}>{addr}</button>
+        </div>
+    )
+}

@@ -1,32 +1,33 @@
 import { useEffect, useState } from "react"
 import { useQakuContext } from "../hooks/useQaku"
-import { EnhancedQuestionMessage } from "../utils/messages"
+import { EnhancedQuestionMessage, DownloadSnapshot } from "../utils/messages"
 
 interface IProps {
     id: string
 }
 
-const saveTemplateAsFile = (filename:string, dataObjToWrite:EnhancedQuestionMessage[]) => {
-    const blob = new Blob([JSON.stringify(dataObjToWrite, null, 2)], { type: "text/json" });
-    const link = document.createElement("a");
-
-    link.download = filename;
-    link.href = window.URL.createObjectURL(blob);
-    link.dataset.downloadurl = ["text/json", link.download, link.href].join(":");
-
-    const evt = new MouseEvent("click", {
-        view: window,
-        bubbles: true,
-        cancelable: true,
-    });
-
-    link.dispatchEvent(evt);
-    link.remove()
-};
-
 const Control = ({id}: IProps) => {
-    const {controlState, switchState, isOwner, localQuestions} = useQakuContext()
+    const {controlState, switchState, isOwner, localQuestions, snapshot, publishSnapshot} = useQakuContext()
     const [enabled, setEnabled] = useState(false)
+
+    const saveTemplateAsFile = (filename:string, dataObjToWrite:DownloadSnapshot | undefined) => {
+        if (!dataObjToWrite) return
+        const blob = new Blob([JSON.stringify(dataObjToWrite, null, 2)], { type: "text/json" });
+        const link = document.createElement("a");
+    
+        link.download = filename;
+        link.href = window.URL.createObjectURL(blob);
+        link.dataset.downloadurl = ["text/json", link.download, link.href].join(":");
+    
+        const evt = new MouseEvent("click", {
+            view: window,
+            bubbles: true,
+            cancelable: true,
+        });
+    
+        link.dispatchEvent(evt);
+        link.remove()
+    };
     
     useEffect(() => {
         if (!controlState) return
@@ -43,7 +44,10 @@ const Control = ({id}: IProps) => {
                         <div className="flex m-auto items-center justify-center">
                             <div className="flex-col m-2"><button onClick={() => switchState(!enabled)} disabled={!id || !controlState} className={`btn`}>{ enabled ? "disable" : "enable"}</button></div>
                             <div className="flex-col m-2">
-                                { localQuestions.length > 0 && <button className="btn" onClick={()=> saveTemplateAsFile("data.json", localQuestions)}>Download</button>}
+                                { localQuestions.length > 0 && <button className="btn" onClick={()=> saveTemplateAsFile("data.json", snapshot())}>Download</button>}
+                            </div>
+                            <div className="flex-col m-2">
+                                { localQuestions.length > 0 && <button className="btn" onClick={()=> publishSnapshot()}>Publish Snapshot</button>}
                             </div>
                         </div>
                     </div>

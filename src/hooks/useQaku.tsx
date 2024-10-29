@@ -1,13 +1,17 @@
 import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityMessage, AnsweredMessage, ControlMessage, EnhancedQuestionMessage, MessageType, ModerationMessage, QakuMessage, QuestionMessage, UpvoteMessage, unique } from "../utils/messages";
-import { DecodedMessage, bytesToUtf8, createDecoder, utf8ToBytes } from "@waku/sdk";
-import { CONTENT_TOPIC_ACTIVITY, CONTENT_TOPIC_MAIN } from "../constants";
+import { ActivityMessage, AnsweredMessage, ControlMessage, EnhancedQuestionMessage, MessageType, ModerationMessage, QakuMessage, QuestionMessage, DownloadSnapshot, UpvoteMessage, replacer, reviver, unique, qaHash } from "../utils/messages";
+import { DecodedMessage, bytesToUtf8, createDecoder, createEncoder, utf8ToBytes } from "@waku/sdk";
+import { CODEX_PUBLIC_URL_STORAGE_KEY, CODEX_URL_STORAGE_KEY, CONTENT_TOPIC_ACTIVITY, CONTENT_TOPIC_MAIN, CONTENT_TOPIC_PERSIST, DEFAULT_CODEX_URL, DEFAULT_PUBLIC_CODEX_URL, DEFAULT_PUBLISH_INTERVAL } from "../constants";
 import { sha256 } from "js-sha256";
 import { Wallet } from "ethers";
-import getDispatcher, { DispatchMetadata, Dispatcher, Signer, destroyDispatcher } from "waku-dispatcher"
+import getDispatcher, { DispatchMetadata, Dispatcher, IDispatchMessage, Signer, destroyDispatcher } from "waku-dispatcher"
 import useIdentity from "./useIdentity";
 import { LocalPoll, NewPoll, Poll, PollActive, PollVote } from "../components/polls/types";
 import { useWakuContext } from "./useWaku";
+import { Codex, CodexData } from "@codex-storage/sdk-js";
+import { getStoredSnapshotInfo, PersistentSnapshot, setStoredSnapshotInfo, Snapshot } from "../utils/snapshots";
+import { QakuCache } from "../utils/cache";
+import { sleep } from "../utils/utils";
 
 export type HistoryEntry = {
     id: string;
@@ -29,6 +33,8 @@ export type QakuInfo = {
     localQuestions: EnhancedQuestionMessage[]
     dispatcher: Dispatcher | undefined;
     loading: boolean
+    snapshot: () => DownloadSnapshot | undefined;
+    publishSnapshot: () => void;
 }
 
 export type QakuContextData = {
@@ -72,10 +78,6 @@ export const QakuContextProvider = ({ id, password, children }: Props) => {
     const [ active, setActive ] = useState<number>(0)
     const [ activeList, setActiveList ] = useState<ActivityMessage[]>([])
 
-    const [ answeredMsgs, setAnsweredMsgs ] = useState<AnsweredMessage[]>([])
-    const [ moderatedMsgs, setModeratedMsgs ] = useState<Map<string, boolean>>(new Map<string, boolean>())
-    const [ upvotes, setUpvotes ] = useState<Map<string, string[]>>(new Map<string, string[]>())
-
     const [ history, setHistory ] = useState<HistoryEntry[]>([])
     const [ visited, setVisited ] = useState<HistoryEntry[]>([])
 
@@ -87,6 +89,12 @@ export const QakuContextProvider = ({ id, password, children }: Props) => {
     const [polls, setPolls] = useState<LocalPoll[]>([])
 
     const [ loading, setLoading ] = useState<boolean>(false)
+
+    const [ snapshot, setSnapshot ] = useState<Snapshot>()
+    const [ regularSnapshotInterval, setRegularSnapshotInterval] = useState<NodeJS.Timer>()
+
+    const codexURL = localStorage.getItem(CODEX_URL_STORAGE_KEY) || DEFAULT_CODEX_URL
+    const publicCodexURL = localStorage.getItem(CODEX_PUBLIC_URL_STORAGE_KEY) || DEFAULT_PUBLIC_CODEX_URL
 
 
     const historyAdd = (id: string, title: string) => {
@@ -110,7 +118,7 @@ export const QakuContextProvider = ({ id, password, children }: Props) => {
             description: controlState.description,
             id: controlState.id,
             enabled: newState,
-            timestamp: new Date(),
+            timestamp: Date.now(),
             owner: controlState.owner,
             admins: controlState.admins,
             moderation: controlState.moderation
@@ -130,10 +138,150 @@ export const QakuContextProvider = ({ id, password, children }: Props) => {
 
     }
 
+    const doSnapshot = ():DownloadSnapshot | undefined => {
+        if (!controlState || localQuestions.length == 0 || !wallet) return
+
+        const snap = {
+            metadata: controlState,
+            polls: polls,
+            questions: localQuestions,
+            signature: ""
+        }
+
+        const sig = wallet.signMessageSync(JSON.stringify(snap))
+
+        snap.signature = sig
+       
+        return snap
+    }
+
+
+    const publishSnapshot = async () => {
+        if (!dispatcher || !wallet || !id) return 
+
+        const encoder = createEncoder({contentTopic: CONTENT_TOPIC_PERSIST, ephemeral: true})
+        const snap = await dispatcher.getLocalMessages()
+
+        if (!snap) {
+            console.error("Failed to get snapshot")
+            return
+        }
+
+        const codex = new Codex(codexURL).data;
+
+        try {
+            const serialized = JSON.stringify(snap)
+            const hash = sha256(serialized)
+
+            const toPersist: PersistentSnapshot = {hash: hash, owner: wallet.address, messages: snap}
+            //console.log(toPersist)
+
+            const storedSnap = getStoredSnapshotInfo(id)
+
+            let cid = storedSnap?.cid
+            if (!storedSnap || storedSnap.hash != hash) {
+                const res = await codex.upload(JSON.stringify(toPersist)).result
+                if (res.error) {
+                    console.error("Failed to upload to Codex:", res.data)
+                }
+                
+                cid = res.data as string
+                const smsg: Snapshot = {hash: hash, cid: cid, timestamp: Date.now()}
+                const result = await dispatcher.emitTo(encoder, MessageType.PERSIST_SNAPSHOT, smsg, wallet, false)
+                if (!result) {
+                    console.error("Failed to publish")
+                }
+            }
+
+            const result2 =  await dispatcher.emit(MessageType.SNAPSHOT, {hash: hash, cid: cid, timestamp: Date.now()} as Snapshot, wallet)
+            if (!result2) {
+                console.error("Failed to publish snapshot")
+            }
+        } catch(e) {
+            console.error(e)
+            return
+        }
+
+    }
+
+    const importFromSnapshot = async (cid:string):Promise<boolean> => {
+        if (!dispatcher || !id) return false
+        let codex: CodexData | QakuCache | undefined = undefined
+        
+        codex = new Codex(codexURL).data;
+        const spaceResp = await codex.space()
+        if (spaceResp.error) {
+           codex = new QakuCache(publicCodexURL)
+        }
+        
+        
+        let response: Response | null = null
+        for (let i=0;i < 5;i++) {
+            try {
+                const data = await codex.networkDownloadStream(cid)
+                if (data.error) {
+                    console.error(data.data)
+                    await sleep((i+1)*2000)
+                    continue
+                }
+                response = data.data as Response
+            } catch(e) {
+                await sleep((i+1)*2000)
+                continue
+            }
+            break;
+        }
+
+        if (!response) {
+            console.error("failed to get a snapshot")
+            return false
+        }
+        const persisted:PersistentSnapshot = await response.json() 
+        if(!persisted.messages || persisted.messages.length == 0) return false
+
+        const [dmsg, encrypted] = await dispatcher.decryptMessage(persisted.messages[0].dmsg.payload)
+
+        if (dispatcher.autoEncrypt != encrypted) {
+            console.error("expected ", encrypted ? "encrypted" :"plain", "message")
+            return false
+        }
+
+        if (dmsg.type != MessageType.CONTROL_MESSAGE) {
+            console.error("expeced CONTROL_MESSAGE, got", dmsg.type)
+            return false
+        }
+
+        if (dmsg.signer != persisted.owner) {
+            console.error("unexpected signer ", dmsg.signer, "!=", persisted.owner)
+            return false
+        }
+
+        const cmsg:ControlMessage = dmsg.payload
+        const testId = qaHash(cmsg.title, cmsg.timestamp, cmsg.owner)
+        const pureId = id?.startsWith('X') ? id.slice(1) : id
+
+        if (testId != cmsg.id || testId != pureId) {
+            console.error("unexpected QA id", testId)
+            return false
+        }
+
+        try {
+            await dispatcher.importLocalMessage(persisted.messages)
+            console.debug("imported, dispatching local query")
+        } catch (e) {
+            console.error(e)
+        }
+
+        //console.debug("about to dispatch local query")
+        dispatcher.clearDuplicateCache()
+        await dispatcher.dispatchLocalQuery()
+        //console.debug("done with local query")
+
+        return true
+    
+    }
+
     useEffect(() => {
-        console.log(id)
-        console.log(password)
-        console.log(id && id.startsWith("X") && !password)
         if (dispatcher || !id || !node || (id && id.startsWith("X") && !password)) return;
    
 
@@ -142,7 +290,7 @@ export const QakuContextProvider = ({ id, password, children }: Props) => {
             let d: Dispatcher | null = null
             let retries = 0
             while(!d && retries < 10) {
-                d = await getDispatcher(node, CONTENT_TOPIC_MAIN(id), "qaku-"+id, false)
+                d = await getDispatcher(node, CONTENT_TOPIC_MAIN(id), "qaku-"+id, false, false)
                 await new Promise((r) => setTimeout(r, 100))
                 retries++
             }
@@ -187,13 +335,8 @@ export const QakuContextProvider = ({ id, password, children }: Props) => {
             d.on(MessageType.UPVOTE_MESSAGE, (payload: UpvoteMessage, signer: Signer) => {
                 if (!controlStateRef.current?.enabled || !signer) return
 
-                console.log(payload.hash)
-                console.log(signer)
-                console.log(wallet?.address)
-
                 setQuestions((lq) => {
                     const q =  lq.get(payload.hash)
-                    console.log(q)
                     if (!q) return lq
                     if ((q.upvotedByMe && signer == wallet?.address) || q.answered || q.moderated || q.upvoters.includes(signer)) return lq
 
@@ -238,7 +381,6 @@ export const QakuContextProvider = ({ id, password, children }: Props) => {
                 })
             }, true, d.autoEncrypt)
             d.on(MessageType.POLL_CREATE_MESSAGE, (payload: NewPoll, signer: Signer, meta: DispatchMetadata) => {
-                console.log(payload)
                 if (!signer || (controlStateRef.current?.owner != signer && !controlStateRef.current?.admins.includes(signer)) || signer != payload.creator) {
                     console.log("Poll creator not owner %s != %s", signer, payload.creator)
                     return
@@ -278,15 +420,44 @@ export const QakuContextProvider = ({ id, password, children }: Props) => {
                     return [...x]
                 })
             }, true, d.autoEncrypt)
+            d.on(MessageType.SNAPSHOT, (payload:Snapshot, signer: Signer, meta: DispatchMetadata) => {
+                if (!id) return
+                if (signer == wallet?.address) return
+                const snap = getStoredSnapshotInfo(id)
+                if (snap !== undefined) {
+                    if (payload.timestamp === undefined) {
+                        console.error("old version of snapshot, ignoring")
+                        return
+                    }
+                    if (snap.timestamp > payload.timestamp) {
+                        console.debug("new snapshot is older than loaded one")
+                        return
+                    }
+                    if (snap.hash == payload.hash) {
+                        console.log("already on this snapshot")
+                        return
+                    }
+
+                    if (payload.timestamp+18*60*60*1000 < Date.now()) {
+                        console.log("snapshot older than 18h, ignoring")
+                        return
+                    }
+                }
+
+                //console.log("will import messages")
+                setSnapshot(payload)
+            }, true, d.autoEncrypt, d.contentTopic, false)
             console.debug("Dispatching local query")
+
+            await d.start()
             try {
                 await d.dispatchLocalQuery() 
 
                 if (localQuestions.length == 0) {
                     await d.dispatchQuery()
                 }
-            } catch {
-                console.log("Some error")
+            } catch (e) {
+                console.log("Some error", e)
             }
             console.debug("Local query done")
             setDispatcher(d)
@@ -295,14 +466,35 @@ export const QakuContextProvider = ({ id, password, children }: Props) => {
     }, [dispatcher, id, node, password])
 
     useEffect(() => {
+        if (!dispatcher || !wallet || !id || !controlState) return
+
+        if (wallet.address != controlState.owner) return
+
+        const snap = getStoredSnapshotInfo(id)
+
+        if (!snap || snap.timestamp+DEFAULT_PUBLISH_INTERVAL < Date.now()) {
+            publishSnapshot()
+        }
+
+        setRegularSnapshotInterval(setInterval(publishSnapshot, DEFAULT_PUBLISH_INTERVAL))
+
+        return () => {
+            clearInterval(regularSnapshotInterval)
+        }
+    }, [dispatcher, wallet, id, controlState])
+
+    useEffect(() => {
         if (id != lastId) {
             (async () =>{
+                clearInterval(regularSnapshotInterval)
                 setLastId(id)
                 setControlState(undefined)
                 setOwner(false)
                 setAdmin(false)
                 setQuestions(new Map<string, EnhancedQuestionMessage>())
                 setActive(1)
+                setSnapshot(undefined)
+                setPolls([])
                 await destroyDispatcher() //FIXME: Will this work?
                 setDispatcher(undefined)
             })()
@@ -345,39 +537,6 @@ export const QakuContextProvider = ({ id, password, children }: Props) => {
         setAdmin(controlState.admins.includes(wallet.address))
     }, [controlState, wallet])
 
-    /*useEffect(() => {
-        if (!id || !connected || !wallet) return
-
-        const tracker = setInterval(async () => {
-            const msg:ActivityMessage = {pubKey: wallet.address!}
-            try {
-                await publish(CONTENT_TOPIC_ACTIVITY(id), JSON.stringify(msg))
-            } catch (e) {
-                console.log(e)
-            }
-
-            const start = new Date()
-            const end = new Date()
-
-            start.setSeconds(end.getSeconds() - 30)
-            const options:StoreQueryOptions = {
-                pageDirection: PageDirection.BACKWARD,
-                timeFilter:{
-                    startTime:start,
-                    endTime: end,
-                }
-            }
-            query<ActivityMessage>(CONTENT_TOPIC_ACTIVITY(id), callback_activity, options).then((msgs) => {
-                const umsg = unique<ActivityMessage>(msgs)
-                setActiveList(umsg)
-            })
-        }, 10000)
-
-        return () => {
-            clearInterval(tracker)
-        }
-    }, [id, connected, wallet])*/
-
     useEffect(() => {
         if (!activeList) return
         setActive(activeList.length)
@@ -398,6 +557,23 @@ export const QakuContextProvider = ({ id, password, children }: Props) => {
         setLocalQuestions(q)
     }, [questions, controlState, wallet])
 
+    useEffect(() => {
+        if (!dispatcher || !snapshot || !id) return
+
+        (async () => {
+            try {
+                //console.log(snapshot)
+                if (await importFromSnapshot(snapshot.cid)) {
+                    setStoredSnapshotInfo(id, snapshot)
+                }
+            } catch (e) {
+                console.error(e)
+            }
+        })()
+
+
+    }, [dispatcher, snapshot, id])
+
     const qakuInfo = useMemo(
         () => ({
             controlState,
@@ -414,6 +590,8 @@ export const QakuContextProvider = ({ id, password, children }: Props) => {
             importPrivateKey,
             dispatcher,
             loading,
+            publishSnapshot,
+            snapshot: doSnapshot,
         }),
         [
             controlState,
@@ -430,6 +608,8 @@ export const QakuContextProvider = ({ id, password, children }: Props) => {
             importPrivateKey,
             dispatcher,
             loading,
+            doSnapshot,
+            publishSnapshot,
         ]
     )
 

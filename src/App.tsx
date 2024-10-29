@@ -3,21 +3,22 @@ import Main from './pages/main';
 import {
   Route,
   Routes,
-  useParams,
 } from "react-router-dom";
-import QA from './components/qa';
-import { QakuContextProvider } from './hooks/useQaku';
+
+import Settings from './components/settings';
+import MainQA from './components/mainqa';
 
 
 
 function App() {  
-  let { id } = useParams<"id">();
 
   return (
     <div className="App">
       <Routes>
         <Route path='/' element={<Main />}>
-          <Route path='q/:id/:password?' element={<QA />} />
+          <Route path='settings' element={<Settings />} />
+          <Route path='q/:id/:password?' element={<MainQA />} />
+          <Route path="" element={<MainQA />} />
         </Route>
       </Routes>
     </div>
