@@ -19,4 +19,15 @@ export class QakuCache {
 
         return {error: false, data: resp}
     }
+
+    info = async () => {
+        const resp = await fetch(`${this.url}/api/qaku/v1/info`)
+        console.log(resp)
+
+        if (resp.status != 200) {
+            return {error: true, data: resp.statusText}
+        }
+
+        return {error: false, data: resp}
+    }
 }

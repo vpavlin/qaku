@@ -14,9 +14,9 @@ export const CONTENT_TOPIC_PERSIST = "/0/qaku/1/persist/json"
 
 export const DISPATCHER_DB_NAME = "qaku"
 
-export const DEFAULT_CODEX_URL = "http://localhost:3001"
+export const DEFAULT_CODEX_URL = "http://localhost:8080"
 export const CODEX_URL_STORAGE_KEY = "qaku:codex-api-url"
-export const DEFAULT_PUBLIC_CODEX_URL = "http://api.qaku.app:8081"//"http://localhost:8081"//
+export const DEFAULT_PUBLIC_CODEX_URL = "https://api.qaku.app"//"http://localhost:8081"//
 export const CODEX_PUBLIC_URL_STORAGE_KEY = "qaku:codex-public-url"
 
 

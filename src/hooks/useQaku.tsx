@@ -167,7 +167,26 @@ export const QakuContextProvider = ({ id, password, children }: Props) => {
             return
         }
 
-        const codex = new Codex(codexURL).data;
+        const cache = new QakuCache(publicCodexURL)
+        const infoResp = await cache.info()
+        
+
+        const codex = new Codex(codexURL);
+        try {
+            if (infoResp.error) {
+                console.error("Failed to get a public cache Codex node info")
+            } else {
+                const data = await (infoResp.data as Response).json()
+                const res = await codex.node.connect(data.peerId, [data.addr])
+                if (res.error) {
+                    console.error(res.data)
+                }
+            }
+        } catch(e) {
+            console.error(e)
+        }
+
+        console.log("Here")
 
         try {
             const serialized = JSON.stringify(snap)
@@ -179,13 +198,15 @@ export const QakuContextProvider = ({ id, password, children }: Props) => {
             const storedSnap = getStoredSnapshotInfo(id)
 
             let cid = storedSnap?.cid
+            console.log(cid)
             if (!storedSnap || storedSnap.hash != hash) {
-                const res = await codex.upload(JSON.stringify(toPersist)).result
+                const res = await codex.data.upload(JSON.stringify(toPersist)).result
                 if (res.error) {
                     console.error("Failed to upload to Codex:", res.data)
                 }
                 
                 cid = res.data as string
+                console.log(cid)
                 const smsg: Snapshot = {hash: hash, cid: cid, timestamp: Date.now()}
                 const result = await dispatcher.emitTo(encoder, MessageType.PERSIST_SNAPSHOT, smsg, wallet, false)
                 if (!result) {
@@ -216,6 +237,7 @@ export const QakuContextProvider = ({ id, password, children }: Props) => {
         
         
         let response: Response | null = null
+        let persisted:PersistentSnapshot | null = null
         for (let i=0;i < 5;i++) {
             try {
                 const data = await codex.networkDownloadStream(cid)
@@ -225,6 +247,7 @@ export const QakuContextProvider = ({ id, password, children }: Props) => {
                     continue
                 }
                 response = data.data as Response
+                persisted = await response.json()
             } catch(e) {
                 await sleep((i+1)*2000)
                 continue
@@ -236,8 +259,8 @@ export const QakuContextProvider = ({ id, password, children }: Props) => {
             console.error("failed to get a snapshot")
             return false
         }
-        const persisted:PersistentSnapshot = await response.json() 
-        if(!persisted.messages || persisted.messages.length == 0) return false
+         
+        if(!persisted || !persisted.messages || persisted.messages.length == 0) return false
 
         const [dmsg, encrypted] = await dispatcher.decryptMessage(persisted.messages[0].dmsg.payload)
 
