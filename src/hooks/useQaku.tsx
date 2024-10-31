@@ -170,25 +170,23 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
             return
         }
 
-        const cache = new QakuCache(publicCodexURL)
-        const infoResp = await cache.info()
-
         const codex = new Codex(codexURL);
+
         try {
+            const cache = new QakuCache(publicCodexURL)
+            const infoResp = await cache.info()
             if (infoResp.error) {
                 console.error("Failed to get a public cache Codex node info")
-            } else {
-                const data = await (infoResp.data as Response).json()
-                const res = await codex.node.connect(data.peerId, [data.addr])
-                if (res.error) {
-                    console.error(res.data)
-                }
             }
-        } catch(e) {
+
+            const data = await (infoResp.data as Response).json()
+            const res = await codex.node.connect(data.peerId, [data.addr])
+            if (res.error) {
+                console.error(res.data)
+            }
+        } catch (e) {
             console.error(e)
         }
-
-        console.log("Here")
 
         try {
             const serialized = JSON.stringify(snap)
