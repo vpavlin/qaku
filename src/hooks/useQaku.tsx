@@ -172,7 +172,6 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
 
         const cache = new QakuCache(publicCodexURL)
         const infoResp = await cache.info()
-        
 
         const codex = new Codex(codexURL);
         try {
@@ -200,16 +199,16 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
 
             const storedSnap = getStoredSnapshotInfo(id)
 
-            let cid = storedSnap?.cid
+            //let cid = storedSnap?.cid
             const timestamp = Date.now()
-            console.log(cid)
+            //console.log(cid)
             
             const res = await codex.data.upload(JSON.stringify(toPersist)).result
             if (res.error) {
                 console.error("Failed to upload to Codex:", res.data)
             }
             
-            cid = res.data as string
+            const cid = res.data as string
             console.log(cid)
             const smsg: Snapshot = {hash: hash, cid: cid, timestamp: timestamp}
             const result = await dispatcher.emitTo(encoder, MessageType.PERSIST_SNAPSHOT, smsg, wallet, false)
