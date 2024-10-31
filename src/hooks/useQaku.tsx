@@ -58,11 +58,12 @@ export const useQakuContext = () => {
 interface Props {
     id: string | undefined;
     password: string | undefined;
+    updateStatus: (msg:string, typ:string, delay?:number) => void;
     children: React.ReactNode;
 }
 
 
-export const QakuContextProvider = ({ id, password, children }: Props) => {
+export const QakuContextProvider = ({ id, password, updateStatus, children }: Props) => {
     const { node } = useWakuContext()
     const [ dispatcher, setDispatcher ] = useState<Dispatcher>()
     const [ lastId, setLastId ] = useState<string>()
@@ -92,6 +93,8 @@ export const QakuContextProvider = ({ id, password, children }: Props) => {
 
     const [ snapshot, setSnapshot ] = useState<Snapshot>()
     const [ regularSnapshotInterval, setRegularSnapshotInterval] = useState<NodeJS.Timer>()
+
+    const [processingSnapshot, setProcessingSnapshot] = useState<string>()
 
     const codexURL = localStorage.getItem(CODEX_URL_STORAGE_KEY) || DEFAULT_CODEX_URL
     const publicCodexURL = localStorage.getItem(CODEX_PUBLIC_URL_STORAGE_KEY) || DEFAULT_PUBLIC_CODEX_URL
@@ -198,28 +201,35 @@ export const QakuContextProvider = ({ id, password, children }: Props) => {
             const storedSnap = getStoredSnapshotInfo(id)
 
             let cid = storedSnap?.cid
+            const timestamp = Date.now()
             console.log(cid)
-            if (!storedSnap || storedSnap.hash != hash) {
-                const res = await codex.data.upload(JSON.stringify(toPersist)).result
-                if (res.error) {
-                    console.error("Failed to upload to Codex:", res.data)
-                }
-                
-                cid = res.data as string
-                console.log(cid)
-                const smsg: Snapshot = {hash: hash, cid: cid, timestamp: Date.now()}
-                const result = await dispatcher.emitTo(encoder, MessageType.PERSIST_SNAPSHOT, smsg, wallet, false)
-                if (!result) {
-                    console.error("Failed to publish")
-                }
+            
+            const res = await codex.data.upload(JSON.stringify(toPersist)).result
+            if (res.error) {
+                console.error("Failed to upload to Codex:", res.data)
             }
-
-            const result2 =  await dispatcher.emit(MessageType.SNAPSHOT, {hash: hash, cid: cid, timestamp: Date.now()} as Snapshot, wallet)
+            
+            cid = res.data as string
+            console.log(cid)
+            const smsg: Snapshot = {hash: hash, cid: cid, timestamp: timestamp}
+            const result = await dispatcher.emitTo(encoder, MessageType.PERSIST_SNAPSHOT, smsg, wallet, false)
+            if (!result) {
+                console.error("Failed to publish")
+            }
+            
+            const toStore:Snapshot = {cid: cid!, hash: hash, timestamp: timestamp} 
+            const result2 =  await dispatcher.emit(MessageType.SNAPSHOT, toStore as Snapshot, wallet)
             if (!result2) {
                 console.error("Failed to publish snapshot")
+                updateStatus("Failed to publish a snapsthot", "error")
+                return
             }
+
+            updateStatus("Published snapshot with CID \n" + cid, "info", 5000)
+            setStoredSnapshotInfo(id, toStore)
         } catch(e) {
             console.error(e)
+            updateStatus("Failed to publish a snapsthot", "error")
             return
         }
 
@@ -256,49 +266,70 @@ export const QakuContextProvider = ({ id, password, children }: Props) => {
         }
 
         if (!response) {
+            updateStatus("Failed to get a snapshot", "error")
             console.error("failed to get a snapshot")
             return false
         }
          
         if(!persisted || !persisted.messages || persisted.messages.length == 0) return false
 
+        setProcessingSnapshot(persisted.hash)
+
         const [dmsg, encrypted] = await dispatcher.decryptMessage(persisted.messages[0].dmsg.payload)
 
         if (dispatcher.autoEncrypt != encrypted) {
             console.error("expected ", encrypted ? "encrypted" :"plain", "message")
+            setProcessingSnapshot(undefined)
             return false
         }
 
         if (dmsg.type != MessageType.CONTROL_MESSAGE) {
             console.error("expeced CONTROL_MESSAGE, got", dmsg.type)
+            setProcessingSnapshot(undefined)
             return false
         }
 
         if (dmsg.signer != persisted.owner) {
             console.error("unexpected signer ", dmsg.signer, "!=", persisted.owner)
+            setProcessingSnapshot(undefined)
             return false
         }
-
         const cmsg:ControlMessage = dmsg.payload
         const testId = qaHash(cmsg.title, cmsg.timestamp, cmsg.owner)
         const pureId = id?.startsWith('X') ? id.slice(1) : id
 
         if (testId != cmsg.id || testId != pureId) {
             console.error("unexpected QA id", testId)
+            setProcessingSnapshot(undefined)
             return false
         }
+
+        
+        console.log(processingSnapshot)
+        console.log(persisted)
+
+        if (processingSnapshot && processingSnapshot == persisted.hash) {
+            return false
+        }
+        updateStatus("Importing snapshot", "info", 2000)
 
         try {
             await dispatcher.importLocalMessage(persisted.messages)
             console.debug("imported, dispatching local query")
+            updateStatus("Successfully imported messaged from snapshot", "success", 3000)
         } catch (e) {
             console.error(e)
+            setProcessingSnapshot(undefined)
+            return false
+
         }
 
         //console.debug("about to dispatch local query")
         dispatcher.clearDuplicateCache()
         await dispatcher.dispatchLocalQuery()
         //console.debug("done with local query")
+
+        setProcessingSnapshot(undefined)
 
         return true
     
@@ -309,6 +340,7 @@ export const QakuContextProvider = ({ id, password, children }: Props) => {
    
 
         (async () => {
+            updateStatus("Loading Dispatcher", "info", 2000)
             setLoading(true)
             let d: Dispatcher | null = null
             let retries = 0
@@ -322,6 +354,7 @@ export const QakuContextProvider = ({ id, password, children }: Props) => {
                 return
             }
             if (password) {
+                updateStatus("Setting encryption key", "info", 2000)
                 d.registerKey(utf8ToBytes(sha256(password)).slice(0, 32), 0, true)
             }
                 
@@ -471,6 +504,7 @@ export const QakuContextProvider = ({ id, password, children }: Props) => {
                 setSnapshot(payload)
             }, true, d.autoEncrypt, d.contentTopic, false)
             console.debug("Dispatching local query")
+            updateStatus("Dispatching local query", "info", 2000)
 
             await d.start()
             try {
@@ -481,8 +515,12 @@ export const QakuContextProvider = ({ id, password, children }: Props) => {
                 }
             } catch (e) {
                 console.log("Some error", e)
+                updateStatus("Local query failed: " + e, "error")
+
             }
             console.debug("Local query done")
+            updateStatus("Local query done", "info", 2000)
+
             setDispatcher(d)
             setLoading(false)
         })()
@@ -496,7 +534,11 @@ export const QakuContextProvider = ({ id, password, children }: Props) => {
         const snap = getStoredSnapshotInfo(id)
 
         if (!snap || snap.timestamp+DEFAULT_PUBLISH_INTERVAL < Date.now()) {
+            console.log("Publishing snapshot")
+            console.log(snap)
             publishSnapshot()
+        } else {
+            console.log("no need to publish")
         }
 
         setRegularSnapshotInterval(setInterval(publishSnapshot, DEFAULT_PUBLISH_INTERVAL))

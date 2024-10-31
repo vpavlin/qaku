@@ -10,7 +10,7 @@ import User, { Wallet } from "../components/user";
 import { useToastContext } from "../hooks/useToast";
 
 const Main = () => {
-    const {Element} = useToastContext()
+    const {Element, toast} = useToastContext()
     const {connected, start, filterPeers, storePeers} = useWakuContext()
     let { id } = useParams<"id">();
     let { password } = useParams<"password">();
@@ -29,7 +29,7 @@ const Main = () => {
 
     return (
         <>
-        <QakuContextProvider id={id} password={password}>
+        <QakuContextProvider id={id} password={password} updateStatus={toast}>
             <div className="drawer lg:drawer-open">
                 <input id="my-drawer-2" type="checkbox" className="drawer-toggle" checked={drawer} />
                 <div className="drawer-content flex justify-center">

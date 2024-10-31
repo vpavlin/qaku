@@ -4,6 +4,8 @@ import {sha256} from "js-sha256"
 export type ToastInfo = {
     Element: () => JSX.Element
     error: (msg: string) => void
+    info: (msg: string) => void
+    toast: (msg: string, typ: string) => void
 }
 
 export type ToastContextData = {
@@ -32,9 +34,9 @@ interface Props {
 export const ToastElement = ({toasts}: IProps) => {
     return (
         <div className="toast">
-            {Array.from(toasts.values()).map((v: string) => 
-                    <div className="alert alert-error">
-                        <span>{v}</span>
+            {Array.from(toasts.entries()).map((v: [string, Toast]) => 
+                    <div id={v[0]} className={`alert alert-${v[1].typ}`}>
+                        <span>{v[1].msg}</span>
                     </div>
             )}
         </div>
@@ -42,7 +44,7 @@ export const ToastElement = ({toasts}: IProps) => {
 }
 
 export const ToastContextProvider = ({ children }: Props) => {
-    const [toasts, setToasts] = useState<Map<string, string>>(new Map<string, string>())
+    const [toasts, setToasts] = useState<Map<string, Toast>>(new Map<string, Toast>())
 
     //const Element = <Element toasts={toasts} />
 
@@ -55,27 +57,39 @@ export const ToastContextProvider = ({ children }: Props) => {
     }, [toasts])
 
     const error = (msg: string) => {
-        setToasts((t) => {
-            const id = sha256(msg + new Date())
+        toast(msg, "error", 10000)
+    }
 
-            t.set(id, msg)
+    const info = (msg: string) => {
+        toast(msg, "info", 3000)
+    }
+
+    const toast = (msg: string, typ: string, delay?: number) => {
+        setToasts((t) => {
+            const id = sha256(msg + typ + new Date())
+
+            t.set(id, {msg: msg, typ: typ})
             console.log(t)
             setTimeout(() => {
                 setToasts((t) => {
                     t.delete(id)
-                    return new Map<string, string>(t)
+                    return new Map<string, Toast>(t)
                 })
-            }, 10000)
-            return new Map<string, string>(t)
-        })
+            }, delay ? delay : 10000)
+            return new Map<string, Toast>(t)
+        })   
     }
     const toastInfo = useMemo(
         () => ({
+            info,
             error,
+            toast,
             Element
         }),
         [
+            info,
             error,
+            toast,
             Element
         ]
     )
@@ -85,7 +99,12 @@ export const ToastContextProvider = ({ children }: Props) => {
     </ToastContext.Provider>)
 }
 
+type Toast = {
+    msg: string
+    typ: string
+}
+
 interface IProps {
-    toasts: Map<string, string>
+    toasts: Map<string, Toast>
 }
 

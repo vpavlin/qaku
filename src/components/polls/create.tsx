@@ -3,6 +3,7 @@ import { NewPoll, PollOption } from "./types"
 import { useQakuContext } from "../../hooks/useQaku"
 import { sha256 } from "js-sha256"
 import { MessageType } from "../../utils/messages"
+import { useToastContext } from "../../hooks/useToast"
 
 
 interface IOptionProps {
@@ -27,6 +28,7 @@ const CreatePollOption = ({title, index, setOption}:IOptionProps) => {
 const CreatePoll = () => {
 
     const {wallet, dispatcher} = useQakuContext()
+    const {info, error} = useToastContext()
 
     const [options, setOptions] = useState<PollOption[]>([])
     const [title, setTitle] = useState<string>()
@@ -46,10 +48,16 @@ const CreatePoll = () => {
     }
 
     const handleSubmit = async () => {
-        if (dispatcher === undefined || question === undefined || wallet === undefined) return
+        if (dispatcher === undefined || wallet === undefined) return
 
-        if (options.length < 2) return //FIXME
-        if (question.length == 0) return
+        if (options.length < 2) {
+            error("Too few options, please provide at least 2")
+            return //FIXME
+        }
+        if (!question || question.length == 0) {
+            error("You need to ask something!")
+            return
+        }
 
         setSubmitting(true)
  
@@ -67,13 +75,17 @@ const CreatePoll = () => {
 
         console.log(poll)
         const res = await dispatcher.emit(MessageType.POLL_CREATE_MESSAGE, poll, wallet)
-        if (res) {
-            setCollapsed(true)
-            setQuestion("")
-            setTitle("")
-            setOptions([])
-            setActive(false)
+        if (!res) {
+            error("Failed to  publish a poll")
+            return
         }
+
+        info(`Successfully published a poll ${title}`)
+        setCollapsed(true)
+        setQuestion("")
+        setTitle("")
+        setOptions([])
+        setActive(false)
 
         setSubmitting(false)
     }

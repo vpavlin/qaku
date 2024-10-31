@@ -3,10 +3,12 @@ import { useQakuContext } from "../../hooks/useQaku";
 import { MessageType } from "../../utils/messages";
 import { NewPoll, Poll, PollActive, PollVote } from "./types";
 import { DispatchMetadata, Signer } from "waku-dispatcher";
+import { useToastContext } from "../../hooks/useToast";
 
 const Polls = () => {
     const {polls, dispatcher, wallet, isOwner, isAdmin} = useQakuContext()
     const [submitting, setSubmitting] = useState(false)
+    const {info, error} = useToastContext()
    
 
     const handleVote = async (pollId: string, option: number) => {
@@ -15,6 +17,11 @@ const Polls = () => {
         const res = await dispatcher.emit(MessageType.POLL_VOTE_MESSAGE, {id: pollId, option: option} as PollVote, wallet)
 
         setSubmitting(false)
+        if (!res) {
+            error("Failed to publish a vote")
+            return
+        }
+        info("Submitted a vote")
     }
 
     const handleActiveSwitch = async (pollId: string, newState: boolean) => {
@@ -22,6 +29,11 @@ const Polls = () => {
         setSubmitting(true)
         const res = await dispatcher.emit(MessageType.POLL_ACTIVE_MESSAGE, {id: pollId, active: newState} as PollActive, wallet)
         setSubmitting(false)
+        if (!res) {
+            error("Failed to switch poll state")
+            return
+        }
+        info(`Switched poll to ${newState ? "enabled" : "disabled"}`)
 
     }
 

@@ -15,7 +15,7 @@ interface IProps {
 
 const Question = ({msg, moderation}:IProps) => {
     const [ answer, setAnswer ] = useState<string>()
-    const { error } = useToastContext()
+    const { error, info } = useToastContext()
 
     const { controlState, isOwner, dispatcher , wallet, isAdmin} = useQakuContext()
 
@@ -34,7 +34,9 @@ const Question = ({msg, moderation}:IProps) => {
         if (!result) {
             console.log("Failed to answer")
             error("Failed to publish answer")
+            return
         }
+        info("Published an answer")
     }
 
     const upvote = async (qmsg: QuestionMessage) => {
@@ -47,7 +49,10 @@ const Question = ({msg, moderation}:IProps) => {
         if (!result) {
             console.log("Failed to upvote")
             error("Failed to publish upvote")
+            return
         }
+
+        info("Upvoted!")
 
     }
 
@@ -61,9 +66,14 @@ const Question = ({msg, moderation}:IProps) => {
         if (!result) { 
             console.log("Failed to moderate")
             error("Failed to publish moderation message")
+            return
         }
 
-
+        if (moderated) {
+            info("Successfully set message to 'hidden'")
+        } else {
+            info("Successfully set message to 'shown'")
+        }
     }
 
     return (

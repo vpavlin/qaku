@@ -44,6 +44,7 @@ export const useWakuDecoder = (contentTopic: string) => {
 }
 
 interface Props {
+    updateStatus: (msg: string, typ: string, delay?: number) => void
     children: React.ReactNode
 }
 
@@ -59,7 +60,7 @@ const bootstrapNodes: string[] = [
 ]
 
 
-export const WakuContextProvider = ({ children }: Props) => {
+export const WakuContextProvider = ({ children, updateStatus }: Props) => {
     const [status, setStatus] = useState<string>("disconnected")
     const [connected, setConnected] = useState<boolean>(false)
     const [filterPeers, setFilterPeers] = useState<string[]>([])
@@ -75,6 +76,7 @@ export const WakuContextProvider = ({ children }: Props) => {
         if (connected || connecting || node) return
         setConnecting(true)
         setStatus("starting")
+        updateStatus("Starting Waku node", "info", 2000)
         await createLightNode({
             networkConfig: {clusterId: 1, shards: [0]},
             defaultBootstrap: true,
@@ -96,6 +98,7 @@ export const WakuContextProvider = ({ children }: Props) => {
             
             try {
                 await waitForRemotePeer(ln, PROTOCOLS)
+                updateStatus("Waku node successfully connected", "success", 5000)
                 console.log(await ln.libp2p.peerStore.all())
                 setStatus("connected")
                 setConnected(true)

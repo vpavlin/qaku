@@ -6,7 +6,6 @@ import reportWebVitals from './reportWebVitals';
 import { WakuContext, WakuContextProvider } from './hooks/useWaku';
 import { BrowserRouter, RouterProvider, createBrowserRouter } from 'react-router-dom';
 import Main from './pages/main';
-import { QakuContextProvider } from './hooks/useQaku';
 import { ToastContextProvider } from './hooks/useToast';
 
 const root = ReactDOM.createRoot(
@@ -16,13 +15,9 @@ const root = ReactDOM.createRoot(
 root.render(
   
     <BrowserRouter>
-      <WakuContextProvider>
       <ToastContextProvider>
-
           <App />
-          </ToastContextProvider>
-
-      </WakuContextProvider>
+       </ToastContextProvider>
     </BrowserRouter>
   
 );

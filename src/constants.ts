@@ -20,4 +20,4 @@ export const DEFAULT_PUBLIC_CODEX_URL = "https://api.qaku.app"//"http://localhos
 export const CODEX_PUBLIC_URL_STORAGE_KEY = "qaku:codex-public-url"
 
 
-export const DEFAULT_PUBLISH_INTERVAL = 5*60*60*1000
+export const DEFAULT_PUBLISH_INTERVAL = 2*60*60*1000

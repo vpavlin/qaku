@@ -7,12 +7,16 @@ import {
 
 import Settings from './components/settings';
 import MainQA from './components/mainqa';
+import { WakuContextProvider } from './hooks/useWaku';
+import { useToastContext } from './hooks/useToast';
 
 
 
 function App() {  
+  const {toast} = useToastContext()
 
   return (
+    <WakuContextProvider updateStatus={toast}>
     <div className="App">
       <Routes>
         <Route path='/' element={<Main />}>
@@ -22,6 +26,7 @@ function App() {
         </Route>
       </Routes>
     </div>
+    </WakuContextProvider>
   );
 }
 
