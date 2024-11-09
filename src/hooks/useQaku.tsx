@@ -177,7 +177,7 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
             const infoResp = await cache.info()
             if (infoResp.error) {
                 console.error("Failed to get a public cache Codex node info")
-            }
+            }   
 
             const data = await (infoResp.data as Response).json()
             const res = await codex.node.connect(data.peerId, [data.addr])
@@ -511,7 +511,7 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
                     await d.dispatchQuery()
                 }
             } catch (e) {
-                console.log("Some error", e)
+                console.error(e)
                 updateStatus("Local query failed: " + e, "error")
 
             }

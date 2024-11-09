@@ -7,7 +7,7 @@ interface IProps {
 }
 
 const Control = ({id}: IProps) => {
-    const {controlState, switchState, isOwner, localQuestions, snapshot, publishSnapshot} = useQakuContext()
+    const {controlState, switchState, isOwner, localQuestions, polls, snapshot, publishSnapshot} = useQakuContext()
     const [enabled, setEnabled] = useState(false)
 
     const saveTemplateAsFile = (filename:string, dataObjToWrite:DownloadSnapshot | undefined) => {
@@ -44,10 +44,10 @@ const Control = ({id}: IProps) => {
                         <div className="flex m-auto items-center justify-center">
                             <div className="flex-col m-2"><button onClick={() => switchState(!enabled)} disabled={!id || !controlState} className={`btn`}>{ enabled ? "disable" : "enable"}</button></div>
                             <div className="flex-col m-2">
-                                { localQuestions.length > 0 && <button className="btn" onClick={()=> saveTemplateAsFile("data.json", snapshot())}>Download</button>}
+                                { (localQuestions.length > 0 || polls.length > 0) && <button className="btn" onClick={()=> saveTemplateAsFile("data.json", snapshot())}>Download</button>}
                             </div>
                             <div className="flex-col m-2">
-                                { localQuestions.length > 0 && <button className="btn" onClick={()=> publishSnapshot()}>Publish Snapshot</button>}
+                                { (localQuestions.length > 0 || polls.length > 0) && <button className="btn" onClick={()=> publishSnapshot()}>Publish Snapshot</button>}
                             </div>
                         </div>
                     </div>
