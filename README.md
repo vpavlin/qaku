@@ -1,5 +1,8 @@
 # QAKU: Q&A over Waku
 
+<a href="https://www.drips.network/app/projects/github/vpavlin/qaku" target="_blank"><img src="https://www.drips.network/api/embed/project/https%3A%2F%2Fgithub.com%2Fvpavlin%2Fqaku/support.png?background=dark&style=drips&text=project&stat=dependencies" alt="Support qaku on drips.network" height="32"></a>
+---
+
 This repository contains a simple app based on [Waku](https://waku.org) - a family of robust, censorship-resistant communication protocols designed to enable privacy-focused messaging for web3 apps.
 
 QAKU, or Questions & Answers over Waku is an application allowing you to create a Q&A board, share a link and let users post questions. You as an owner have a control over the Q&A - can enable/disable it or answer the questions. Users can also upvote questions which then bubble up to the top of the list.
