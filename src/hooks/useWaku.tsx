@@ -7,7 +7,6 @@ import {
     EConnectionStateEvents,
   } from "@waku/sdk";
 import { DEFAULT_BOOTSTRAP, PROTOCOLS, STATIC_NODES } from "../constants";
-import { multiaddr } from "@multiformats/multiaddr";
 
 export type WakuInfo = {
     node: LightNode | undefined;
@@ -80,9 +79,9 @@ export const WakuContextProvider = ({ children, updateStatus }: Props) => {
         await createLightNode({
             networkConfig: {clusterId: 1, shards: [0]},
             defaultBootstrap: true,
-            pingKeepAlive: 60,
             //bootstrapPeers: bootstrapNodes,
             numPeersToUse: 3,
+            
         }).then( async (ln: LightNode) => {
             if (node) return
             setNode(ln)
@@ -90,9 +89,6 @@ export const WakuContextProvider = ({ children, updateStatus }: Props) => {
 
             ln.connectionManager.addEventListener(EConnectionStateEvents.CONNECTION_STATUS, (e) => {
                 //console.log(e)
-                setFilterPeers(ln.filter.connectedPeers.map((p) => p.id.toString()))
-                setStorePeers(ln.store.connectedPeers.map((p) => p.id.toString()))
-
             })
 
             
@@ -104,19 +100,14 @@ export const WakuContextProvider = ({ children, updateStatus }: Props) => {
                 setConnected(true)
                 setConnecting(false)
                     
-                interval = setInterval(() => {
-                    setFilterPeers(ln.filter.connectedPeers.map((p) => p.id.toString()))
-                    setStorePeers(ln.store.connectedPeers.map((p) => p.id.toString()))
-                }, 500)
+
 
             } finally {
                 setConnecting(false)
             }
         })
 
-        return () => {
-            clearInterval(interval)
-        }
+
      }, [])
 
     const stop = () => {

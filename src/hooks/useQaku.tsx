@@ -35,6 +35,7 @@ export type QakuInfo = {
     loading: boolean
     snapshot: () => DownloadSnapshot | undefined;
     publishSnapshot: () => void;
+    codexAvailable: boolean;
 }
 
 export type QakuContextData = {
@@ -98,6 +99,9 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
 
     const codexURL = localStorage.getItem(CODEX_URL_STORAGE_KEY) || DEFAULT_CODEX_URL
     const publicCodexURL = localStorage.getItem(CODEX_PUBLIC_URL_STORAGE_KEY) || DEFAULT_PUBLIC_CODEX_URL
+
+    const [codexAvailable, setCodexAvailable] = useState(false)
+    const [ codexCheckInterval, setCodexCheckInterval] = useState<NodeJS.Timer>()
 
 
     const historyAdd = (id: string, title: string) => {
@@ -193,7 +197,7 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
             const hash = sha256(serialized)
 
             const toPersist: PersistentSnapshot = {hash: hash, owner: wallet.address, messages: snap}
-            //console.log(toPersist)
+            console.log(toPersist)
 
             const storedSnap = getStoredSnapshotInfo(id)
 
@@ -201,14 +205,18 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
             const timestamp = Date.now()
             //console.log(cid)
             
-            const res = await codex.data.upload(JSON.stringify(toPersist)).result
+            const res = await codex.data.upload(JSON.stringify(toPersist), undefined, {filename: hash, mimetype: "application/json"}).result
+            console.log(res)
             if (res.error) {
                 console.error("Failed to upload to Codex:", res.data)
+                updateStatus("Failed to upload snapshot to Codex", "error")
+                return
             }
             
             const cid = res.data as string
             console.log(cid)
             const smsg: Snapshot = {hash: hash, cid: cid, timestamp: timestamp}
+            console.log(smsg)
             const result = await dispatcher.emitTo(encoder, MessageType.PERSIST_SNAPSHOT, smsg, wallet, false)
             if (!result) {
                 console.error("Failed to publish")
@@ -330,6 +338,21 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
 
         return true
     
+    }
+
+    const checkCodexAvailable = async () => {
+        const codex = new Codex(codexURL);
+        const res = await codex.debug.info()
+        if (res.error) {
+            setCodexAvailable(false)
+            return
+        }
+        if (res.data.table.nodes.length < 5) {
+            setCodexAvailable(false)
+            return
+        }
+
+        setCodexAvailable(true)
     }
 
     useEffect(() => {
@@ -497,6 +520,7 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
                     }
                 }
 
+                console.log(payload)
                 //console.log("will import messages")
                 setSnapshot(payload)
             }, true, d.autoEncrypt, d.contentTopic, false)
@@ -518,9 +542,16 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
             console.debug("Local query done")
             updateStatus("Local query done", "info", 2000)
 
+            checkCodexAvailable()
+            setCodexCheckInterval(setInterval(checkCodexAvailable, 3000))
+
             setDispatcher(d)
             setLoading(false)
         })()
+
+        return () => {
+            clearInterval(codexCheckInterval)
+        }
     }, [dispatcher, id, node, password])
 
     useEffect(() => {
@@ -548,6 +579,7 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
     useEffect(() => {
         if (id != lastId) {
             (async () =>{
+                clearInterval(codexCheckInterval)
                 clearInterval(regularSnapshotInterval)
                 setLastId(id)
                 setControlState(undefined)
@@ -624,7 +656,7 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
 
         (async () => {
             try {
-                //console.log(snapshot)
+                console.log(snapshot)
                 if (await importFromSnapshot(snapshot.cid)) {
                     setStoredSnapshotInfo(id, snapshot)
                 }
@@ -654,6 +686,7 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
             loading,
             publishSnapshot,
             snapshot: doSnapshot,
+            codexAvailable,
         }),
         [
             controlState,
@@ -672,6 +705,7 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
             loading,
             doSnapshot,
             publishSnapshot,
+            codexAvailable,
         ]
     )
 

@@ -71,7 +71,7 @@ const QA = () => {
                 </div>
                 <div className="space-x-2">
                     <div className="badge badge-lg badge-neutral">{controlState.owner.slice(0, 7)+"..."+controlState.owner.slice(controlState.owner.length-5)}</div>
-                    {isAdmin && <div className="badge badge-lg badge-secondary">admin</div>}
+                    {isAdmin ? <div className="badge badge-lg badge-secondary">admin</div> : <div className="badge badge-lg badge-primary">owner</div>}
                 </div>
                 <div className="divider"></div>
 
@@ -81,11 +81,11 @@ const QA = () => {
                 {(isOwner || isAdmin) &&
                     <CreatePoll />
                 }
-                <div className="tabs m-auto ">
-                    <a href={`#${Tabs.Questions}`} className={`tab tab-lg tab-bordered ${activeTab == Tabs.Questions && "tab-active"}`} onClick={() => setActiveTab(Tabs.Questions)}>Questions ({localQuestions.length})</a>
-                    <a href={`#${Tabs.Polls}`} className={`tab tab-lg tab-bordered ${activeTab == Tabs.Polls && "tab-active"}`} onClick={() => setActiveTab(Tabs.Polls)}>Polls ({polls.length})</a>
+                <div className="tabs tabs-lifted tabs-lg m-auto ">
+                    <a href={`#${Tabs.Questions}`} className={`tab ${activeTab == Tabs.Questions && "tab-active"}`} onClick={() => setActiveTab(Tabs.Questions)}>Questions ({localQuestions.length})</a>
+                    <a href={`#${Tabs.Polls}`} className={`tab ${activeTab == Tabs.Polls && "tab-active"}`} onClick={() => setActiveTab(Tabs.Polls)}>Polls ({polls.length})</a>
                 </div>
-                <div>
+                <div className="px-1">
                 {
                     activeTab == Tabs.Questions && (
                         localQuestions.length == 0 ?
@@ -101,6 +101,7 @@ const QA = () => {
                         <Polls />
                 }
                 </div>
+                
             </div>
         }
         </div>
