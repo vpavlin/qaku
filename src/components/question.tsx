@@ -81,7 +81,7 @@ const Question = ({msg, moderation}:IProps) => {
         <div className="text-left">
             <ReactMarkdown children={msg.question} />
         </div>
-        { msg.answer && <div className="text-right pl-2 mb-2 font-bold border-t border-white"> <ReactMarkdown children={msg.answer!} /> (answered by {controlState?.owner == msg.answeredBy && "owner: "}{controlState?.admins.includes(msg.answeredBy!) && "admin: "}{shortAddr(msg.answeredBy!)})</div>}
+        { msg.answer && <div className="text-right pl-2 mb-2 border-t border-white"> <ReactMarkdown className="font-bold" children={msg.answer!} /> (answered by {controlState?.owner == msg.answeredBy && "owner: "}{controlState?.admins.includes(msg.answeredBy!) && "admin: "}{shortAddr(msg.answeredBy!)})</div>}
         <div className={`text-right text-sm flex gap-x-2 justify-end items-center`}>
             {(isOwner || isAdmin) && !msg.answered && !msg.moderated &&
                 <div>
