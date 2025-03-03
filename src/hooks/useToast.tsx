@@ -51,7 +51,6 @@ export const ToastContextProvider = ({ children }: Props) => {
     let Element = () => ToastElement({toasts})
 
     useEffect(() =>{
-        console.log("should redraw")
         Element = () => ToastElement({toasts})
 
     }, [toasts])
