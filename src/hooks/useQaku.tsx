@@ -4,7 +4,6 @@ import { DecodedMessage, bytesToUtf8, createDecoder, createEncoder, utf8ToBytes 
 import { CODEX_PUBLIC_URL_STORAGE_KEY, CODEX_URL_STORAGE_KEY, CONTENT_TOPIC_ACTIVITY, CONTENT_TOPIC_MAIN, CONTENT_TOPIC_PERSIST, DEFAULT_CODEX_URL, DEFAULT_PUBLIC_CODEX_URL, DEFAULT_PUBLISH_INTERVAL } from "../constants";
 import { sha256 } from "js-sha256";
 import { Wallet } from "ethers";
-import getDispatcher, { DispatchMetadata, Dispatcher, IDispatchMessage, Signer, destroyDispatcher } from "waku-dispatcher"
 import useIdentity from "./useIdentity";
 import { LocalPoll, NewPoll, Poll, PollActive, PollVote } from "../components/polls/types";
 import { useWakuContext } from "./useWaku";
@@ -12,6 +11,7 @@ import { Codex, CodexData } from "@codex-storage/sdk-js";
 import { getStoredSnapshotInfo, PersistentSnapshot, setStoredSnapshotInfo, Snapshot } from "../utils/snapshots";
 import { QakuCache } from "../utils/cache";
 import { sleep } from "../utils/utils";
+import {Qaku, QakuEvents, QakuState, QuestionSort} from "qakulib"
 
 export type HistoryEntry = {
     id: string;
@@ -19,8 +19,8 @@ export type HistoryEntry = {
 }
 
 export type QakuInfo = {
+    qaku:Qaku | undefined;
     controlState: ControlMessage | undefined;
-    wallet: Wallet | undefined;
     isOwner: boolean;
     isAdmin: boolean;
     active: number;
@@ -28,13 +28,8 @@ export type QakuInfo = {
     polls: LocalPoll[]
     historyAdd: (id: string, title: string) => void
     getHistory: () => HistoryEntry[]
-    switchState: (newState: boolean) => void;
-    importPrivateKey: (key: string) => void;
     localQuestions: EnhancedQuestionMessage[]
-    dispatcher: Dispatcher | undefined;
     loading: boolean
-    snapshot: () => DownloadSnapshot | undefined;
-    publishSnapshot: () => void;
     codexAvailable: boolean;
 }
 
@@ -66,7 +61,7 @@ interface Props {
 
 export const QakuContextProvider = ({ id, password, updateStatus, children }: Props) => {
     const { node } = useWakuContext()
-    const [ dispatcher, setDispatcher ] = useState<Dispatcher>()
+    const [ qaku, setQaku ] = useState<Qaku>()
     const [ lastId, setLastId ] = useState<string>()
     const [ controlState, _setControlState ] = useState<ControlMessage>()
     const controlStateRef = useRef(controlState)
@@ -74,6 +69,8 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
         controlStateRef.current = cmsg
         _setControlState(cmsg)
     }
+
+    const [ protocolInitialized, setProtocolInitialized] = useState(false)
     const [ isOwner, setOwner ] = useState<boolean>(false)
     const [ isAdmin, setAdmin ] = useState<boolean>(false)
 
@@ -86,7 +83,7 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
     const [questions, setQuestions] = useState<Map<string, EnhancedQuestionMessage>>(new Map<string, EnhancedQuestionMessage>())
     const [localQuestions, setLocalQuestions] = useState<EnhancedQuestionMessage[]>([])
 
-    const { wallet, storePrivateKey } = useIdentity("qaku-key-v2", "qaku-wallet")
+    //const { wallet, storePrivateKey } = useIdentity("qaku-key-v2", "qaku-wallet")
 
     const [polls, setPolls] = useState<LocalPoll[]>([])
 
@@ -117,24 +114,7 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
         return decoded
     }
 
-    const switchState = (newState: boolean) => {
-        if (!id || !controlState || !dispatcher || !wallet) return
-
-        const cmsg:ControlMessage = {
-            title: controlState.title,
-            description: controlState.description,
-            id: controlState.id,
-            enabled: newState,
-            timestamp: Date.now(),
-            owner: controlState.owner,
-            admins: controlState.admins,
-            moderation: controlState.moderation
-        }
-        
-        dispatcher.emit(MessageType.CONTROL_MESSAGE, cmsg, wallet)
-    }
-
-    const importPrivateKey = async (result: string) => {
+   /* const importPrivateKey = async (result: string) => {
         const parsed = JSON.parse(result)
         storePrivateKey(parsed.key)
 
@@ -143,9 +123,9 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
         
         window.location.reload()
 
-    }
+    }*/
 
-    const doSnapshot = ():DownloadSnapshot | undefined => {
+    /*const doSnapshot = ():DownloadSnapshot | undefined => {
         if (!controlState || localQuestions.length == 0 || !wallet) return
 
         const snap = {
@@ -160,11 +140,11 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
         snap.signature = sig
        
         return snap
-    }
+    }*/
 
 
-    const publishSnapshot = async () => {
-        if (!dispatcher || !wallet || !id) return 
+   /* const publishSnapshot = async () => {
+        if (!qaku || !wallet || !id) return 
 
         const encoder = createEncoder({contentTopic: CONTENT_TOPIC_PERSIST, ephemeral: true, pubsubTopicShardInfo: {clusterId: 42, shard: 0}})
         const snap = await dispatcher.getLocalMessages()
@@ -217,13 +197,13 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
             console.log(cid)
             const smsg: Snapshot = {hash: hash, cid: cid, timestamp: timestamp}
             console.log(smsg)
-            const result = await dispatcher.emitTo(encoder, MessageType.PERSIST_SNAPSHOT, smsg, wallet, false)
+            const result = await qaku.dispatcher!.emitTo(encoder, MessageType.PERSIST_SNAPSHOT, smsg, wallet, false)
             if (!result) {
                 console.error("Failed to publish")
             }
             
             const toStore:Snapshot = {cid: cid!, hash: hash, timestamp: timestamp} 
-            const result2 =  await dispatcher.emit(MessageType.SNAPSHOT, toStore as Snapshot, wallet)
+            const result2 =  await qaku.dispatcher!.emit(MessageType.SNAPSHOT, toStore as Snapshot, wallet)
             if (!result2) {
                 console.error("Failed to publish snapshot")
                 updateStatus("Failed to publish a snapsthot", "error")
@@ -241,7 +221,7 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
     }
 
     const importFromSnapshot = async (cid:string):Promise<boolean> => {
-        if (!dispatcher || !id) return false
+        if (!qaku || !id) return false
         let codex: CodexData | QakuCache | undefined = undefined
         
         codex = new Codex(codexURL).data;
@@ -280,9 +260,9 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
 
         setProcessingSnapshot(persisted.hash)
 
-        const [dmsg, encrypted] = await dispatcher.decryptMessage(persisted.messages[0].dmsg.payload)
+        const [dmsg, encrypted] = await qaku.dispatcher!.decryptMessage(persisted.messages[0].dmsg.payload)
 
-        if (dispatcher.autoEncrypt != encrypted) {
+        if (qaku.dispatcher!.autoEncrypt != encrypted) {
             console.error("expected ", encrypted ? "encrypted" :"plain", "message")
             setProcessingSnapshot(undefined)
             return false
@@ -319,7 +299,7 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
         updateStatus("Importing snapshot", "info", 2000)
 
         try {
-            await dispatcher.importLocalMessage(persisted.messages)
+            await qaku.dispatcher!.importLocalMessage(persisted.messages)
             console.debug("imported, dispatching local query")
             updateStatus("Successfully imported messaged from snapshot", "success", 3000)
         } catch (e) {
@@ -330,15 +310,15 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
         }
 
         //console.debug("about to dispatch local query")
-        dispatcher.clearDuplicateCache()
-        await dispatcher.dispatchLocalQuery()
+        qaku.dispatcher!.clearDuplicateCache()
+        await qaku.dispatcher!.dispatchLocalQuery()
         //console.debug("done with local query")
 
         setProcessingSnapshot(undefined)
 
         return true
     
-    }
+    }*/
 
     const checkCodexAvailable = async () => {
         const codex = new Codex(codexURL);
@@ -356,206 +336,83 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
     }
 
     useEffect(() => {
-        if (dispatcher || !id || !node || (id && id.startsWith("X") && !password)) return;
+        if (!node) return
+        (async () => {
+            updateStatus("Loading Qaku", "info", 2000)
+
+            const q = new Qaku(node as any) //FIXME
+            q.on(QakuEvents.QAKU_STATE_UPDATE, (msg) => {
+                if (msg == QakuState.INIT_PROTOCOL) {
+                    setProtocolInitialized(true)
+                }
+                updateStatus(msg, "info", 2000)
+            })
+            q.on(QakuEvents.NEW_QUESTION, () => {
+                const questions = q.getQuestions([QuestionSort.UPVOTES_DESC, QuestionSort.TIME_ASC])
+                console.log(questions)
+                setLocalQuestions(questions)
+            })
+
+            q.on(QakuEvents.NEW_ANSWER, () => {
+                const questions = q.getQuestions([QuestionSort.UPVOTES_DESC, QuestionSort.TIME_ASC])
+                console.log(questions)
+                setLocalQuestions(questions)
+            })
+            q.on(QakuEvents.NEW_MODERATION, () => {
+                const questions = q.getQuestions([QuestionSort.UPVOTES_DESC, QuestionSort.TIME_ASC])
+                console.log(questions)
+                setLocalQuestions(questions)
+            })
+            q.on(QakuEvents.NEW_UPVOTE, () => {
+                const questions = q.getQuestions([QuestionSort.UPVOTES_DESC, QuestionSort.TIME_ASC])
+                console.log(questions)
+                setLocalQuestions(questions)
+            })
+            q.on(QakuEvents.NEW_CONTROL_MESSAGE, (qid:string) => {
+                console.log(q.controlState, qid, id)
+                if (qid == id) {
+                    console.log("setting control state")
+                    setControlState(q.controlState)
+                }
+            })
+            console.log(id, password)
+            await q.init(id, password)
+            console.log("Qaku is ready")
+            setQaku(q)
+        })()
+
+    }, [node])
+
+    useEffect(() => {
+        if (!qaku || !id || !node || (id && id.startsWith("X") && !password)) return;
    
 
         (async () => {
-            updateStatus("Loading Dispatcher", "info", 2000)
             setLoading(true)
-            let d: Dispatcher | null = null
-            let retries = 0
-            while(!d && retries < 10) {
-                d = await getDispatcher(node as any, CONTENT_TOPIC_MAIN(id), "qaku-"+id, false, false)
-                await new Promise((r) => setTimeout(r, 100))
-                retries++
+
+
+
+            if (!protocolInitialized) {
+                qaku.initQA(id, password)
             }
-            if (!d) {
-                setLoading(false)
-                return
-            }
-            if (password) {
-                updateStatus("Setting encryption key", "info", 2000)
-                d.registerKey(utf8ToBytes(sha256(password)).slice(0, 32), 0, true)
-            }
-                
-            d.on(MessageType.CONTROL_MESSAGE, (payload: ControlMessage, signer: Signer, meta: DispatchMetadata) => {
-                console.debug(payload)
-                if (!payload.title) return
-                if (!payload.description) payload.description = ""
-                if (signer != payload.owner) return
-                if (controlStateRef.current != undefined && controlStateRef.current.owner != signer) return
-                setControlState(payload)
-            }, true, d.autoEncrypt)
-            d.on(MessageType.QUESTION_MESSAGE, (payload: QuestionMessage) => {
-                if (!controlStateRef.current?.enabled) return
-                setQuestions((lq) => {
-                    const hash = sha256(JSON.stringify(payload))
-                    if (lq.has(hash)) return lq
-                    const q: EnhancedQuestionMessage = {
-                        hash: hash,
-                        question: payload.question,
-                        timestamp: payload.timestamp,
-                        moderated: false,
-                        answer: undefined,
-                        answered: false,
-                        answeredBy: undefined,
-                        upvotedByMe: false,
-                        upvotes: 0,
-                        upvoters: []
-                    }
-                    lq.set(hash, q)
 
-                    return new Map(lq)
-                })
-            }, false, d.autoEncrypt)
-            d.on(MessageType.UPVOTE_MESSAGE, (payload: UpvoteMessage, signer: Signer) => {
-                if (!controlStateRef.current?.enabled || !signer) return
-
-                setQuestions((lq) => {
-                    const q =  lq.get(payload.hash)
-                    if (!q) return lq
-                    if ((q.upvotedByMe && signer == wallet?.address) || q.answered || q.moderated || q.upvoters.includes(signer)) return lq
-
-                    q.upvotes++
-
-                    if (signer === wallet?.address) {
-                        q.upvotedByMe = true
-                    }
-                    q.upvoters.push(signer)
-
-                    lq.set(payload.hash, q)
-
-                    return new Map(lq)
-                })
-            }, true, d.autoEncrypt)
-            d.on(MessageType.ANSWERED_MESSAGE, (payload: AnsweredMessage, signer: Signer) => {
-                if (!signer || (controlStateRef.current?.owner != signer && !controlStateRef.current?.admins.includes(signer))) return
-                setQuestions((lq) => {
-                    const q =  lq.get(payload.hash)
-                    if (!q) return lq
-                    if (q.answered) return lq
-                    q.answered = true
-                    q.answer = payload.text
-                    q.answeredBy = signer
-
-                    lq.set(payload.hash, q)
-
-                    return new Map(lq)
-                })
-            }, true, d.autoEncrypt)
-            d.on(MessageType.MODERATION_MESSAGE, (payload: ModerationMessage, signer: Signer) => {
-                if (!signer || (controlStateRef.current?.owner != signer && !controlStateRef.current?.admins.includes(signer))) return
-
-                setQuestions((lq) => {
-                    const q =  lq.get(payload.hash)
-                    if (!q) return lq
-                    q.moderated = payload.moderated
-
-                    lq.set(payload.hash, q)
-
-                    return new Map(lq)
-                })
-            }, true, d.autoEncrypt)
-            d.on(MessageType.POLL_CREATE_MESSAGE, (payload: NewPoll, signer: Signer, meta: DispatchMetadata) => {
-                if (!signer || (controlStateRef.current?.owner != signer && !controlStateRef.current?.admins.includes(signer)) || signer != payload.creator) {
-                    console.log("Poll creator not owner %s != %s", signer, payload.creator)
-                    return
-                }
-
-                const poll:LocalPoll = {...payload.poll, owner: signer}
-    
-                setPolls((x) => [poll, ...x.filter((p) => p.id !== payload.poll.id)])
-            }, true, d.autoEncrypt)
-            d.on(MessageType.POLL_VOTE_MESSAGE, (payload: PollVote, signer: Signer, meta: DispatchMetadata) => {
-                setPolls((x) => {
-                    const poll = x.find((p) => p.id == payload.id)
-                    if (!poll) return x
-                    if (!poll.active) return x
-
-                    if (!poll.votes) poll.votes = [...poll.options.map(() => ({voters: []}))]
-                    if (!poll.votes[payload.option].voters) poll.votes[payload.option].voters = []
-
-                    if (poll.votes[payload.option].voters.indexOf(signer as string) < 0) {
-                        poll.votes[payload.option].voters.push(signer as string)
-                        if (!poll.voteCount) poll.voteCount = 0
-                        poll.voteCount++
-                    }
-
-                    return [...x]
-                })
-            }, true, d.autoEncrypt)
-            d.on(MessageType.POLL_ACTIVE_MESSAGE, (payload: PollActive, signer: Signer, meta: DispatchMetadata) => {
-                if (!signer || (controlStateRef.current?.owner != signer && !controlStateRef.current?.admins.includes(signer))) {
-                    return
-                }
-                setPolls((x) => {
-                    const poll = x.find((p) => p.id == payload.id)
-                    if (!poll) return x
-                    if (poll.owner === signer || controlStateRef.current?.owner == signer || controlStateRef.current?.admins.includes(signer)) //do we care if only creator can (de)activate
-                        poll.active = payload.active
-                    return [...x]
-                })
-            }, true, d.autoEncrypt)
-            d.on(MessageType.SNAPSHOT, (payload:Snapshot, signer: Signer, meta: DispatchMetadata) => {
-                if (!id) return
-                if (signer == wallet?.address) return
-                const snap = getStoredSnapshotInfo(id)
-                if (snap !== undefined) {
-                    if (payload.timestamp === undefined) {
-                        console.error("old version of snapshot, ignoring")
-                        return
-                    }
-                    if (snap.timestamp > payload.timestamp) {
-                        console.debug("new snapshot is older than loaded one")
-                        return
-                    }
-                    if (snap.hash == payload.hash) {
-                        console.log("already on this snapshot")
-                        return
-                    }
-
-                    if (payload.timestamp+18*60*60*1000 < Date.now()) {
-                        console.log("snapshot older than 18h, ignoring")
-                        return
-                    }
-                }
-
-                console.log(payload)
-                //console.log("will import messages")
-                setSnapshot(payload)
-            }, true, d.autoEncrypt, d.contentTopic, false)
-            console.debug("Dispatching local query")
-            updateStatus("Dispatching local query", "info", 2000)
-
-            await d.start()
-            try {
-                await d.dispatchLocalQuery() 
-
-                if (localQuestions.length == 0) {
-                    await d.dispatchQuery()
-                }
-            } catch (e) {
-                console.error(e)
-                updateStatus("Local query failed: " + e, "error")
-
-            }
-            console.debug("Local query done")
-            updateStatus("Local query done", "info", 2000)
-
-            checkCodexAvailable()
-            setCodexCheckInterval(setInterval(checkCodexAvailable, 3000))
-
-            setDispatcher(d)
+            updateStatus("Qaku initialized", "info", 2000)
+            setLoading(false)
+        
+        
+            //checkCodexAvailable()
+            //setCodexCheckInterval(setInterval(checkCodexAvailable, 3000))
+         
             setLoading(false)
         })()
 
         return () => {
             clearInterval(codexCheckInterval)
         }
-    }, [dispatcher, id, node, password])
+    }, [id, qaku, password])
 
-    useEffect(() => {
-        if (!dispatcher || !wallet || !id || !controlState) return
+    /*useEffect(() => {
+        if (!qaku || !wallet || !id || !controlState) return
 
         if (wallet.address != controlState.owner) return
 
@@ -574,7 +431,7 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
         return () => {
             clearInterval(regularSnapshotInterval)
         }
-    }, [dispatcher, wallet, id, controlState])
+    }, [qaku, wallet, id, controlState])*/
 
     useEffect(() => {
         if (id != lastId) {
@@ -589,8 +446,8 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
                 setActive(1)
                 setSnapshot(undefined)
                 setPolls([])
-                await destroyDispatcher() //FIXME: Will this work?
-                setDispatcher(undefined)
+                await qaku?.destroy() //FIXME: Will this work?
+                setQaku(undefined)
             })()
         }
     }, [id])
@@ -616,7 +473,7 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
     }, [visited])
 
     useEffect(() => {
-        if (!controlState || !wallet || !id) return
+        if (!controlState || !qaku || !id) return
 
         setVisited((v) => {
             if (password)
@@ -627,32 +484,17 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
             return v
         })
 
-        setOwner(controlState.owner == wallet.address)
-        setAdmin(controlState.admins.includes(wallet.address))
-    }, [controlState, wallet])
+        setOwner(controlState.owner == qaku.identity!.address())
+        setAdmin(controlState.admins.includes(qaku.identity!.address()))
+    }, [controlState, qaku])
 
     useEffect(() => {
         if (!activeList) return
         setActive(activeList.length)
     }, [activeList])
 
-    useEffect(() => {
-        const q = Array.from(questions.values())
-
-        q.sort((a:EnhancedQuestionMessage, b:EnhancedQuestionMessage) => {
-                    if (a.moderated) return 1
-                    if (b.moderated) return -1
-                    if (a.answered && b.answered) return b.upvotes - a.upvotes
-                    if (a.answered && !b.answered) return 1
-                    if (!a.answered && b.answered) return -1
-
-                    return b.upvotes - a.upvotes
-                })
-        setLocalQuestions(q)
-    }, [questions, controlState, wallet])
-
-    useEffect(() => {
-        if (!dispatcher || !snapshot || !id) return
+    /*useEffect(() => {
+        if (!qaku || !snapshot || !id) return
 
         (async () => {
             try {
@@ -666,45 +508,35 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
         })()
 
 
-    }, [dispatcher, snapshot, id])
+    }, [qaku, snapshot, id])*/
 
     const qakuInfo = useMemo(
         () => ({
+            qaku,
             controlState,
-            wallet,
             isOwner,
             isAdmin,
             visited,
             localQuestions,
             active,
             polls,
-            switchState,
             getHistory,
             historyAdd,
-            importPrivateKey,
-            dispatcher,
             loading,
-            publishSnapshot,
-            snapshot: doSnapshot,
             codexAvailable,
         }),
         [
+            qaku,
             controlState,
-            wallet,
             isOwner,
             isAdmin,
             visited,
             localQuestions,
             active,
             polls,
-            switchState,
             getHistory,
             historyAdd,
-            importPrivateKey,
-            dispatcher,
             loading,
-            doSnapshot,
-            publishSnapshot,
             codexAvailable,
         ]
     )

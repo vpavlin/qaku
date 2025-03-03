@@ -34,7 +34,6 @@ const Status = () => {
                 console.log("Unknown state:", health)
                 break;
         }
-
         setHealthStyle(st)
 
    }, [health])

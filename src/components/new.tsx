@@ -1,22 +1,16 @@
 import { useState } from "react";
-import { sha256 } from "js-sha256";
 import { useNavigate } from "react-router-dom";
 import { useQakuContext } from "../hooks/useQaku";
-import { ControlMessage, MessageType, qaHash, QakuMessage } from "../utils/messages";
-import { CONTENT_TOPIC_MAIN, DISPATCHER_DB_NAME } from "../constants";
-import getDispatcher, { destroyDispatcher } from "waku-dispatcher";
+
 import { useWakuContext } from "../hooks/useWaku";
 import { useToastContext } from "../hooks/useToast";
-import {utf8ToBytes} from "@waku/sdk"
 
 
 const NewQA = () => {
     const { error } = useToastContext()
     const { node, connected } = useWakuContext()
-    const { wallet, historyAdd } = useQakuContext()
+    const { historyAdd, qaku } = useQakuContext()
     const navigate = useNavigate();
-
-    const [dispatcher, setDispatcher] = useState()
 
     const [title, setTitle] = useState<string>()
     const [desc, setDesc] = useState<string>()
@@ -27,51 +21,24 @@ const NewQA = () => {
 
 
     const submit = async () => {
-        if (!node || !title || !wallet) return
+        console.log("Submitting...", qaku)
+        if (!qaku || !node || !title) return
 
-        const ts = new Date();
-        console.log(title + ts.valueOf() + wallet.address)
-        let hash = qaHash(title, ts.valueOf(), wallet.address)
-        console.log(hash)
+        console.log("Doing something")
+        const id = await qaku.newQA(title, desc, enabled, admins, moderation, password)
 
-        const cmsg:ControlMessage = {
-            title: title,
-            description: desc || "",
-            id: hash,
-            enabled: enabled,
-            timestamp: ts.valueOf(),
-            owner: wallet.address,
-            admins: admins,
-            moderation: moderation
-        }
-
-        await destroyDispatcher()
-
-        let key: any | undefined = undefined
-        if (password) {
-            key = {key: utf8ToBytes(sha256(password)).slice(0, 32), type: 0}
-            hash = "X"+hash //prepend X to inform the app that this QA is encrypted
-        }
-
-        const dispatcher = await getDispatcher(node as any, CONTENT_TOPIC_MAIN(hash), "qaku-"+hash, false)
-        if (!dispatcher) return
-        dispatcher.on(MessageType.CONTROL_MESSAGE, () => {})
-        const result = await dispatcher.emit(MessageType.CONTROL_MESSAGE, cmsg, wallet, key)
-        if (result) {
+        if (id) {
             
             if (password) {
-                historyAdd(hash+"/"+password, title)
-                navigate("/q/"+hash+"/"+password)
+                historyAdd(id+"/"+password, title)
+                navigate("/q/"+id+"/"+password)
             } else {
-                historyAdd(hash, title)
-                navigate("/q/"+hash)
+                historyAdd(id, title)
+                navigate("/q/"+id)
             }
         } else {
             error("Failed to create the Q&A")
         }
-        
-        await destroyDispatcher()
-        console.debug("Destroyed dispatcher...")
     }
 
     return (
@@ -109,9 +76,12 @@ const NewQA = () => {
                 <span className="label-text">Admins (list of addresses separated by a newline)</span>
                 <textarea className="textarea textarea-bordered textarea-lg w-full" onChange={(e) => setAdmins(e.target.value.split("\n"))}></textarea>
             </label>
+            <div>
+                {qaku?.identity?.address()}
+            </div>
 
             
-            <button onClick={() => submit()}  className="btn btn-lg">Submit</button>
+            <button onClick={() => submit()}  disabled={!qaku} className="btn btn-lg">Submit</button>
         </div>
         </div>
         }

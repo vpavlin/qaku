@@ -4,7 +4,7 @@ import QRCode from "react-qr-code"
 import { QrScanner } from "@yudiel/react-qr-scanner"
 
 const User = () => {
-    const { wallet, importPrivateKey } = useQakuContext()
+    const { qaku } = useQakuContext()
     const [ key, setKey] = useState<string>()
     const [ timer, setTimer] = useState<number>(0)
     const [ scanner, setScanner] = useState(false)
@@ -22,7 +22,7 @@ const User = () => {
                 <div className="space-x-3">
                  
                         <button className="btn btn-lg" onClick={() => {
-                            setKey(wallet?.privateKey!);
+                            //setKey(wallet?.privateKey!);
                             (document.getElementById('export_modal') as HTMLDialogElement).showModal()
                             const timeout = 10
                             setTimer(timeout)
@@ -43,7 +43,7 @@ const User = () => {
                 </div>
             </div>
             </div>
-            {wallet  &&
+            {qaku?.identity  &&
                 <dialog id="export_modal" className="modal">
                     <div className="modal-box text-left">
                         { key && <div>
@@ -71,7 +71,7 @@ const User = () => {
 
                     </div>
                     {scanner && <QrScanner
-                        onDecode={(result:string) => importPrivateKey(result)}
+                        onDecode={(result:string) => /*importPrivateKey(result)*/console.log(result)}
                         onError={(error:any) => console.log(error?.message)}
                     />}
                     <div className="modal-action">
@@ -92,17 +92,17 @@ interface IWallet {
 }
 
 export const Wallet = ({short}: IWallet) => {
-    const { wallet } = useQakuContext()
-    const [ tooltip, setTooltip] = useState(wallet && wallet.address) 
+    const { qaku } = useQakuContext()
+    const [ tooltip, setTooltip] = useState(qaku && qaku.identity && qaku.identity.address()) 
 
-    const addr = short ? (wallet ? wallet.address.substring(0, 6)+ "..." +wallet.address.substring(wallet.address.length - 4) : "0x....." ) : wallet?.address
+    const addr = short ? (qaku?.identity ? qaku.identity.address().substring(0, 6)+ "..." +qaku.identity.address().substring(qaku.identity.address().length - 4) : "0x....." ) : qaku?.identity?.address()
 
 
     const copy = async () => {
-        await navigator.clipboard.writeText(wallet?.address!);
+        await navigator.clipboard.writeText(qaku?.identity?.address()!);
         setTooltip("Copied to clipboard!")
         setTimeout(() => {
-            setTooltip(wallet && wallet.address)
+            setTooltip(qaku && qaku.identity && qaku.identity.address())
         }, 2000)
     }
     return (

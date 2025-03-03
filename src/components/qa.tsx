@@ -4,7 +4,6 @@ import { useQakuContext } from "../hooks/useQaku";
 import Question from "./question";
 import CreatePoll from "./polls/create";
 import { useEffect, useState } from "react";
-import Poll from "./polls/poll";
 import Polls from "./polls/poll";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 
@@ -15,7 +14,7 @@ enum Tabs {
 
 const QA = () => {
 
-    const  { controlState, localQuestions, dispatcher, isOwner, isAdmin, polls, loading } = useQakuContext()
+    const  { controlState, localQuestions, qaku, isOwner, isAdmin, polls, loading } = useQakuContext()
     const {hash} = useLocation()
     
     const navigate = useNavigate();
@@ -57,10 +56,8 @@ const QA = () => {
                     <div><button className="btn btn-lg" onClick={() => navigate(`/q/${id}/${passwordInput}`)}>Unlock</button></div>
                 </div>
             }
-            <div>
-                <button className="btn btn-sm" disabled={!dispatcher} onClick={() => {dispatcher?.clearDuplicateCache();dispatcher?.dispatchQuery()} }>Force Reload</button>
-            </div>
-            {!dispatcher && <span className="loading loading-lg"></span>}
+    
+            {!qaku && <span className="loading loading-lg"></span>}
             { controlState &&
             <div  className="space-y-3">
                 {controlState.moderation && <div className="bg-error text-error-content text-xl rounded-md m-3 p-3"> This Q&A can be moderated by owner (i.e. questions can be hidden!)</div>}
@@ -109,3 +106,8 @@ const QA = () => {
 }
 
 export default QA;
+
+/*       <!--<div>
+<button className="btn btn-sm" disabled={!qaku} onClick={() => {dispatcher?.clearDuplicateCache();dispatcher?.dispatchQuery()} }>Force Reload</button>
+</div>-->
+*/
