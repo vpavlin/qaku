@@ -4,7 +4,7 @@ import { useWakuContext } from "../hooks/useWaku";
 import {HealthStatus} from "@waku/interfaces"
 
 const Status = () => {
-    const { dispatcher, codexAvailable } = useQakuContext()
+    const { codexAvailable } = useQakuContext()
     const {status, filterPeers, storePeers, node} = useWakuContext()
     const [health, setHealthStyle] = useState("error")
 
@@ -19,7 +19,8 @@ const Status = () => {
     const int = setInterval(() => {
         if (!node) return
 
-        const h = node?.health.getHealthStatus()
+        //const h = node?.health.getHealthStatus()
+        /*const h = HealthStatus.MinimallyHealthy
         console.log(h)
 
         let st = "error"
@@ -38,6 +39,8 @@ const Status = () => {
                 console.log("Unknown state:", h)
                 break;
         }
+*/
+        const st = "error"
 
         setHealthStyle(st)
     }, 1000)

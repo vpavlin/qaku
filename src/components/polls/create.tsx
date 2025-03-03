@@ -27,7 +27,7 @@ const CreatePollOption = ({title, index, setOption}:IOptionProps) => {
 
 const CreatePoll = () => {
 
-    const {wallet, dispatcher} = useQakuContext()
+    const {qaku} = useQakuContext()
     const {info, error} = useToastContext()
 
     const [options, setOptions] = useState<PollOption[]>([])
@@ -48,7 +48,7 @@ const CreatePoll = () => {
     }
 
     const handleSubmit = async () => {
-        if (dispatcher === undefined || wallet === undefined) return
+        if (qaku === undefined || qaku.identity === undefined) return
 
         if (options.length < 2) {
             error("Too few options, please provide at least 2")
@@ -62,7 +62,7 @@ const CreatePoll = () => {
         setSubmitting(true)
  
         const poll:NewPoll = {
-            creator: wallet.address,
+            creator: qaku.identity.address(),
             poll: {
                 active: active,
                 options: options,
@@ -74,7 +74,7 @@ const CreatePoll = () => {
         }
 
         console.log(poll)
-        const res = await dispatcher.emit(MessageType.POLL_CREATE_MESSAGE, poll, wallet)
+        const res = await qaku.dispatcher!.emit(MessageType.POLL_CREATE_MESSAGE, poll, qaku.identity.getWallet())
         if (!res) {
             error("Failed to  publish a poll")
             return
