@@ -6,10 +6,13 @@ import {
     LightNode,
     EConnectionStateEvents,
   } from "@waku/sdk";
+import {
+    IWaku
+} from "@waku/interfaces"
 import { DEFAULT_BOOTSTRAP, PROTOCOLS, STATIC_NODES } from "../constants";
 
 export type WakuInfo = {
-    node: LightNode | undefined;
+    node: IWaku | undefined;
     status: string;
     connected: boolean;
     start: () => void;

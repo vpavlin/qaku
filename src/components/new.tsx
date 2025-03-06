@@ -53,7 +53,7 @@ const NewQA = () => {
             hash = "X"+hash //prepend X to inform the app that this QA is encrypted
         }
 
-        const dispatcher = await getDispatcher(node, CONTENT_TOPIC_MAIN(hash), "qaku-"+hash, false)
+        const dispatcher = await getDispatcher(node as any, CONTENT_TOPIC_MAIN(hash), "qaku-"+hash, false)
         if (!dispatcher) return
         dispatcher.on(MessageType.CONTROL_MESSAGE, () => {})
         const result = await dispatcher.emit(MessageType.CONTROL_MESSAGE, cmsg, wallet, key)

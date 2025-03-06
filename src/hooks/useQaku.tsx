@@ -365,7 +365,7 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
             let d: Dispatcher | null = null
             let retries = 0
             while(!d && retries < 10) {
-                d = await getDispatcher(node, CONTENT_TOPIC_MAIN(id), "qaku-"+id, false, false)
+                d = await getDispatcher(node as any, CONTENT_TOPIC_MAIN(id), "qaku-"+id, false, false)
                 await new Promise((r) => setTimeout(r, 100))
                 retries++
             }
