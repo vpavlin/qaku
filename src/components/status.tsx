@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useQakuContext } from "../hooks/useQaku";
 import { useWakuContext } from "../hooks/useWaku";
 import {HealthStatus} from "@waku/interfaces"
+import { HealthStatusChangeEvents } from "@waku/sdk";
 
 const Status = () => {
     const { codexAvailable } = useQakuContext()
@@ -16,16 +17,14 @@ const Status = () => {
 
 
    useEffect(() => {
-    const int = setInterval(() => {
         if (!node) return
 
-        //const h = node?.health.getHealthStatus()
-        /*const h = HealthStatus.MinimallyHealthy
-        console.log(h)
-
+        const h = node?.health.addEventListener(HealthStatusChangeEvents.StatusChange, (hs) => {
+            console.log(hs)
+            
         let st = "error"
 
-        switch (h) {
+        switch (hs.detail) {
             case HealthStatus.Unhealthy:
                 st = "error"
                 break;
@@ -39,14 +38,11 @@ const Status = () => {
                 console.log("Unknown state:", h)
                 break;
         }
-*/
-        const st = "error"
 
         setHealthStyle(st)
-    }, 1000)
-    return () => {
-        clearInterval(int)
-    }
+
+    })
+
    }, [node])
 
     return (  
