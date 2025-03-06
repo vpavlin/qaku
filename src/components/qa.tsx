@@ -14,7 +14,7 @@ enum Tabs {
 
 const QA = () => {
 
-    const  { controlState, localQuestions, qaku, isOwner, isAdmin, polls, loading } = useQakuContext()
+    const  { controlState, localQuestions, qaku, isOwner, isAdmin, polls, ready } = useQakuContext()
     const {hash} = useLocation()
     
     const navigate = useNavigate();
@@ -57,7 +57,7 @@ const QA = () => {
                 </div>
             }
     
-            {!qaku && <span className="loading loading-lg"></span>}
+            {!ready && <span className="loading loading-lg"></span>}
             { controlState &&
             <div  className="space-y-3">
                 {controlState.moderation && <div className="bg-error text-error-content text-xl rounded-md m-3 p-3"> This Q&A can be moderated by owner (i.e. questions can be hidden!)</div>}

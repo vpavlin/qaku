@@ -26,12 +26,13 @@ const NewQA = () => {
 
         console.log("Doing something")
         const id = await qaku.newQA(title, desc, enabled, admins, moderation, password)
+        await qaku.initQA(id, password)
 
         if (id) {
             
             if (password) {
                 historyAdd(id+"/"+password, title)
-                navigate("/q/"+id+"/"+password)
+                navigate("/q/"+id+"/"+password, {flushSync: true})
             } else {
                 historyAdd(id, title)
                 navigate("/q/"+id)
@@ -81,7 +82,7 @@ const NewQA = () => {
             </div>
 
             
-            <button onClick={() => submit()}  disabled={!qaku} className="btn btn-lg">Submit</button>
+            <button onClick={() => submit()}  disabled={!qaku} className="btn btn-lg">Submit {qaku == undefined ? "failed" : "ready"}</button>
         </div>
         </div>
         }

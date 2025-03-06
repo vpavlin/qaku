@@ -31,6 +31,8 @@ export enum QuestionSort {
     TIME_ASC = "time_asc",
     UPVOTES_DESC = "upvotes_desc",
     UPVOTES_ASC = "upvotes_asc",
+    ANSWERED_ASC = "answered_asc",
+    ANSWERED_DESC = "answered_desc",
 }
 
 export enum QuestionShow {

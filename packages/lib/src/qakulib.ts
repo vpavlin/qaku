@@ -1,5 +1,5 @@
 import { Codex } from "@codex-storage/sdk-js";
-import getDispatcher, { destroyDispatcher, Dispatcher, DispatchMetadata, Signer} from "waku-dispatcher"
+import { destroyDispatcher, Dispatcher, DispatchMetadata, Signer} from "waku-dispatcher"
 import { AnsweredMessage, ControlMessage, EnhancedQuestionMessage, LocalPoll, MessageType, ModerationMessage, NewPoll, PollActive, PollVote, QakuEvents, QakuState, QuestionList, QuestionMessage, QuestionShow, QuestionSort, UpvoteMessage } from "./types.js";
 import { createEncoder, LightNode, utf8ToBytes,  } from "@waku/sdk";
 import { Protocols } from "@waku/interfaces"
@@ -9,6 +9,7 @@ import { EventEmitter } from "events";
 import { Identity } from "./identity.js";
 import { qaHash, questionHash } from "./utils.js";
 import sortArray from "sort-array";
+import { Store } from "../../../../waku-dispatcher/dist/storage/store.js";
 
 
 export class Qaku extends EventEmitter {
@@ -30,7 +31,7 @@ export class Qaku extends EventEmitter {
         this.node = node
     }
 
-    public async init(id?:string, password?:string) {
+    public async init() {
         if (this.state == QakuState.INITIALIZED) {
             console.error("Already initialized")
             return
@@ -41,23 +42,18 @@ export class Qaku extends EventEmitter {
         try {
             await this.node!.waitForPeers([Protocols.Filter, Protocols.LightPush, Protocols.Store]);
             if(!this.dispatcher) {
-                const d = await getDispatcher(this.node as any, "", "qaku-"+id, false, false)
-                if (!d) {
+                const s = new Store("qaku")
+                const disp = new Dispatcher(this.node as any, "", false, s)
+                //const d = await getDispatcher(this.node as any, "", "qaku-"+id, false, false)
+                if (!disp) {
                     throw new Error("Failed to initialize Waku Dispatcher")
                 }
-                this.dispatcher = d  
+                this.dispatcher = disp 
         
                 this.state = QakuState.INIT_IDENTITY
                 this.emit(QakuEvents.QAKU_STATE_UPDATE, this.state)
                 this.identity = new Identity("qaku-wallet", "qaku-key-v2") //fixme
                 await this.identity.init()
-        
-
-                if (id) {
-                    this.state = QakuState.INIT_PROTOCOL
-                    this.emit(QakuEvents.QAKU_STATE_UPDATE, this.state)
-                    await this.initQA(id, password)
-                }
         
                 this.state = QakuState.INITIALIZED
                 this.emit(QakuEvents.QAKU_STATE_UPDATE, this.state)
@@ -81,9 +77,15 @@ export class Qaku extends EventEmitter {
     }
 
     public async initQA(id:string, password?:string) {
-        if (this.dispatcher === null) {
-            throw new Error("Dispetcher is not initialized");
+        await this.dispatcher?.stop()
+
+        const s = new Store(`qaku-${id}`)        
+        const disp = new Dispatcher(this.node as any, "", false, s)
+        if (!disp) {
+            throw new Error("Failed to init QA: dispatcher recreation failed")
         }
+
+        this.dispatcher = disp
 
         await this.dispatcher.initContentTopic(CONTENT_TOPIC_MAIN(id))
 
@@ -118,20 +120,23 @@ export class Qaku extends EventEmitter {
                 await this.dispatcher.dispatchQuery()
                 console.log(this.questions)
             }
+
+            this.emit(QakuEvents.QAKU_STATE_UPDATE, QakuState.INIT_PROTOCOL)
         } catch (e) {
             console.error("Failed to initialized protocol:", e)
+            this.emit(QakuEvents.QAKU_STATE_UPDATE, QakuState.FAILED)
             throw e
         }
     }
 
     private handleControlMessage(payload: ControlMessage, signer: Signer, _3:DispatchMetadata): void {
         console.debug(payload)
-        console.log("I am here!", payload)
         if (!payload.title) return
         if (!payload.description) payload.description = ""
         if (signer != payload.owner) return
         if (this.controlState != undefined && this.controlState.owner != signer) return
         if (this.controlState != undefined && this.controlState.updated > payload.updated) return //might need to come up with some merging strategy as this basically ignores updates which come out of order
+        console.debug("Setting Control State")
         this.controlState = payload
         this.emit(QakuEvents.NEW_CONTROL_MESSAGE, this.controlState.id)
     }
@@ -448,6 +453,14 @@ export class Qaku extends EventEmitter {
                     by.push('upvotes')
                     order.push('asc')
                     break;
+                case QuestionSort.ANSWERED_ASC:
+                    by.push('answered')
+                    order.push('asc')    
+                    break;
+                case QuestionSort.ANSWERED_DESC:
+                    by.push('answered')
+                    order.push('desc')    
+                    break;
                 default:
                     break;
             }
@@ -483,5 +496,12 @@ export class Qaku extends EventEmitter {
 
     public async destroy() {
         await destroyDispatcher()
+        this.controlState = undefined
+        this.questions = new Map<string, EnhancedQuestionMessage>()
+        this.polls = []
+        this.state = QakuState.UNDEFINED
+        this.dispatcher = null
+        this.identity = undefined
+        this.node = undefined
     }
 }
