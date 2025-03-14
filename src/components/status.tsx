@@ -4,11 +4,11 @@ import { useWakuContext } from "../hooks/useWaku";
 import {HealthStatus, HealthStatusChangeEvents} from "@waku/interfaces"
 
 const Status = () => {
-    const { dispatcher, codexAvailable } = useQakuContext()
-    const {status, filterPeers, storePeers, node} = useWakuContext()
-    const [health, setHealthStyle] = useState("error")
+    const { codexAvailable } = useQakuContext()
+    const {health} = useWakuContext()
+    const [healthStyle, setHealthStyle] = useState("error")
 
-    const healthStyle:any = {
+    const healthStyleMap:any = {
         "error": "bg-error text-error-content",
         "warning": "bg-warning text-warning-content",
         "success": "bg-success text-success-content"
@@ -16,14 +16,11 @@ const Status = () => {
 
 
    useEffect(() => {
-    if (!node) return
+    if (!health) return
 
-    const h = node?.health.addEventListener(HealthStatusChangeEvents.StatusChange, (hs) => {
-        console.log(hs)
-        
         let st = "error"
 
-        switch (hs.detail) {
+        switch (health) {
             case HealthStatus.Unhealthy:
                 st = "error"
                 break;
@@ -34,18 +31,17 @@ const Status = () => {
                 st = "success"
                 break;
             default:
-                console.log("Unknown state:", h)
+                console.log("Unknown state:", health)
                 break;
         }
 
         setHealthStyle(st)
-    })
 
-   }, [node])
+   }, [health])
 
     return (  
         <div className="text-right h-full items-center p-1 flex justify-end space-x-2 w-full">
-            <div className={`grid  place-items-center p-1 rounded-md ${healthStyle[health]}`}>Waku</div> 
+            <div className={`grid  place-items-center p-1 rounded-md ${healthStyleMap[healthStyle]}`}>Waku</div> 
             <div className={`grid  place-items-center p-1 rounded-md ${codexAvailable ? "bg-success text-success-content" : "bg-error text-error-content"}`}>Codex</div> 
         </div> 
     )

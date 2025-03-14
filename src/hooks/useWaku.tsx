@@ -7,6 +7,8 @@ import {
     EConnectionStateEvents,
   } from "@waku/sdk";
 import {
+    HealthStatus,
+    HealthStatusChangeEvents,
     IWaku
 } from "@waku/interfaces"
 import { DEFAULT_BOOTSTRAP, PROTOCOLS, STATIC_NODES } from "../constants";
@@ -15,10 +17,9 @@ export type WakuInfo = {
     node: IWaku | undefined;
     status: string;
     connected: boolean;
+    health: HealthStatus
     start: () => void;
     stop: () => void;
-    filterPeers: string[];
-    storePeers: string[];
 }
 
 export type WakuContextData = {
@@ -65,15 +66,11 @@ const bootstrapNodes: string[] = [
 export const WakuContextProvider = ({ children, updateStatus }: Props) => {
     const [status, setStatus] = useState<string>("disconnected")
     const [connected, setConnected] = useState<boolean>(false)
-    const [filterPeers, setFilterPeers] = useState<string[]>([])
-    const [storePeers, setStorePeers] = useState<string[]>([])
     const [connecting, setConnecting] = useState<boolean>(false)
     const [node, setNode] = useState<LightNode>()
-
-    const [printPeers, setPrintPeers] = useState<number>(0)
+    const [health, setHealth] = useState<HealthStatus>(HealthStatus.Unhealthy)
 
     const start = useCallback(async () => {
-        let interval: NodeJS.Timeout | undefined = undefined
 
         if (connected || connecting || node) return
         setConnecting(true)
@@ -99,12 +96,12 @@ export const WakuContextProvider = ({ children, updateStatus }: Props) => {
                 await waitForRemotePeer(ln, PROTOCOLS)
                 updateStatus("Waku node successfully connected", "success", 5000)
                 console.log(await ln.libp2p.peerStore.all())
+                ln.health.addEventListener(HealthStatusChangeEvents.StatusChange, (hs) => {
+                        setHealth(hs.detail)
+                    })
                 setStatus("connected")
                 setConnected(true)
                 setConnecting(false)
-                    
-
-
             } finally {
                 setConnecting(false)
             }
@@ -128,9 +125,7 @@ export const WakuContextProvider = ({ children, updateStatus }: Props) => {
             connected,
             start,
             stop,
-            filterPeers,
-            storePeers
-
+            health,
         }),
         [
             node,
@@ -138,8 +133,7 @@ export const WakuContextProvider = ({ children, updateStatus }: Props) => {
             connected,
             start,
             stop,
-            filterPeers,
-            storePeers,
+            health,
         ]
     )
 
