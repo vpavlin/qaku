@@ -11,6 +11,8 @@ import {
     HealthStatusChangeEvents,
     IWaku
 } from "@waku/interfaces"
+import { wakuPeerExchangeDiscovery } from "@waku/discovery";
+import { derivePubsubTopicsFromNetworkConfig } from "@waku/utils"
 import { DEFAULT_BOOTSTRAP, DEFAULT_WAKU_CLUSTER_ID, DEFAULT_WAKU_SHARD_ID, PROTOCOLS, STATIC_NODES, WAKU_CLUSTER_ID_STORAGE_KEY, WAKU_SHARD_ID } from "../constants";
 
 export type WakuInfo = {
@@ -80,12 +82,22 @@ export const WakuContextProvider = ({ children, updateStatus }: Props) => {
 
         const wakuClusterId = localStorage.getItem(WAKU_CLUSTER_ID_STORAGE_KEY) || DEFAULT_WAKU_CLUSTER_ID
         const wakuShardId = localStorage.getItem(WAKU_SHARD_ID) || DEFAULT_WAKU_SHARD_ID
+        let libp2p = undefined
+        const networkConfig =  {clusterId: parseInt(wakuClusterId), shards: [parseInt(wakuShardId)]}
+        
+        if (wakuClusterId != "1") {
+            libp2p = {
+                peerDiscovery: [
+                  wakuPeerExchangeDiscovery(derivePubsubTopicsFromNetworkConfig(networkConfig))
+                ]
+              }
+        }
         await createLightNode({
-            networkConfig: {clusterId: parseInt(wakuClusterId), shards: [parseInt(wakuShardId)]},
+            networkConfig:networkConfig,
             defaultBootstrap: false,
             bootstrapPeers: bootstrapNodes,
             numPeersToUse: 3,
-            
+            libp2p: libp2p,
         }).then( async (ln: LightNode) => {
             if (node) return
             setNode(ln)
