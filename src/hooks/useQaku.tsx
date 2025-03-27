@@ -166,7 +166,7 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
     const publishSnapshot = async () => {
         if (!dispatcher || !wallet || !id) return 
 
-        const encoder = createEncoder({contentTopic: CONTENT_TOPIC_PERSIST, ephemeral: true})
+        const encoder = createEncoder({contentTopic: CONTENT_TOPIC_PERSIST, ephemeral: true, pubsubTopicShardInfo: {clusterId: 42, shard: 0}})
         const snap = await dispatcher.getLocalMessages()
 
         if (!snap) {
