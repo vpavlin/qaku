@@ -11,7 +11,7 @@ import {
     HealthStatusChangeEvents,
     IWaku
 } from "@waku/interfaces"
-import { DEFAULT_BOOTSTRAP, PROTOCOLS, STATIC_NODES } from "../constants";
+import { DEFAULT_BOOTSTRAP, DEFAULT_WAKU_CLUSTER_ID, DEFAULT_WAKU_SHARD_ID, PROTOCOLS, STATIC_NODES, WAKU_CLUSTER_ID_STORAGE_KEY, WAKU_SHARD_ID } from "../constants";
 
 export type WakuInfo = {
     node: IWaku | undefined;
@@ -59,7 +59,8 @@ const bootstrapNodes = [
 ]*/
 
 const bootstrapNodes: string[] = [
-   //"/dns4/waku.bloxy.one/tcp/8000/wss/p2p/16Uiu2HAm5i46EuYtCeW7zAKuQskR2BZcy2s7m8jB48DPcaexwEKq",
+   "/dns4/waku-test.bloxy.one/tcp/8095/wss/p2p/16Uiu2HAmSZbDB7CusdRhgkD81VssRjQV5ZH13FbzCGcdnbbh6VwZ",
+   "/dns4/node-01.do-ams3.waku.sandbox.status.im/tcp/30303/p2p/16Uiu2HAmNaeL4p3WEYzC9mgXBmBWSgWjPHRvatZTXnp8Jgv3iKsb",
 ]
 
 
@@ -71,15 +72,18 @@ export const WakuContextProvider = ({ children, updateStatus }: Props) => {
     const [health, setHealth] = useState<HealthStatus>(HealthStatus.Unhealthy)
 
     const start = useCallback(async () => {
-
         if (connected || connecting || node) return
-        setConnecting(true)
+
+        setConnecting(true)        
         setStatus("starting")
         updateStatus("Starting Waku node", "info", 2000)
+
+        const wakuClusterId = localStorage.getItem(WAKU_CLUSTER_ID_STORAGE_KEY) || DEFAULT_WAKU_CLUSTER_ID
+        const wakuShardId = localStorage.getItem(WAKU_SHARD_ID) || DEFAULT_WAKU_SHARD_ID
         await createLightNode({
-            networkConfig: {clusterId: 1, shards: [0]},
-            defaultBootstrap: true,
-            //bootstrapPeers: bootstrapNodes,
+            networkConfig: {clusterId: parseInt(wakuClusterId), shards: [parseInt(wakuShardId)]},
+            defaultBootstrap: false,
+            bootstrapPeers: bootstrapNodes,
             numPeersToUse: 3,
             
         }).then( async (ln: LightNode) => {
@@ -93,7 +97,7 @@ export const WakuContextProvider = ({ children, updateStatus }: Props) => {
 
             
             try {
-                await waitForRemotePeer(ln, PROTOCOLS)
+                await ln.waitForPeers(PROTOCOLS, 30000)
                 updateStatus("Waku node successfully connected", "success", 5000)
                 console.log(await ln.libp2p.peerStore.all())
                 ln.health.addEventListener(HealthStatusChangeEvents.StatusChange, (hs) => {

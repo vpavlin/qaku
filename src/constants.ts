@@ -19,5 +19,10 @@ export const CODEX_URL_STORAGE_KEY = "qaku:codex-api-url"
 export const DEFAULT_PUBLIC_CODEX_URL = "https://api.qaku.app"//"http://localhost:8081"//
 export const CODEX_PUBLIC_URL_STORAGE_KEY = "qaku:codex-public-url"
 
+export const DEFAULT_WAKU_CLUSTER_ID = "42"
+export const DEFAULT_WAKU_SHARD_ID = "0"
+export const WAKU_CLUSTER_ID_STORAGE_KEY = "qaku:waku-cluster-id"
+export const WAKU_SHARD_ID = "qaku_waku-shard-id"
+
 
 export const DEFAULT_PUBLISH_INTERVAL = 2*60*60*1000
