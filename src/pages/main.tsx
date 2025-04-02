@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useWakuContext } from "../hooks/useWaku";
 import { Link, Outlet, useNavigate, useParams } from "react-router-dom";
 import { QakuContextProvider, useQakuContext } from "../hooks/useQaku";
-import History, { Visited } from "../components/history";
+import History, { Visited, Participated } from "../components/history";
 import Status from "../components/status";
 import logo from "../assets/logo512.png"
 import { HiChevronDoubleRight, HiOutlineMenu } from "react-icons/hi"
@@ -55,6 +55,12 @@ const Main = () => {
                                     <summary>Your Q&As</summary>
                                     <ul onClick={() => setDrawer(!drawer)}>
                                         <History />
+                                    </ul>
+                                </details>
+                                <details>
+                                    <summary>Participated Q&As</summary>
+                                    <ul onClick={() => setDrawer(!drawer)}>
+                                        <Participated />
                                     </ul>
                                 </details>
                                 <details>

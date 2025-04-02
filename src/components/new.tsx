@@ -9,7 +9,7 @@ import { useToastContext } from "../hooks/useToast";
 const NewQA = () => {
     const { error } = useToastContext()
     const { node, connected } = useWakuContext()
-    const { historyAdd, qaku } = useQakuContext()
+    const { qaku } = useQakuContext()
     const navigate = useNavigate();
 
     const [title, setTitle] = useState<string>()
@@ -31,10 +31,8 @@ const NewQA = () => {
         if (id) {
             
             if (password) {
-                historyAdd(id+"/"+password, title)
                 navigate("/q/"+id+"/"+password, {flushSync: true})
             } else {
-                historyAdd(id, title)
                 navigate("/q/"+id)
             }
         } else {

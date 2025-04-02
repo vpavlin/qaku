@@ -2,11 +2,11 @@ import { Link } from "react-router-dom";
 import { useQakuContext } from "../hooks/useQaku";
 
 const History = () => {
-    const {getHistory} = useQakuContext()
+    const {history} = useQakuContext()
     return (
         <>
             {
-                getHistory().map((entry) => <li key={entry.id} className="m-1"><Link to={`/q/${entry.id}/`}>{entry.title}</Link></li>)
+                history.map((entry) => <li key={entry.id} className="m-1"><Link to={`/q/${entry.id}/${entry.password || ""}`}>{entry.title}</Link></li>)
             }
         </>
     )
@@ -17,7 +17,18 @@ export const Visited = () => {
     return (
         <>
             {
-                visited.slice(0).reverse().map((entry) => <li key={entry.id} className="m-1"><Link to={`/q/${entry.id}/`}>{entry.title}</Link></li>)
+                visited.slice(0).reverse().map((entry) => <li key={entry.id} className="m-1"><Link to={`/q/${entry.id}/${entry.password || ""}`}>{entry.title}</Link></li>)
+            }
+        </>
+    )
+}
+
+export const Participated = () => {
+    const {participated} = useQakuContext()
+    return (
+        <>
+            {
+                participated.slice(0).reverse().map((entry) => <li key={entry.id} className="m-1"><Link to={`/q/${entry.id}/${entry.password || ""}`}>{entry.title}</Link></li>)
             }
         </>
     )

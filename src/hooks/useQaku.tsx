@@ -10,12 +10,7 @@ import { Codex, CodexData } from "@codex-storage/sdk-js";
 import { getStoredSnapshotInfo, PersistentSnapshot, setStoredSnapshotInfo, Snapshot } from "../utils/snapshots";
 import { QakuCache } from "../utils/cache";
 import { sleep } from "../utils/utils";
-import {LocalPoll, Qaku, QakuEvents, QakuState, QuestionSort} from "qakulib"
-
-export type HistoryEntry = {
-    id: string;
-    title: string;
-}
+import {HistoryTypes, HistoryEntry, LocalPoll, Qaku, QakuEvents, QakuState, QuestionSort, History, HistoryEvents} from "qakulib"
 
 export type QakuInfo = {
     qaku:Qaku | undefined;
@@ -25,8 +20,8 @@ export type QakuInfo = {
     active: number;
     visited: HistoryEntry[]
     polls: LocalPoll[]
-    historyAdd: (id: string, title: string) => void
-    getHistory: () => HistoryEntry[]
+    history: HistoryEntry[]
+    participated: HistoryEntry[]
     localQuestions: EnhancedQuestionMessage[]
     loading: boolean
     codexAvailable: boolean;
@@ -64,6 +59,7 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
 
     const { node } = useWakuContext()
     const [ qaku, setQaku ] = useState<Qaku>()
+    const [ historyService, setHistoryService ] = useState<History>()
     const [ lastId, setLastId ] = useState<string>()
     const [ controlState, _setControlState ] = useState<ControlMessage>()
     const controlStateRef = useRef(controlState)
@@ -81,6 +77,7 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
 
     const [ history, setHistory ] = useState<HistoryEntry[]>([])
     const [ visited, setVisited ] = useState<HistoryEntry[]>([])
+    const [ participated, setParticipated ] = useState<HistoryEntry[]>([])
 
     const [questions, setQuestions] = useState<Map<string, EnhancedQuestionMessage>>(new Map<string, EnhancedQuestionMessage>())
     const [localQuestions, setLocalQuestions] = useState<EnhancedQuestionMessage[]>([])
@@ -102,19 +99,6 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
     const [codexAvailable, setCodexAvailable] = useState(false)
     const [ codexCheckInterval, setCodexCheckInterval] = useState<NodeJS.Timer>()
 
-
-    const historyAdd = (id: string, title: string) => {
-        setHistory((h) => [...h, {id: id, title: title}])
-    }
-
-    const getHistory = (): HistoryEntry[] => {
-        return history
-    }
-   
-    const callback_activity = (msg: DecodedMessage) => {
-        const decoded:ActivityMessage = JSON.parse(bytesToUtf8(msg.payload))
-        return decoded
-    }
 
    /* const importPrivateKey = async (result: string) => {
         const parsed = JSON.parse(result)
@@ -344,6 +328,7 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
             updateStatus("Loading Qaku", "info", 2000)
 
             const q = new Qaku(node as any) //FIXME
+            setHistoryService(q.history)
             q.on(QakuEvents.QAKU_STATE_UPDATE, (msg) => {
                 if (msg == QakuState.INIT_PROTOCOL) {
                     setProtocolInitialized(true)
@@ -379,6 +364,18 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
                     setControlState(q.controlState)
                 }
             }).bind(id))
+
+            q.on(QakuEvents.NEW_POLL, () => {
+                setPolls([...q.polls])
+            })
+
+            q.on(QakuEvents.NEW_POLL_VOTE, () => {
+                setPolls([...q.polls])
+            })
+
+            q.on(QakuEvents.POLL_STATE_CHANGE, (id) => {
+                setPolls([...q.polls])
+            })
 
             await q.init()
             console.log("Qaku is ready")
@@ -458,9 +455,11 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
                 setActive(1)
                 setSnapshot(undefined)
                 setPolls([])
+                setLocalQuestions([])
                 await qaku?.destroy() //FIXME: Will this work?
                 setProtocolInitialized(false)
                 setQaku(undefined)
+                setHistoryService(undefined)
                 console.log("Destroyed everything!")
 
             })()
@@ -468,36 +467,23 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
     }, [id])
 
     useEffect(() => {
-        let h = localStorage.getItem("qaku-history")
-        if (h) {
-            setHistory(JSON.parse(h))
+        if (!historyService) return
+
+        const loadHistory = () => {
+            setHistory(historyService.getAll(HistoryTypes.CREATED))
+            setVisited(historyService.getAll(HistoryTypes.VISITED))
+            setParticipated(historyService.getAll(HistoryTypes.PARTICIPATED))
         }
 
-        let v = localStorage.getItem("qaku-visited")
-        if (v) {
-            setVisited(JSON.parse(v))
-        }
-    }, [])
+        historyService.on(HistoryEvents.STORED, loadHistory)
 
-    useEffect(() => {
-        if (history.length > 0)  localStorage.setItem("qaku-history", JSON.stringify(history))
-    }, [history])
+        loadHistory()
 
-    useEffect(() => {
-        if (visited.length > 0)  localStorage.setItem("qaku-visited", JSON.stringify(visited))
-    }, [visited])
+        
+    }, [historyService])
 
     useEffect(() => {
         if (!controlState || !qaku || !id) return
-
-        setVisited((v) => {
-            if (password)
-                id = id +"/"+password
-            const exist = v.find((e) => e.id == id)
-            if (!exist) return [...v, {id: id!, title: controlState.title}]
-
-            return v
-        })
 
         setOwner(controlState.owner == qaku.identity!.address())
         setAdmin(controlState.admins.includes(qaku.identity!.address()))
@@ -535,8 +521,8 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
             localQuestions,
             active,
             polls,
-            getHistory,
-            historyAdd,
+            history,
+            participated,
             loading,
             codexAvailable,
             ready: protocolInitialized,
@@ -550,8 +536,8 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
             localQuestions,
             active,
             polls,
-            getHistory,
-            historyAdd,
+            history,
+            participated,
             loading,
             codexAvailable,
             protocolInitialized,

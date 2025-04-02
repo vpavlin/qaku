@@ -11,6 +11,8 @@ import { qaHash, questionHash } from "./utils.js";
 import sortArray from "sort-array";
 import { Store } from "../../../../waku-dispatcher/dist/storage/store.js";
 import { contentTopicToShardIndex, pubsubTopicsToShardInfo } from "@waku/utils"
+import { History } from "./history/history.js";
+import { HistoryTypes } from "./history/types.js";
 
 
 export class Qaku extends EventEmitter {
@@ -19,9 +21,12 @@ export class Qaku extends EventEmitter {
     state:QakuState = QakuState.UNDEFINED
 
     node:LightNode | undefined = undefined
+    history:History = new History()
     dispatcher:Dispatcher | null = null
     controlState:ControlMessage | undefined = undefined
     identity:Identity | undefined = undefined
+
+    currentId: string | undefined = undefined
 
     questions:QuestionList = new Map<string, EnhancedQuestionMessage>()
     polls:LocalPoll[] = []
@@ -108,6 +113,10 @@ export class Qaku extends EventEmitter {
         this.dispatcher.on(MessageType.POLL_VOTE_MESSAGE, this.handlePollVoteMessage.bind(this), true, this.dispatcher.autoEncrypt)
         this.dispatcher.on(MessageType.POLL_ACTIVE_MESSAGE, this.handlePollActiveMessage.bind(this), true, this.dispatcher.autoEncrypt)
         await this.dispatcher.start()
+
+        if (!this.history.get(id))
+            this.history.add(id, HistoryTypes.VISITED, password=password)
+        this.currentId = id
         try {
             await this.node!.waitForPeers([Protocols.Store]);
 
@@ -138,6 +147,9 @@ export class Qaku extends EventEmitter {
         if (this.controlState != undefined && this.controlState.updated > payload.updated) throw new Error("control message: too old") //might need to come up with some merging strategy as this basically ignores updates which come out of order
         console.debug("Setting Control State")
         this.controlState = payload
+
+        this.history.update({id: payload.id, title: payload.title})
+
         this.emit(QakuEvents.NEW_CONTROL_MESSAGE, this.controlState.id)
         this.emit(QakuEvents.QAKU_CONTENT_CHANGED, undefined)
 
@@ -308,8 +320,6 @@ export class Qaku extends EventEmitter {
 
         await destroyDispatcher()
 
-
-
         await this.initQA(hash, password)
 
         const contentTopic = CONTENT_TOPIC_MAIN(hash)
@@ -321,6 +331,11 @@ export class Qaku extends EventEmitter {
         const result = await this.dispatcher!.emitTo(encoder, MessageType.CONTROL_MESSAGE, cmsg, this.identity!.getWallet(), key, true)
         console.debug(result)
         if (result) {
+            try {
+                this.history.add(hash, HistoryTypes.CREATED, password, title)
+            } catch(e) {
+                this.history.update({id: hash, password: password, title: title, type: HistoryTypes.CREATED})
+            }
             return hash
         } else {
             console.error("Failed to create the Q&A", result)
@@ -331,6 +346,8 @@ export class Qaku extends EventEmitter {
     }
 
     public async switchQAState(newState:boolean) {
+        if (!this.dispatcher || !this.currentId) throw new Error("Qaku not initialized properly")
+
         if (!this.controlState) {
             throw new Error("Q&A not initialized")
         }
@@ -346,10 +363,13 @@ export class Qaku extends EventEmitter {
             moderation: this.controlState.moderation
         }
         
-        this.dispatcher!.emit(MessageType.CONTROL_MESSAGE, cmsg, this.identity!.getWallet())
+        this.dispatcher.emit(MessageType.CONTROL_MESSAGE, cmsg, this.identity!.getWallet())
     }
 
     public async removeAdmin(admin:string) {
+        if (!this.dispatcher || !this.currentId) throw new Error("Qaku not initialized properly")
+
+
         if (!this.controlState) {
             throw new Error("Q&A not initialized")
         }
@@ -368,10 +388,12 @@ export class Qaku extends EventEmitter {
             moderation: this.controlState.moderation
         }
         
-        this.dispatcher!.emit(MessageType.CONTROL_MESSAGE, cmsg, this.identity!.getWallet())
+        this.dispatcher.emit(MessageType.CONTROL_MESSAGE, cmsg, this.identity!.getWallet())
     }
 
     public async setAdmins(admins:string[]) {
+        if (!this.dispatcher || !this.currentId) throw new Error("Qaku not initialized properly")
+
         if (!this.controlState) {
             throw new Error("Q&A not initialized")
         }
@@ -388,14 +410,17 @@ export class Qaku extends EventEmitter {
             moderation: this.controlState.moderation
         }
         
-        this.dispatcher!.emit(MessageType.CONTROL_MESSAGE, cmsg, this.identity!.getWallet())
+        this.dispatcher.emit(MessageType.CONTROL_MESSAGE, cmsg, this.identity!.getWallet())
     }
     
 
     public async newQuestion(question:string):Promise<string | undefined> {
+        if (!this.dispatcher || !this.currentId) throw new Error("Qaku not initialized properly")
         const qmsg:QuestionMessage = {question: question, timestamp: new Date()}
-        const result = await this.dispatcher!.emit(MessageType.QUESTION_MESSAGE, qmsg)
+        const result = await this.dispatcher.emit(MessageType.QUESTION_MESSAGE, qmsg)
         if (result) {
+            this.history.update({id: this.currentId, type: HistoryTypes.PARTICIPATED})
+
             this.emit(QakuEvents.NEW_QUESTION_PUBLISHED, this.controlState!.id, this.identity!.getWallet())
             return questionHash(qmsg)
         }  
@@ -405,10 +430,14 @@ export class Qaku extends EventEmitter {
     }
 
     public async upvote(questionHash:string):Promise<boolean> {
+        if (!this.dispatcher || !this.currentId) throw new Error("Qaku not initialized properly")
+
         const amsg:UpvoteMessage = {hash: questionHash}
-        const result = await this.dispatcher!.emit(MessageType.UPVOTE_MESSAGE, amsg, this.identity!.getWallet())
+        const result = await this.dispatcher.emit(MessageType.UPVOTE_MESSAGE, amsg, this.identity!.getWallet())
 
         if (result) {
+            this.history.update({id: this.currentId, type: HistoryTypes.PARTICIPATED})
+
             this.emit(QakuEvents.NEW_UPVOTE_PUBLISHED, questionHash)
             return true
         }
@@ -418,8 +447,10 @@ export class Qaku extends EventEmitter {
     }
 
     public async answer(questionHash:string, answer?:string):Promise<boolean> {
+        if (!this.dispatcher || !this.currentId) throw new Error("Qaku not initialized properly")
+
         const amsg:AnsweredMessage = { hash: questionHash, text: answer }
-        const result = await this.dispatcher!.emit(MessageType.ANSWERED_MESSAGE, amsg, this.identity!.getWallet())
+        const result = await this.dispatcher.emit(MessageType.ANSWERED_MESSAGE, amsg, this.identity!.getWallet())
 
         if (result) {
             this.emit(QakuEvents.NEW_ANSWER_PUBLISHED, questionHash)
@@ -431,8 +462,10 @@ export class Qaku extends EventEmitter {
     }
 
     public async moderate(questionHash:string, moderated:boolean):Promise<boolean> {
+        if (!this.dispatcher || !this.currentId) throw new Error("Qaku not initialized properly")
+
         const mmsg:ModerationMessage = { hash: questionHash, moderated: moderated }
-        const result = await this.dispatcher!.emit(MessageType.MODERATION_MESSAGE, mmsg, this.identity!.getWallet())
+        const result = await this.dispatcher.emit(MessageType.MODERATION_MESSAGE, mmsg, this.identity!.getWallet())
 
         if (result) {
             this.emit(QakuEvents.NEW_MODERATION_PUBLISHED, questionHash)
@@ -456,7 +489,8 @@ export class Qaku extends EventEmitter {
             timestamp: ts
         }
 
-        const result = await this.dispatcher!.emit(MessageType.POLL_CREATE_MESSAGE, newPoll, this.identity!.getWallet())
+        const result = await this.dispatcher!.emitTo(this.dispatcher!.encoder!, MessageType.POLL_CREATE_MESSAGE, newPoll, this.identity!.getWallet(), this.dispatcher?.autoEncrypt, true)
+        console.log(result)
         if (result) {
             this.emit(QakuEvents.NEW_POLL_PUBLISHED, newPoll.poll.id)
             return true
@@ -466,6 +500,8 @@ export class Qaku extends EventEmitter {
     }
 
     public async pollVote(pollId: string, option: number):Promise<boolean> {
+        if (!this.dispatcher || !this.currentId) throw new Error("Qaku not initialized properly")
+
         const res = await this.dispatcher!.emit(MessageType.POLL_VOTE_MESSAGE, {id: pollId, option: option} as PollVote, this.identity!.getWallet())
 
         if (!res) {
@@ -473,6 +509,7 @@ export class Qaku extends EventEmitter {
             return false
         }
 
+        this.history.update({id: this.currentId, type: HistoryTypes.PARTICIPATED})
         return true
     }
 
@@ -580,5 +617,6 @@ export class Qaku extends EventEmitter {
         this.dispatcher = null
         this.identity = undefined
         this.node = undefined
+        this.currentId = undefined
     }
 }

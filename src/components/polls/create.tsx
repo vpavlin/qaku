@@ -70,6 +70,7 @@ const CreatePoll = () => {
         })
  
         if (!res) {
+            setSubmitting(false)
             error("Failed to publish poll")
             return 
         }
