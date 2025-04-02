@@ -1,16 +1,26 @@
 import { expect } from 'chai';
 import { Qaku } from './qakulib.js';
-import { createLightNode, DefaultNetworkConfig } from '@waku/sdk';
+import { createLightNode } from '@waku/sdk';
 
 import "fake-indexeddb/auto";
 
 import { LocalStorage } from "node-localstorage";
-import {  QakuEvents, } from './types.js';
+import {  EnhancedQuestionMessage, QakuEvents, QuestionShow, QuestionSort, } from './types.js';
 global.localStorage = new LocalStorage('./scratch');
 
 
 
 describe('Qaku', () => {
+  let q:Qaku | undefined = undefined
+  beforeEach(async () => {
+    const node = await createLightNode({
+      defaultBootstrap: false,
+      networkConfig: {shards: [0], clusterId: 42},
+      bootstrapPeers: ["/dns4/node-01.do-ams3.waku.sandbox.status.im/tcp/8000/wss/p2p/16Uiu2HAmNaeL4p3WEYzC9mgXBmBWSgWjPHRvatZTXnp8Jgv3iKsb"]
+    })
+    await node.start()
+    q = new Qaku(node);
+  })
 
  /* it('dispatcher should initialized', async () => {
     const node = await createLightNode({defaultBootstrap: true , networkConfig: DefaultNetworkConfig})
@@ -45,40 +55,30 @@ describe('Qaku', () => {
   });*/
 
   it('create a QA', async () => {
-    const node = await createLightNode({defaultBootstrap: true , networkConfig: DefaultNetworkConfig})
-    await node.start()
-    const q = new Qaku(node);
+    if (!q) throw new Error("Qaku undefined")
     q.on(QakuEvents.QAKU_STATE_UPDATE, (arg) => {
       console.log("New state: ", arg)
     })
 
-    await q.init("")
+    await q.init()
     expect(q.dispatcher).not.equal(null)
 
     await new Promise((r) => setTimeout(r, 500))
 
     const password = "abcdefg"
     const id = await q.newQA("TEst from lib", "Something", true, [], false, password)
-    console.log(id)
     console.log(`https://qaku.app/q/${id}/${password}`)
 
 
-    q.on(QakuEvents.NEW_QUESTION_PUBLISHED, (arg) => {
-      console.log(arg)
-    })
-
     q.on(QakuEvents.NEW_QUESTION, (hash) => {
       console.log("New question: ", hash)
-      console.log(q.questions)
     })
 
     q.on(QakuEvents.NEW_ANSWER_PUBLISHED, (hash) => {
       console.log("New answer published for Q: ", hash)
-      console.log(q.questions)
     })
     const qHash = await q.newQuestion(`Does this work? ${Date.now()}`)
     expect(qHash).not.equal(undefined)
-    console.log(qHash)
     await new Promise((r) => setTimeout(r, 1000))
     await q.answer(qHash!, "It might")
 
@@ -87,8 +87,10 @@ describe('Qaku', () => {
   });
 
 
-/*
+
   it("should sort messages properly", async () => {
+    if (!q) throw new Error("Qaku undefined")
+
     const data = new Map<string, EnhancedQuestionMessage>()
     
     data.set('a487dfbcc60618b1ad81cba048ed4c84e7b511385bd9603e41c4d9bd17e1175b', {
@@ -101,7 +103,8 @@ describe('Qaku', () => {
       answeredBy: '0x0f13BF2856681d4673A75d41a22bdF18a2700841',
       upvotedByMe: false,
       upvotes: 0,
-      upvoters: []
+      upvoters: [],
+      signer: undefined,
     })
 
     data.set('ab', {
@@ -114,7 +117,8 @@ describe('Qaku', () => {
       answeredBy: '0x0f13BF2856681d4673A75d41a22bdF18a2700841',
       upvotedByMe: false,
       upvotes: 0,
-      upvoters: []
+      upvoters: [],
+      signer: undefined,
     })
 
     data.set('xx', {
@@ -127,7 +131,8 @@ describe('Qaku', () => {
       answeredBy: '0x0f13BF2856681d4673A75d41a22bdF18a2700841',
       upvotedByMe: false,
       upvotes: 1,
-      upvoters: ['0xAAAAAF2856681d4673A75d41a22bdF18a2700841']
+      upvoters: ['0xAAAAAF2856681d4673A75d41a22bdF18a2700841'],
+      signer: undefined,
     })
 
     data.set('xy', {
@@ -140,16 +145,15 @@ describe('Qaku', () => {
       answeredBy: '0x0f13BF2856681d4673A75d41a22bdF18a2700841',
       upvotedByMe: false,
       upvotes: 1,
-      upvoters: ['0xAAAAAF2856681d4673A75d41a22bdF18a2700841']
+      upvoters: ['0xAAAAAF2856681d4673A75d41a22bdF18a2700841'],
+      signer: undefined,
     })
 
-    const node = await createLightNode({defaultBootstrap: true , networkConfig: DefaultNetworkConfig})
-    await node.start()
-    const q = new Qaku(node);
+
     q.on(QakuEvents.QAKU_STATE_UPDATE, (arg) => {
       console.log("New state: ", arg)
     })
-    await q.init("")
+    await q.init()
 
     q.questions = data
 
@@ -160,7 +164,6 @@ describe('Qaku', () => {
     console.log("Show ANSWERED + MODERATED", q.getQuestions([QuestionSort.UPVOTES_DESC, QuestionSort.TIME_ASC], [QuestionShow.ANSWERED, QuestionShow.MODERATED]))
 
   })
-    */
 })
 
 

@@ -5,13 +5,12 @@ import { CODEX_PUBLIC_URL_STORAGE_KEY, CODEX_URL_STORAGE_KEY, CONTENT_TOPIC_ACTI
 import { sha256 } from "js-sha256";
 import { Wallet } from "ethers";
 import useIdentity from "./useIdentity";
-import { LocalPoll, NewPoll, Poll, PollActive, PollVote } from "../components/polls/types";
 import { useWakuContext } from "./useWaku";
 import { Codex, CodexData } from "@codex-storage/sdk-js";
 import { getStoredSnapshotInfo, PersistentSnapshot, setStoredSnapshotInfo, Snapshot } from "../utils/snapshots";
 import { QakuCache } from "../utils/cache";
 import { sleep } from "../utils/utils";
-import {Qaku, QakuEvents, QakuState, QuestionSort} from "qakulib"
+import {LocalPoll, Qaku, QakuEvents, QakuState, QuestionSort} from "qakulib"
 
 export type HistoryEntry = {
     id: string;

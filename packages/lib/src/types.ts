@@ -14,7 +14,12 @@ export enum QakuEvents {
     NEW_MODERATION_PUBLISHED = "newModerationPublished",
     QA_CLOSED = "qaClosed",
     QA_OPENED = "qaOpened",
-    QAKU_STATE_UPDATE = "qakuStateUpdate"
+    NEW_POLL = "newPoll",
+    NEW_POLL_PUBLISHED = "newPollPublished",
+    NEW_POLL_VOTE = "newPollVote",
+    POLL_STATE_CHANGE = "pollStateChange",
+    QAKU_STATE_UPDATE = "qakuStateUpdate",
+    QAKU_CONTENT_CHANGED = "qakuContentChanged",
 }
 
 export enum QakuState {
@@ -110,6 +115,7 @@ export type EnhancedQuestionMessage = {
     upvoters: string[]
     upvotedByMe: boolean;
     moderated: boolean;
+    signer: string | undefined
 }
 
 export type QakuHash = {

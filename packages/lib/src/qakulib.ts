@@ -1,6 +1,6 @@
 import { Codex } from "@codex-storage/sdk-js";
 import { destroyDispatcher, Dispatcher, DispatchMetadata, Signer} from "waku-dispatcher"
-import { AnsweredMessage, ControlMessage, EnhancedQuestionMessage, LocalPoll, MessageType, ModerationMessage, NewPoll, PollActive, PollVote, QakuEvents, QakuState, QuestionList, QuestionMessage, QuestionShow, QuestionSort, UpvoteMessage } from "./types.js";
+import { AnsweredMessage, ControlMessage, EnhancedQuestionMessage, LocalPoll, MessageType, ModerationMessage, NewPoll, Poll, PollActive, PollVote, QakuEvents, QakuState, QuestionList, QuestionMessage, QuestionShow, QuestionSort, UpvoteMessage } from "./types.js";
 import { createEncoder, LightNode, utf8ToBytes,  } from "@waku/sdk";
 import { Protocols } from "@waku/interfaces"
 import { CONTENT_TOPIC_MAIN } from "./constants.js";
@@ -10,6 +10,7 @@ import { Identity } from "./identity.js";
 import { qaHash, questionHash } from "./utils.js";
 import sortArray from "sort-array";
 import { Store } from "../../../../waku-dispatcher/dist/storage/store.js";
+import { contentTopicToShardIndex, pubsubTopicsToShardInfo } from "@waku/utils"
 
 
 export class Qaku extends EventEmitter {
@@ -130,50 +131,58 @@ export class Qaku extends EventEmitter {
     }
 
     private handleControlMessage(payload: ControlMessage, signer: Signer, _3:DispatchMetadata): void {
-        console.debug(payload)
-        if (!payload.title) return
+        if (!payload.title) throw new Error("control message: title missing")
         if (!payload.description) payload.description = ""
-        if (signer != payload.owner) return
-        if (this.controlState != undefined && this.controlState.owner != signer) return
-        if (this.controlState != undefined && this.controlState.updated > payload.updated) return //might need to come up with some merging strategy as this basically ignores updates which come out of order
+        if (signer != payload.owner) throw new Error("control message: signer not owner")
+        if (this.controlState != undefined && this.controlState.owner != signer) throw new Error("control message: owner changed")
+        if (this.controlState != undefined && this.controlState.updated > payload.updated) throw new Error("control message: too old") //might need to come up with some merging strategy as this basically ignores updates which come out of order
         console.debug("Setting Control State")
         this.controlState = payload
         this.emit(QakuEvents.NEW_CONTROL_MESSAGE, this.controlState.id)
+        this.emit(QakuEvents.QAKU_CONTENT_CHANGED, undefined)
+
     }
 
-    private handleNewQuestion(payload: QuestionMessage): void {
+    private handleNewQuestion(payload: QuestionMessage, signer: Signer, meta:DispatchMetadata): void {
         if (!this.controlState?.enabled) {
-            console.debug("Q&A closed")
-            return
+            throw new Error("new question: Q&A closed")
         }
 
+        if (!payload.question || payload.question.length == 0) throw new Error("new question: question empty")
+
         const hash = sha256(JSON.stringify(payload))
-        if (this.questions.has(hash)) return
+        if (this.questions.has(hash)) {
+            throw new Error("new question: duplicate")
+        }
 
         const q: EnhancedQuestionMessage = {
             hash: hash,
             question: payload.question,
-            timestamp: payload.timestamp,
+            timestamp: payload.timestamp || new Date(meta.timestamp || Date.now()),
             moderated: false,
             answer: undefined,
             answered: false,
             answeredBy: undefined,
             upvotedByMe: false,
             upvotes: 0,
-            upvoters: []
+            upvoters: [],
+            signer: signer,
         }
         this.questions.set(hash, q) 
         this.emit(QakuEvents.NEW_QUESTION, hash)
-
+        this.emit(QakuEvents.QAKU_CONTENT_CHANGED, undefined)
     }
 
     private handleUpvote (payload: AnsweredMessage, signer: Signer): void {
-        if (!signer || !this.controlState?.enabled) return
+        if (!signer) throw new Error("upvote: not signed")
+        if (!this.controlState?.enabled) throw Error("upvote: Q&A closed")
 
         const q =  this.questions.get(payload.hash)
-        if (!q) return
+        if (!q) throw new Error("upvote: unknown question")
 
-        if ((q.upvotedByMe && signer == this.identity!.address()) || q.answered || q.moderated || q.upvoters.includes(signer)) return
+        if ((q.upvotedByMe && signer == this.identity!.address()) || q.upvoters.includes(signer)) throw new Error("upvote: already voted")
+        if (q.answered) throw new Error("upvote: already answered")
+        if (q.moderated) throw new Error("upvote: moderated")
 
         q.upvotes++
 
@@ -184,54 +193,66 @@ export class Qaku extends EventEmitter {
 
         this.questions.set(payload.hash, q)
         this.emit(QakuEvents.NEW_UPVOTE, payload.hash)
-
+        this.emit(QakuEvents.QAKU_CONTENT_CHANGED, undefined)
     }
 
     private handleAnsweredMessage (payload: AnsweredMessage, signer: Signer): void {
-        if (!signer || (this.controlState?.owner != signer && !this.controlState?.admins.includes(signer))) return
-        const q = this.questions.get(payload.hash)
-        if (!q) return
+        if (!signer) throw new Error("answer: not signed")
 
-        if (q.answered) return
+        if (this.controlState?.owner != signer && !this.controlState?.admins.includes(signer)) throw new Error("answer: unauthorized to answer")
+
+        const q = this.questions.get(payload.hash)
+        if (!q) throw new Error("answer: unknown question")
+
+
+        if (q.answered) throw new Error("answer: already answered")
         q.answered = true
         q.answer = payload.text
         q.answeredBy = signer
 
         this.questions.set(payload.hash, q)
         this.emit(QakuEvents.NEW_ANSWER, payload.hash)
-
+        this.emit(QakuEvents.QAKU_CONTENT_CHANGED, undefined)
     }
+
     private handleModerationMessage (payload: ModerationMessage, signer: Signer): void {
-        if (!signer || (this.controlState?.owner != signer && !this.controlState?.admins.includes(signer))) return
+        if (!signer) throw new Error("moderate: not signed")
+
+        if (this.controlState?.owner != signer && !this.controlState?.admins.includes(signer)) throw new Error("moderate: unauthorized to answer")
 
         const q = this.questions.get(payload.hash)
-        if (!q) return
+        if (!q) throw new Error("answer: unknown question")
+
 
         q.moderated = payload.moderated
 
         this.questions.set(payload.hash, q)
         this.emit(QakuEvents.NEW_MODERATION, payload.hash)
+        this.emit(QakuEvents.QAKU_CONTENT_CHANGED, undefined)
     }
 
     private handlePollCreateMessage(payload: NewPoll, signer: Signer) {
-        if (!signer || (this.controlState?.owner != signer && !this.controlState?.admins.includes(signer)) || signer != payload.creator) {
-            console.log("Poll creator not owner %s != %s", signer, payload.creator)
-            return
+        if (!signer) throw new Error("poll: not signed")
+
+        if (this.controlState?.owner != signer && !this.controlState?.admins.includes(signer) || signer != payload.creator) {
+            throw new Error("poll: unauthorized to create")
         }
 
         const poll:LocalPoll = {...payload.poll, owner: signer}
         
-        if (this.polls.find((p:LocalPoll) => p.id == poll.id)) return
+        if (this.polls.find((p:LocalPoll) => p.id == poll.id)) throw new Error("poll: already exists")
 
         this.polls.push(poll)
 
-        //FIXME add event
+        this.emit(QakuEvents.NEW_POLL, poll.id)
     }
 
     private handlePollVoteMessage(payload: PollVote, signer: Signer) {
+        if (!signer) throw new Error("poll vote: not signed")
+
         const poll = this.polls.find((p) => p.id == payload.id)
-        if (!poll) return
-        if (!poll.active) return
+        if (!poll) throw new Error("poll vote: unknown poll")
+        if (!poll.active) throw new Error("poll vote: inactive")
 
         if (!poll.votes) poll.votes = [...poll.options.map(() => ({voters: []}))]
         if (!poll.votes[payload.option].voters) poll.votes[payload.option].voters = []
@@ -242,19 +263,26 @@ export class Qaku extends EventEmitter {
             poll.voteCount++
         }
         //is it by reference?
+
+        this.emit(QakuEvents.NEW_POLL_VOTE, poll.id)
     }
 
     private handlePollActiveMessage(payload: PollActive, signer: Signer) {
-        if (!signer || (this.controlState?.owner != signer && !this.controlState?.admins.includes(signer))) {
-            return
+        if (!signer) throw new Error("poll active: not signed")
+
+        if (this.controlState?.owner != signer && !this.controlState?.admins.includes(signer)) {
+            throw new Error("poll active: unauthorized")
         }
 
         const poll = this.polls.find((p) => p.id == payload.id)
-        if (!poll) return
+        if (!poll) throw new Error("poll vote: unknown poll")
         poll.active = payload.active
+
+        this.emit(QakuEvents.POLL_STATE_CHANGE, poll.id)
     }
 
     public async newQA(title:string, desc:string | undefined, enabled:boolean, admins:string[], moderation:boolean, password?:string):Promise<string> {
+        if (!this.node || !this.dispatcher) throw new Error("Qaku is not properly initialized")
         const ts = new Date();
         console.log(title + ts.valueOf() + this.identity!.address())
         let hash = qaHash(title, ts.valueOf(), this.identity!.address())
@@ -283,13 +311,19 @@ export class Qaku extends EventEmitter {
 
 
         await this.initQA(hash, password)
+
+        const contentTopic = CONTENT_TOPIC_MAIN(hash)
+        const pubsubTopics = this.node.connectionManager.pubsubTopics
+        const shardInfo = pubsubTopicsToShardInfo(pubsubTopics)
+        const shardIndex = contentTopicToShardIndex(contentTopic, shardInfo.shards.length)
         //dispatcher.on(MessageType.CONTROL_MESSAGE, () => {})
-        const encoder = createEncoder({ contentTopic: CONTENT_TOPIC_MAIN(hash), ephemeral: false })
-        const result = await this.dispatcher!.emitTo(encoder, MessageType.CONTROL_MESSAGE, cmsg, this.identity!.getWallet(), key)
+        const encoder = createEncoder({ contentTopic: contentTopic, ephemeral: false, pubsubTopicShardInfo: {clusterId: shardInfo.clusterId, shard: shardIndex} })
+        const result = await this.dispatcher!.emitTo(encoder, MessageType.CONTROL_MESSAGE, cmsg, this.identity!.getWallet(), key, true)
+        console.debug(result)
         if (result) {
             return hash
         } else {
-            console.error("Failed to create the Q&A")
+            console.error("Failed to create the Q&A", result)
             throw new Error(result)
         }
 
@@ -362,7 +396,7 @@ export class Qaku extends EventEmitter {
         const qmsg:QuestionMessage = {question: question, timestamp: new Date()}
         const result = await this.dispatcher!.emit(MessageType.QUESTION_MESSAGE, qmsg)
         if (result) {
-            this.emit(QakuEvents.NEW_QUESTION_PUBLISHED, this.controlState!.id)
+            this.emit(QakuEvents.NEW_QUESTION_PUBLISHED, this.controlState!.id, this.identity!.getWallet())
             return questionHash(qmsg)
         }  
 
@@ -406,6 +440,49 @@ export class Qaku extends EventEmitter {
         }
         console.error("Failed to moderate the message", questionHash)
         return false
+    }
+
+    public async newPoll(poll: Poll):Promise<boolean> {
+        const ts = Date.now()
+        const newPoll:NewPoll = {
+            creator: this.identity!.address(),
+            poll: {
+                active: poll.active,
+                options: poll.options,
+                question: poll.question,
+                title: poll.title,
+                id: sha256(`poll-${poll.question}-${ts}`),
+            },
+            timestamp: ts
+        }
+
+        const result = await this.dispatcher!.emit(MessageType.POLL_CREATE_MESSAGE, newPoll, this.identity!.getWallet())
+        if (result) {
+            this.emit(QakuEvents.NEW_POLL_PUBLISHED, newPoll.poll.id)
+            return true
+        }
+        console.error("Failed to create a new poll", poll)
+        return false
+    }
+
+    public async pollVote(pollId: string, option: number):Promise<boolean> {
+        const res = await this.dispatcher!.emit(MessageType.POLL_VOTE_MESSAGE, {id: pollId, option: option} as PollVote, this.identity!.getWallet())
+
+        if (!res) {
+            console.error("Failed to vote on poll", pollId, option)
+            return false
+        }
+
+        return true
+    }
+
+    public async pollActive(pollId: string, newState: boolean):Promise<boolean> {
+        const res = await this.dispatcher!.emit(MessageType.POLL_ACTIVE_MESSAGE, {id: pollId, active: newState} as PollActive, this.identity!.getWallet())
+        if (!res) {
+            console.error("Failed to set poll active state", pollId, newState)  
+            return false
+        }
+        return true
     }
 
     public getQuestions(sortBy:QuestionSort[], show:QuestionShow[] = [QuestionShow.ALL]) {

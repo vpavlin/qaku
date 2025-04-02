@@ -1,7 +1,7 @@
 import { DecodedMessage, bytesToUtf8 } from "@waku/sdk";
 import { sha256 } from "js-sha256"
 import { fromHex, verifyMessage } from "./crypto";
-import { LocalPoll } from "../components/polls/types";
+import { LocalPoll } from "qakulib";
 
 export type QuestionMessage = {
     question: string;

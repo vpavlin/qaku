@@ -1,9 +1,7 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useQakuContext } from "../../hooks/useQaku";
-import { MessageType } from "../../utils/messages";
-import { NewPoll, Poll, PollActive, PollVote } from "./types";
-import { DispatchMetadata, Signer } from "waku-dispatcher";
 import { useToastContext } from "../../hooks/useToast";
+import { LocalPoll, PollVoter } from "qakulib";
 
 const Polls = () => {
     const {polls, qaku, isOwner, isAdmin} = useQakuContext()
@@ -14,8 +12,8 @@ const Polls = () => {
     const handleVote = async (pollId: string, option: number) => {
         if (!qaku || !qaku.identity) return
         setSubmitting(true)
-        const res = await qaku.dispatcher!.emit(MessageType.POLL_VOTE_MESSAGE, {id: pollId, option: option} as PollVote, qaku.identity.getWallet())
 
+        const res = await qaku.pollVote(pollId, option)
         setSubmitting(false)
         if (!res) {
             error("Failed to publish a vote")
@@ -27,7 +25,7 @@ const Polls = () => {
     const handleActiveSwitch = async (pollId: string, newState: boolean) => {
         if (!qaku! || !qaku.identity || (!isOwner && !isAdmin) ) return
         setSubmitting(true)
-        const res = await qaku.dispatcher!.emit(MessageType.POLL_ACTIVE_MESSAGE, {id: pollId, active: newState} as PollActive, qaku.identity.getWallet())
+        const res = await qaku.pollActive(pollId, newState)
         setSubmitting(false)
         if (!res) {
             error("Failed to switch poll state")
@@ -39,13 +37,13 @@ const Polls = () => {
 
     return (<div>
         {
-            polls.map((p) => {
+            polls.map((p:LocalPoll) => {
             let alreadyVoted = false
             let max = -1
             let maxI = -1
 
             if (qaku?.identity && p.votes)
-                p.votes.map((o, i) => {
+                p.votes.map((o:PollVoter, i) => {
                     alreadyVoted = alreadyVoted || o.voters.indexOf(qaku?.identity?.address()!) >= 0
                     if (o.voters.length > max) {
                         maxI = i

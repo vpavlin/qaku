@@ -1,9 +1,9 @@
 import { useState } from "react"
-import { NewPoll, PollOption } from "./types"
 import { useQakuContext } from "../../hooks/useQaku"
 import { sha256 } from "js-sha256"
 import { MessageType } from "../../utils/messages"
 import { useToastContext } from "../../hooks/useToast"
+import { PollOption } from "qakulib"
 
 
 interface IOptionProps {
@@ -60,25 +60,20 @@ const CreatePoll = () => {
         }
 
         setSubmitting(true)
- 
-        const poll:NewPoll = {
-            creator: qaku.identity.address(),
-            poll: {
-                active: active,
-                options: options,
-                question: question,
-                title: title,
-                id: sha256(`poll-${question}-${Date.now()}`),
-            },
-            timestamp: Date.now()
-        }
 
-        console.log(poll)
-        const res = await qaku.dispatcher!.emit(MessageType.POLL_CREATE_MESSAGE, poll, qaku.identity.getWallet())
+        const res = await qaku.newPoll({
+            active: active,
+            options: options,
+            question: question,
+            title: title,
+            id: "",
+        })
+ 
         if (!res) {
-            error("Failed to  publish a poll")
-            return
+            error("Failed to publish poll")
+            return 
         }
+        
 
         info(`Successfully published a poll ${title}`)
         setCollapsed(true)
