@@ -21,6 +21,7 @@ export type QakuInfo = {
     visited: HistoryEntry[]
     polls: LocalPoll[]
     history: HistoryEntry[]
+    admin: HistoryEntry[]
     participated: HistoryEntry[]
     localQuestions: EnhancedQuestionMessage[]
     loading: boolean
@@ -78,6 +79,8 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
     const [ history, setHistory ] = useState<HistoryEntry[]>([])
     const [ visited, setVisited ] = useState<HistoryEntry[]>([])
     const [ participated, setParticipated ] = useState<HistoryEntry[]>([])
+    const [ admin, setAdminHistory ] = useState<HistoryEntry[]>([])
+
 
     const [questions, setQuestions] = useState<Map<string, EnhancedQuestionMessage>>(new Map<string, EnhancedQuestionMessage>())
     const [localQuestions, setLocalQuestions] = useState<EnhancedQuestionMessage[]>([])
@@ -445,6 +448,7 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
         if (lastId != undefined && id != lastId) {
             (async () =>{
                 console.log("Destroying everything!")
+                setQaku(undefined)
                 clearInterval(codexCheckInterval)
                 clearInterval(regularSnapshotInterval)
                 setLastId(id)
@@ -458,7 +462,6 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
                 setLocalQuestions([])
                 await qaku?.destroy() //FIXME: Will this work?
                 setProtocolInitialized(false)
-                setQaku(undefined)
                 setHistoryService(undefined)
                 console.log("Destroyed everything!")
 
@@ -473,6 +476,7 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
             setHistory(historyService.getAll(HistoryTypes.CREATED))
             setVisited(historyService.getAll(HistoryTypes.VISITED))
             setParticipated(historyService.getAll(HistoryTypes.PARTICIPATED))
+            setAdminHistory(historyService.getAll(HistoryTypes.ADMIN))
         }
 
         historyService.on(HistoryEvents.STORED, loadHistory)
@@ -523,6 +527,7 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
             polls,
             history,
             participated,
+            admin,
             loading,
             codexAvailable,
             ready: protocolInitialized,
@@ -538,6 +543,7 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
             polls,
             history,
             participated,
+            admin,
             loading,
             codexAvailable,
             protocolInitialized,

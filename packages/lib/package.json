@@ -27,9 +27,10 @@
   "dependencies": {
     "@waku/interfaces": "0.0.29-09108d9.0",
     "@waku/sdk": "0.0.30-09108d9.0",
+    "js-sha256": "^0.11.0",
     "node-localstorage": "^3.0.5",
     "sort-array": "^5.0.0",
-    "waku-dispatcher": "../../../waku-dispatcher"
+    "waku-dispatcher": "0.0.21"
   },
   "devDependencies": {
     "@eslint/js": "^9.20.0",

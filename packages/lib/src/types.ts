@@ -1,6 +1,16 @@
 import { sha256 } from "js-sha256"
+import { Dispatcher } from "waku-dispatcher"
 
 export type QuestionList = Map<string, EnhancedQuestionMessage>
+export type Id = string
+export type QAList = Map<Id, QAType>
+
+export type QAType = {
+    dispatcher:Dispatcher | null
+    controlState:ControlMessage | undefined
+    questions:QuestionList;
+    polls:LocalPoll[];
+}
 
 export enum QakuEvents {
     NEW_CONTROL_MESSAGE = "newControlMessage",

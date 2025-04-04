@@ -1,6 +1,6 @@
-import { Codex } from "@codex-storage/sdk-js";
+//import { Codex } from "@codex-storage/sdk-js";
 import { destroyDispatcher, Dispatcher, DispatchMetadata, Signer} from "waku-dispatcher"
-import { AnsweredMessage, ControlMessage, EnhancedQuestionMessage, LocalPoll, MessageType, ModerationMessage, NewPoll, Poll, PollActive, PollVote, QakuEvents, QakuState, QuestionList, QuestionMessage, QuestionShow, QuestionSort, UpvoteMessage } from "./types.js";
+import { AnsweredMessage, ControlMessage, EnhancedQuestionMessage, Id, LocalPoll, MessageType, ModerationMessage, NewPoll, Poll, PollActive, PollVote, QakuEvents, QakuState, QAList, QAType, QuestionList, QuestionMessage, QuestionShow, QuestionSort, UpvoteMessage } from "./types.js";
 import { createEncoder, LightNode, utf8ToBytes,  } from "@waku/sdk";
 import { Protocols } from "@waku/interfaces"
 import { CONTENT_TOPIC_MAIN } from "./constants.js";
@@ -16,7 +16,7 @@ import { HistoryTypes } from "./history/types.js";
 
 
 export class Qaku extends EventEmitter {
-    codexURL:string = "" 
+    //codexURL:string = "" 
 
     state:QakuState = QakuState.UNDEFINED
 
@@ -30,6 +30,8 @@ export class Qaku extends EventEmitter {
 
     questions:QuestionList = new Map<string, EnhancedQuestionMessage>()
     polls:LocalPoll[] = []
+
+    qas:QAList = new Map<Id, QAType>()
 
     constructor(node:LightNode | undefined) {
         super();
@@ -148,7 +150,18 @@ export class Qaku extends EventEmitter {
         console.debug("Setting Control State")
         this.controlState = payload
 
-        this.history.update({id: payload.id, title: payload.title})
+        this.history.update({
+            id: payload.id,
+            title: payload.title,
+            description: payload.description,
+            createdAt: payload.timestamp,
+            isActive: payload.enabled,
+            pollsCnt: 0,
+            questionsCnt: 0
+        })
+
+        if (payload.admins.includes(this.identity!.address()))
+            this.history.updateType(payload.id, HistoryTypes.ADMIN)
 
         this.emit(QakuEvents.NEW_CONTROL_MESSAGE, this.controlState.id)
         this.emit(QakuEvents.QAKU_CONTENT_CHANGED, undefined)
@@ -167,6 +180,8 @@ export class Qaku extends EventEmitter {
             throw new Error("new question: duplicate")
         }
 
+
+
         const q: EnhancedQuestionMessage = {
             hash: hash,
             question: payload.question,
@@ -181,6 +196,11 @@ export class Qaku extends EventEmitter {
             signer: signer,
         }
         this.questions.set(hash, q) 
+        const historyEntry = this.history.get(this.currentId!)
+        console.log(historyEntry)
+        if (historyEntry && (!historyEntry.questionsCnt || this.questions.size > historyEntry.questionsCnt)) {
+            this.history.incQuestionCnt(this.currentId!)
+        }
         this.emit(QakuEvents.NEW_QUESTION, hash)
         this.emit(QakuEvents.QAKU_CONTENT_CHANGED, undefined)
     }
@@ -255,6 +275,10 @@ export class Qaku extends EventEmitter {
         if (this.polls.find((p:LocalPoll) => p.id == poll.id)) throw new Error("poll: already exists")
 
         this.polls.push(poll)
+        const historyEntry = this.history.get(this.currentId!)
+        if (historyEntry && (!historyEntry.pollsCnt || this.polls.length > historyEntry.pollsCnt)) {
+            this.history.incPollCnt(this.currentId!)
+        }
 
         this.emit(QakuEvents.NEW_POLL, poll.id)
     }
@@ -332,9 +356,9 @@ export class Qaku extends EventEmitter {
         console.debug(result)
         if (result) {
             try {
-                this.history.add(hash, HistoryTypes.CREATED, password, title)
+                this.history.add(hash, HistoryTypes.CREATED, password, title, ts.valueOf(), enabled, desc)
             } catch(e) {
-                this.history.update({id: hash, password: password, title: title, type: HistoryTypes.CREATED})
+                this.history.update({id: hash, password: password, title: title, type: HistoryTypes.CREATED, createdAt: ts.valueOf(), isActive: enabled, description: desc || "", pollsCnt: 0, questionsCnt: 0})
             }
             return hash
         } else {
@@ -419,7 +443,7 @@ export class Qaku extends EventEmitter {
         const qmsg:QuestionMessage = {question: question, timestamp: new Date()}
         const result = await this.dispatcher.emit(MessageType.QUESTION_MESSAGE, qmsg)
         if (result) {
-            this.history.update({id: this.currentId, type: HistoryTypes.PARTICIPATED})
+            this.history.updateType(this.currentId, HistoryTypes.PARTICIPATED)
 
             this.emit(QakuEvents.NEW_QUESTION_PUBLISHED, this.controlState!.id, this.identity!.getWallet())
             return questionHash(qmsg)
@@ -436,7 +460,7 @@ export class Qaku extends EventEmitter {
         const result = await this.dispatcher.emit(MessageType.UPVOTE_MESSAGE, amsg, this.identity!.getWallet())
 
         if (result) {
-            this.history.update({id: this.currentId, type: HistoryTypes.PARTICIPATED})
+            this.history.updateType(this.currentId, HistoryTypes.PARTICIPATED)
 
             this.emit(QakuEvents.NEW_UPVOTE_PUBLISHED, questionHash)
             return true
@@ -509,7 +533,7 @@ export class Qaku extends EventEmitter {
             return false
         }
 
-        this.history.update({id: this.currentId, type: HistoryTypes.PARTICIPATED})
+        this.history.updateType(this.currentId, HistoryTypes.PARTICIPATED)
         return true
     }
 
@@ -591,7 +615,7 @@ export class Qaku extends EventEmitter {
     }
 
 
-
+/*
     public checkCodexAvailable = async ():Promise<boolean> => {
         const codex = new Codex(this.codexURL);
         const res = await codex.debug.info()
@@ -607,7 +631,7 @@ export class Qaku extends EventEmitter {
         //setCodexAvailable(true)
         return true
     }
-
+*/
     public async destroy() {
         await destroyDispatcher()
         this.controlState = undefined
