@@ -1,5 +1,5 @@
 //import { Codex } from "@codex-storage/sdk-js";
-import { Dispatcher, DispatchMetadata, Signer} from "waku-dispatcher"
+import { Dispatcher, DispatchMetadata, Signer, Store} from "waku-dispatcher"
 import { AnsweredMessage, ControlMessage, EnhancedQuestionMessage, Id, LocalPoll, MessageType, ModerationMessage, NewPoll, Poll, PollActive, PollVote, QakuEvents, QakuState, QAList, QAType, QuestionMessage, QuestionShow, QuestionSort, UpvoteMessage } from "./types.js";
 import { createEncoder, LightNode, utf8ToBytes,  } from "@waku/sdk";
 import { Protocols } from "@waku/interfaces"
@@ -9,7 +9,6 @@ import { EventEmitter } from "events";
 import { Identity } from "./identity.js";
 import { qaHash, questionHash } from "./utils.js";
 import sortArray from "sort-array";
-import { Store } from "../../../../waku-dispatcher/dist/storage/store.js";
 import { contentTopicToShardIndex, pubsubTopicsToShardInfo } from "@waku/utils"
 import { History } from "./history/history.js";
 import { HistoryTypes } from "./history/types.js";
