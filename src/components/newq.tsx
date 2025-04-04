@@ -18,7 +18,7 @@ const NewQuestion = ({ id }: IProps) => {
         if (!qaku || !question) return
         setSubmitState(false)
 
-        const res = await qaku.newQuestion(question)
+        const res = await qaku.newQuestion(id, question)
         if (res) {
             setQuestion("")
         }  else {

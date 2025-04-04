@@ -7,13 +7,15 @@ import { CONTENT_TOPIC_MAIN } from "../constants";
 import { useQakuContext } from "../hooks/useQaku";
 import { useToastContext } from "../hooks/useToast";
 import { shortAddr } from "../utils/crypto";
+import { Id } from "qakulib";
 
 interface IProps {
+    id: Id
     msg: EnhancedQuestionMessage
     moderation: boolean
 }
 
-const Question = ({msg, moderation}:IProps) => {
+const Question = ({id, msg, moderation}:IProps) => {
     const [ answer, setAnswer ] = useState<string>()
     const { error, info } = useToastContext()
 
@@ -25,7 +27,7 @@ const Question = ({msg, moderation}:IProps) => {
     const publishAnswer =  async (answer?: string) => {
         if (!qaku || !controlState) return
 
-        const result = await qaku.answer(msg.hash, answer)
+        const result = await qaku.answer(id, msg.hash, answer)
         if (!result) {
             console.log("Failed to answer")
             error("Failed to publish answer")
@@ -37,7 +39,7 @@ const Question = ({msg, moderation}:IProps) => {
     const upvote = async () => {
         if (!qaku || !controlState) return
         
-        const result = await qaku.upvote(msg.hash)
+        const result = await qaku.upvote(id, msg.hash)
         if (!result) {
             console.log("Failed to upvote")
             error("Failed to publish upvote")
@@ -51,7 +53,7 @@ const Question = ({msg, moderation}:IProps) => {
     const moderate = async (moderated:boolean) => {
         if (!qaku || !controlState) return
 
-       const result = await qaku.moderate(msg.hash, moderated)
+       const result = await qaku.moderate(id, msg.hash, moderated)
 
         if (!result) { 
             console.log("Failed to moderate")

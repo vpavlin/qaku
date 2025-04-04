@@ -3,7 +3,7 @@ import { useQakuContext } from "../../hooks/useQaku"
 import { sha256 } from "js-sha256"
 import { MessageType } from "../../utils/messages"
 import { useToastContext } from "../../hooks/useToast"
-import { PollOption } from "qakulib"
+import { Id, PollOption } from "qakulib"
 
 
 interface IOptionProps {
@@ -24,8 +24,12 @@ const CreatePollOption = ({title, index, setOption}:IOptionProps) => {
     </>)
 }
 
+interface IProps {
+    id: Id
+}
 
-const CreatePoll = () => {
+
+const CreatePoll = ({id}: IProps) => {
 
     const {qaku} = useQakuContext()
     const {info, error} = useToastContext()
@@ -61,7 +65,7 @@ const CreatePoll = () => {
 
         setSubmitting(true)
 
-        const res = await qaku.newPoll({
+        const res = await qaku.newPoll(id, {
             active: active,
             options: options,
             question: question,

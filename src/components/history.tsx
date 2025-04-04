@@ -1,14 +1,19 @@
 import { Link } from "react-router-dom";
 import { useQakuContext } from "../hooks/useQaku";
+import { Id } from "qakulib";
 
-const History = () => {
+interface IProps {
+    id: Id | undefined
+}
+
+const History = ({id}: IProps) => {
     const {history, qaku} = useQakuContext()
     return (
         <>
             {
                 history.map((entry) => 
                     <li key={entry.id} className={`m-1`}>
-                        <Link className={`${!qaku && "btn-disabled"}`} to={`/q/${entry.id}/${entry.password || ""}`}>
+                        <Link className={`${!qaku && "btn-disabled"} ${id && id == entry.id ? "bg-base-content text-base-300 focus:bg-base-content focus:text-base-300 hover:text-base-content" : ""}`} to={`/q/${entry.id}/${entry.password || ""}`}>
                             {entry.title}
                             <span className={`badge ${entry.isActive ?" bg-success text-success-content" : "text-base-content"}`}>{entry.questionsCnt}</span>
                         </Link>
@@ -24,7 +29,14 @@ export const Admin = () => {
     return (
         <>
             {
-                admin.slice(0).reverse().map((entry) => <li key={entry.id} className="m-1"><Link className={`${!qaku && "btn-disabled"}`} to={`/q/${entry.id}/${entry.password || ""}`}>{entry.title} <span className={`${entry.isActive && "badge bg-success"}`}></span></Link></li>)
+                admin.slice(0).reverse().map((entry) => 
+                    <li key={entry.id} className={`m-1`}>
+                        <Link className={`${!qaku && "btn-disabled"}`} to={`/q/${entry.id}/${entry.password || ""}`}>
+                            {entry.title}
+                            <span className={`badge ${entry.isActive ?" bg-success text-success-content" : "text-base-content"}`}>{entry.questionsCnt}</span>
+                        </Link>
+                    </li>
+                )
             }
         </>
     )

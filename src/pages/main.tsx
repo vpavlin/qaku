@@ -54,7 +54,7 @@ const Main = () => {
                                 <details open>
                                     <summary>Your Q&As</summary>
                                     <ul onClick={() => setDrawer(!drawer)}>
-                                        <History />
+                                        <History id={id} />
                                     </ul>
                                 </details>
                                 <details open>

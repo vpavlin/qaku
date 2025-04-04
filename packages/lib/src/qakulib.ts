@@ -1,6 +1,6 @@
 //import { Codex } from "@codex-storage/sdk-js";
-import { destroyDispatcher, Dispatcher, DispatchMetadata, Signer} from "waku-dispatcher"
-import { AnsweredMessage, ControlMessage, EnhancedQuestionMessage, Id, LocalPoll, MessageType, ModerationMessage, NewPoll, Poll, PollActive, PollVote, QakuEvents, QakuState, QAList, QAType, QuestionList, QuestionMessage, QuestionShow, QuestionSort, UpvoteMessage } from "./types.js";
+import { Dispatcher, DispatchMetadata, Signer} from "waku-dispatcher"
+import { AnsweredMessage, ControlMessage, EnhancedQuestionMessage, Id, LocalPoll, MessageType, ModerationMessage, NewPoll, Poll, PollActive, PollVote, QakuEvents, QakuState, QAList, QAType, QuestionMessage, QuestionShow, QuestionSort, UpvoteMessage } from "./types.js";
 import { createEncoder, LightNode, utf8ToBytes,  } from "@waku/sdk";
 import { Protocols } from "@waku/interfaces"
 import { CONTENT_TOPIC_MAIN } from "./constants.js";
@@ -23,13 +23,13 @@ export class Qaku extends EventEmitter {
     node:LightNode | undefined = undefined
     history:History = new History()
     dispatcher:Dispatcher | null = null
-    controlState:ControlMessage | undefined = undefined
+    //controlState:ControlMessage | undefined = undefined
     identity:Identity | undefined = undefined
 
-    currentId: string | undefined = undefined
+   // currentId: string | undefined = undefined
 
-    questions:QuestionList = new Map<string, EnhancedQuestionMessage>()
-    polls:LocalPoll[] = []
+    //questions:QuestionList = new Map<string, EnhancedQuestionMessage>()
+    //polls:LocalPoll[] = []
 
     qas:QAList = new Map<Id, QAType>()
 
@@ -85,55 +85,68 @@ export class Qaku extends EventEmitter {
     }
 
     public async initQA(id:string, password?:string) {
-        await this.dispatcher?.stop()
+        const initializedQa = this.qas.get(id)
+        if (initializedQa) {
+            console.log("QA already initialized", id)
+            return
+        }
 
-        const s = new Store(`qaku-${id}`)        
+        //await this.dispatcher?.stop()
+
+        let s: Store
+        try {
+            s = new Store(`qaku-${id}`)   
+        } catch(e) {
+            console.error(e)
+            throw e
+        }  
         const disp = new Dispatcher(this.node as any, "", false, s)
         if (!disp) {
             throw new Error("Failed to init QA: dispatcher recreation failed")
         }
 
-        this.dispatcher = disp
+        const qa = {dispatcher: disp, controlState: undefined, polls: [], questions: new Map<string, EnhancedQuestionMessage>()}
+        this.qas.set(id, qa)
 
-        await this.dispatcher.initContentTopic(CONTENT_TOPIC_MAIN(id))
+        await disp.initContentTopic(CONTENT_TOPIC_MAIN(id))
 
         if (password) {
-            this.dispatcher.registerKey(utf8ToBytes(sha256(password)).slice(0, 32), 0, true)
+            disp.registerKey(utf8ToBytes(sha256(password)).slice(0, 32), 0, true)
         }
         console.debug(MessageType.CONTROL_MESSAGE)
-        this.dispatcher.on(MessageType.CONTROL_MESSAGE, this.handleControlMessage.bind(this), true, this.dispatcher.autoEncrypt)
+        disp.on(MessageType.CONTROL_MESSAGE, this.handleControlMessage.bind(this), true, disp.autoEncrypt)
         console.debug(MessageType.QUESTION_MESSAGE)
-        this.dispatcher.on(MessageType.QUESTION_MESSAGE, this.handleNewQuestion.bind(this), false, this.dispatcher.autoEncrypt)
+        disp.on(MessageType.QUESTION_MESSAGE, this.handleNewQuestion.bind(this, id), false, disp.autoEncrypt)
         console.debug(MessageType.UPVOTE_MESSAGE)
-        this.dispatcher.on(MessageType.UPVOTE_MESSAGE, this.handleUpvote.bind(this), true, this.dispatcher.autoEncrypt)
+        disp.on(MessageType.UPVOTE_MESSAGE, this.handleUpvote.bind(this, id), true, disp.autoEncrypt)
         console.debug(MessageType.ANSWERED_MESSAGE)
-        this.dispatcher.on(MessageType.ANSWERED_MESSAGE, this.handleAnsweredMessage.bind(this), true, this.dispatcher.autoEncrypt)
+        disp.on(MessageType.ANSWERED_MESSAGE, this.handleAnsweredMessage.bind(this, id), true, disp.autoEncrypt)
         console.debug(MessageType.MODERATION_MESSAGE)
-        this.dispatcher.on(MessageType.MODERATION_MESSAGE, this.handleModerationMessage.bind(this), true, this.dispatcher.autoEncrypt)
+        disp.on(MessageType.MODERATION_MESSAGE, this.handleModerationMessage.bind(this, id), true, disp.autoEncrypt)
 
-        this.dispatcher.on(MessageType.POLL_CREATE_MESSAGE, this.handlePollCreateMessage.bind(this), true, this.dispatcher.autoEncrypt)
-        this.dispatcher.on(MessageType.POLL_VOTE_MESSAGE, this.handlePollVoteMessage.bind(this), true, this.dispatcher.autoEncrypt)
-        this.dispatcher.on(MessageType.POLL_ACTIVE_MESSAGE, this.handlePollActiveMessage.bind(this), true, this.dispatcher.autoEncrypt)
-        await this.dispatcher.start()
+        disp.on(MessageType.POLL_CREATE_MESSAGE, this.handlePollCreateMessage.bind(this, id), true, disp.autoEncrypt)
+        disp.on(MessageType.POLL_VOTE_MESSAGE, this.handlePollVoteMessage.bind(this, id), true, disp.autoEncrypt)
+        disp.on(MessageType.POLL_ACTIVE_MESSAGE, this.handlePollActiveMessage.bind(this,id), true, disp.autoEncrypt)
+        await disp.start()
 
         if (!this.history.get(id))
             this.history.add(id, HistoryTypes.VISITED, password=password)
-        this.currentId = id
+        //this.currentId = id
         try {
             await this.node!.waitForPeers([Protocols.Store]);
 
             console.log("Dispatching local query")
-            await this.dispatcher.dispatchLocalQuery() 
+            await disp.dispatchLocalQuery() 
 
-            console.log(this.questions)
+            console.log(qa.questions)
 
-            if (this.questions.size == 0) {
+            if (qa.questions.size == 0) {
                 console.log("Dispatching general query")
-                await this.dispatcher.dispatchQuery()
-                console.log(this.questions)
+                await disp.dispatchQuery()
+                console.log(qa.questions)
             }
 
-            this.emit(QakuEvents.QAKU_STATE_UPDATE, QakuState.INIT_PROTOCOL)
+            this.emit(QakuEvents.QAKU_STATE_UPDATE, {state: QakuState.INIT_PROTOCOL, id: id})
         } catch (e) {
             console.error("Failed to initialized protocol:", e)
             this.emit(QakuEvents.QAKU_STATE_UPDATE, QakuState.FAILED)
@@ -145,10 +158,13 @@ export class Qaku extends EventEmitter {
         if (!payload.title) throw new Error("control message: title missing")
         if (!payload.description) payload.description = ""
         if (signer != payload.owner) throw new Error("control message: signer not owner")
-        if (this.controlState != undefined && this.controlState.owner != signer) throw new Error("control message: owner changed")
-        if (this.controlState != undefined && this.controlState.updated > payload.updated) throw new Error("control message: too old") //might need to come up with some merging strategy as this basically ignores updates which come out of order
+
+        const qa = this.qas.get(payload.id)
+        if (!qa) throw new Error("control message: QA not found")
+        if (qa.controlState != undefined && qa.controlState.owner != signer) throw new Error("control message: owner changed")
+        if (qa.controlState != undefined && qa.controlState.updated > payload.updated) throw new Error("control message: too old") //might need to come up with some merging strategy as this basically ignores updates which come out of order
         console.debug("Setting Control State")
-        this.controlState = payload
+        qa.controlState = payload
 
         this.history.update({
             id: payload.id,
@@ -163,24 +179,25 @@ export class Qaku extends EventEmitter {
         if (payload.admins.includes(this.identity!.address()))
             this.history.updateType(payload.id, HistoryTypes.ADMIN)
 
-        this.emit(QakuEvents.NEW_CONTROL_MESSAGE, this.controlState.id)
-        this.emit(QakuEvents.QAKU_CONTENT_CHANGED, undefined)
+        this.emit(QakuEvents.NEW_CONTROL_MESSAGE, qa.controlState.id)
+        this.emit(QakuEvents.QAKU_CONTENT_CHANGED, qa.controlState.id)
 
     }
 
-    private handleNewQuestion(payload: QuestionMessage, signer: Signer, meta:DispatchMetadata): void {
-        if (!this.controlState?.enabled) {
+    private handleNewQuestion(id: Id, payload: QuestionMessage, signer: Signer, meta:DispatchMetadata): void {
+        if (!payload.question || payload.question.length == 0) throw new Error("new question: question empty")
+
+        const qa = this.qas.get(id)
+        if (!qa) throw new Error("new question: QA not found")
+
+        if (!qa.controlState?.enabled) {
             throw new Error("new question: Q&A closed")
         }
 
-        if (!payload.question || payload.question.length == 0) throw new Error("new question: question empty")
-
         const hash = sha256(JSON.stringify(payload))
-        if (this.questions.has(hash)) {
+        if (qa.questions.has(hash)) {
             throw new Error("new question: duplicate")
         }
-
-
 
         const q: EnhancedQuestionMessage = {
             hash: hash,
@@ -195,21 +212,23 @@ export class Qaku extends EventEmitter {
             upvoters: [],
             signer: signer,
         }
-        this.questions.set(hash, q) 
-        const historyEntry = this.history.get(this.currentId!)
-        console.log(historyEntry)
-        if (historyEntry && (!historyEntry.questionsCnt || this.questions.size > historyEntry.questionsCnt)) {
-            this.history.incQuestionCnt(this.currentId!)
+        qa.questions.set(hash, q) 
+        const historyEntry = this.history.get(id)
+        if (historyEntry && (!historyEntry.questionsCnt || qa.questions.size > historyEntry.questionsCnt)) {
+            this.history.incQuestionCnt(id)
         }
-        this.emit(QakuEvents.NEW_QUESTION, hash)
-        this.emit(QakuEvents.QAKU_CONTENT_CHANGED, undefined)
+        this.emit(QakuEvents.NEW_QUESTION, id)
+        this.emit(QakuEvents.QAKU_CONTENT_CHANGED, id)
     }
 
-    private handleUpvote (payload: AnsweredMessage, signer: Signer): void {
+    private handleUpvote (id: Id, payload: AnsweredMessage, signer: Signer): void {
         if (!signer) throw new Error("upvote: not signed")
-        if (!this.controlState?.enabled) throw Error("upvote: Q&A closed")
+        
+        const qa = this.qas.get(id)
+        if (!qa) throw new Error("upvote: QA not found")
+        if (!qa.controlState?.enabled) throw Error("upvote: Q&A closed")
 
-        const q =  this.questions.get(payload.hash)
+        const q =  qa.questions.get(payload.hash)
         if (!q) throw new Error("upvote: unknown question")
 
         if ((q.upvotedByMe && signer == this.identity!.address()) || q.upvoters.includes(signer)) throw new Error("upvote: already voted")
@@ -223,17 +242,20 @@ export class Qaku extends EventEmitter {
         }
         q.upvoters.push(signer)
 
-        this.questions.set(payload.hash, q)
-        this.emit(QakuEvents.NEW_UPVOTE, payload.hash)
-        this.emit(QakuEvents.QAKU_CONTENT_CHANGED, undefined)
+        qa.questions.set(payload.hash, q)
+        this.emit(QakuEvents.NEW_UPVOTE, id)
+        this.emit(QakuEvents.QAKU_CONTENT_CHANGED, id)
     }
 
-    private handleAnsweredMessage (payload: AnsweredMessage, signer: Signer): void {
+    private handleAnsweredMessage (id: Id, payload: AnsweredMessage, signer: Signer): void {
         if (!signer) throw new Error("answer: not signed")
+                
+        const qa = this.qas.get(id)
+        if (!qa) throw new Error("answer: QA not found")
 
-        if (this.controlState?.owner != signer && !this.controlState?.admins.includes(signer)) throw new Error("answer: unauthorized to answer")
+        if (qa.controlState?.owner != signer && !qa.controlState?.admins.includes(signer)) throw new Error("answer: unauthorized to answer")
 
-        const q = this.questions.get(payload.hash)
+        const q = qa.questions.get(payload.hash)
         if (!q) throw new Error("answer: unknown question")
 
 
@@ -242,51 +264,60 @@ export class Qaku extends EventEmitter {
         q.answer = payload.text
         q.answeredBy = signer
 
-        this.questions.set(payload.hash, q)
-        this.emit(QakuEvents.NEW_ANSWER, payload.hash)
-        this.emit(QakuEvents.QAKU_CONTENT_CHANGED, undefined)
+        qa.questions.set(payload.hash, q)
+        this.emit(QakuEvents.NEW_ANSWER, id)
+        this.emit(QakuEvents.QAKU_CONTENT_CHANGED, id)
     }
 
-    private handleModerationMessage (payload: ModerationMessage, signer: Signer): void {
+    private handleModerationMessage (id: Id, payload: ModerationMessage, signer: Signer): void {
         if (!signer) throw new Error("moderate: not signed")
 
-        if (this.controlState?.owner != signer && !this.controlState?.admins.includes(signer)) throw new Error("moderate: unauthorized to answer")
+        const qa = this.qas.get(id)
+        if (!qa) throw new Error("moderate: QA not found")
 
-        const q = this.questions.get(payload.hash)
-        if (!q) throw new Error("answer: unknown question")
+        if (qa.controlState?.owner != signer && !qa.controlState?.admins.includes(signer)) throw new Error("moderate: unauthorized to answer")
+
+        const q = qa.questions.get(payload.hash)
+        if (!q) throw new Error("mdoerate: unknown question")
 
 
         q.moderated = payload.moderated
 
-        this.questions.set(payload.hash, q)
-        this.emit(QakuEvents.NEW_MODERATION, payload.hash)
-        this.emit(QakuEvents.QAKU_CONTENT_CHANGED, undefined)
+        qa.questions.set(payload.hash, q)
+        this.emit(QakuEvents.NEW_MODERATION, id)
+        this.emit(QakuEvents.QAKU_CONTENT_CHANGED, id)
     }
 
-    private handlePollCreateMessage(payload: NewPoll, signer: Signer) {
+    private handlePollCreateMessage(id: Id, payload: NewPoll, signer: Signer) {
         if (!signer) throw new Error("poll: not signed")
+  
+        const qa = this.qas.get(id)
+        if (!qa) throw new Error("poll: QA not found")
 
-        if (this.controlState?.owner != signer && !this.controlState?.admins.includes(signer) || signer != payload.creator) {
+        if (qa.controlState?.owner != signer && !qa.controlState?.admins.includes(signer) || signer != payload.creator) {
             throw new Error("poll: unauthorized to create")
         }
 
         const poll:LocalPoll = {...payload.poll, owner: signer}
         
-        if (this.polls.find((p:LocalPoll) => p.id == poll.id)) throw new Error("poll: already exists")
+        if (qa.polls.find((p:LocalPoll) => p.id == poll.id)) throw new Error("poll: already exists")
 
-        this.polls.push(poll)
-        const historyEntry = this.history.get(this.currentId!)
-        if (historyEntry && (!historyEntry.pollsCnt || this.polls.length > historyEntry.pollsCnt)) {
-            this.history.incPollCnt(this.currentId!)
+        qa.polls.push(poll)
+        const historyEntry = this.history.get(id)
+        if (historyEntry && (!historyEntry.pollsCnt || qa.polls.length > historyEntry.pollsCnt)) {
+            this.history.incPollCnt(id)
         }
 
-        this.emit(QakuEvents.NEW_POLL, poll.id)
+        this.emit(QakuEvents.NEW_POLL, id)
     }
 
-    private handlePollVoteMessage(payload: PollVote, signer: Signer) {
+    private handlePollVoteMessage(id: Id, payload: PollVote, signer: Signer) {
         if (!signer) throw new Error("poll vote: not signed")
 
-        const poll = this.polls.find((p) => p.id == payload.id)
+        const qa = this.qas.get(id)
+        if (!qa) throw new Error("upvote: QA not found")
+
+        const poll = qa.polls.find((p) => p.id == payload.id)
         if (!poll) throw new Error("poll vote: unknown poll")
         if (!poll.active) throw new Error("poll vote: inactive")
 
@@ -300,21 +331,24 @@ export class Qaku extends EventEmitter {
         }
         //is it by reference?
 
-        this.emit(QakuEvents.NEW_POLL_VOTE, poll.id)
+        this.emit(QakuEvents.NEW_POLL_VOTE, id)
     }
 
-    private handlePollActiveMessage(payload: PollActive, signer: Signer) {
+    private handlePollActiveMessage(id: Id, payload: PollActive, signer: Signer) {
         if (!signer) throw new Error("poll active: not signed")
+        
+        const qa = this.qas.get(id)
+        if (!qa) throw new Error("upvote: QA not found")
 
-        if (this.controlState?.owner != signer && !this.controlState?.admins.includes(signer)) {
+        if (qa.controlState?.owner != signer && !qa.controlState?.admins.includes(signer)) {
             throw new Error("poll active: unauthorized")
         }
 
-        const poll = this.polls.find((p) => p.id == payload.id)
+        const poll = qa.polls.find((p) => p.id == payload.id)
         if (!poll) throw new Error("poll vote: unknown poll")
         poll.active = payload.active
 
-        this.emit(QakuEvents.POLL_STATE_CHANGE, poll.id)
+        this.emit(QakuEvents.POLL_STATE_CHANGE, id)
     }
 
     public async newQA(title:string, desc:string | undefined, enabled:boolean, admins:string[], moderation:boolean, password?:string):Promise<string> {
@@ -342,9 +376,11 @@ export class Qaku extends EventEmitter {
             updated: ts.valueOf()
         }
 
-        await destroyDispatcher()
+        //await destroyDispatcher()
 
         await this.initQA(hash, password)
+        const qa = this.qas.get(hash)
+        if (!qa) throw new Error("Failed to find QA after initialization")
 
         const contentTopic = CONTENT_TOPIC_MAIN(hash)
         const pubsubTopics = this.node.connectionManager.pubsubTopics
@@ -352,7 +388,7 @@ export class Qaku extends EventEmitter {
         const shardIndex = contentTopicToShardIndex(contentTopic, shardInfo.shards.length)
         //dispatcher.on(MessageType.CONTROL_MESSAGE, () => {})
         const encoder = createEncoder({ contentTopic: contentTopic, ephemeral: false, pubsubTopicShardInfo: {clusterId: shardInfo.clusterId, shard: shardIndex} })
-        const result = await this.dispatcher!.emitTo(encoder, MessageType.CONTROL_MESSAGE, cmsg, this.identity!.getWallet(), key, true)
+        const result = await qa.dispatcher!.emitTo(encoder, MessageType.CONTROL_MESSAGE, cmsg, this.identity!.getWallet(), key, true)
         console.debug(result)
         if (result) {
             try {
@@ -369,83 +405,108 @@ export class Qaku extends EventEmitter {
         return ""
     }
 
-    public async switchQAState(newState:boolean) {
-        if (!this.dispatcher || !this.currentId) throw new Error("Qaku not initialized properly")
+    public async switchQAState(id: Id, newState:boolean) {
+        const qa = this.qas.get(id)
+        if (!qa) throw new Error("failed to find QA")
 
-        if (!this.controlState) {
+        if (!qa.dispatcher) throw new Error("QA's Dispatcher not initialized properly")
+
+        if (!qa.controlState) {
             throw new Error("Q&A not initialized")
         }
         const cmsg:ControlMessage = {
-            title: this.controlState.title,
-            description: this.controlState.description,
-            id: this.controlState.id,
+            title: qa.controlState.title,
+            description: qa.controlState.description,
+            id: qa.controlState.id,
             enabled: newState,
-            timestamp: this.controlState.timestamp,
+            timestamp: qa.controlState.timestamp,
             updated: Date.now(),
-            owner: this.controlState.owner,
-            admins: this.controlState.admins,
-            moderation: this.controlState.moderation
+            owner: qa.controlState.owner,
+            admins: qa.controlState.admins,
+            moderation: qa.controlState.moderation
         }
         
-        this.dispatcher.emit(MessageType.CONTROL_MESSAGE, cmsg, this.identity!.getWallet())
+        const result = qa.dispatcher.emit(MessageType.CONTROL_MESSAGE, cmsg, this.identity!.getWallet())
+        if (!result) {
+            throw new Error("Failed to switch QA state")
+        }
     }
 
-    public async removeAdmin(admin:string) {
-        if (!this.dispatcher || !this.currentId) throw new Error("Qaku not initialized properly")
+    public async removeAdmin(id: Id, admin:string) {
+        const qa = this.qas.get(id)
+        if (!qa) throw new Error("failed to find QA")
 
+        if (!qa.dispatcher) throw new Error("QA's Dispatcher not initialized properly")
 
-        if (!this.controlState) {
+        if (!qa.controlState) {
             throw new Error("Q&A not initialized")
         }
 
-        const newAdmins = this.controlState.admins.filter((a:string) => a != admin)
+        const newAdmins = qa.controlState.admins.filter((a:string) => a != admin)
 
         const cmsg:ControlMessage = {
-            title: this.controlState.title,
-            description: this.controlState.description,
-            id: this.controlState.id,
-            enabled: this.controlState.enabled,
-            timestamp: this.controlState.timestamp,
+            title: qa.controlState.title,
+            description: qa.controlState.description,
+            id: qa.controlState.id,
+            enabled: qa.controlState.enabled,
+            timestamp: qa.controlState.timestamp,
             updated: Date.now(),
-            owner: this.controlState.owner,
+            owner: qa.controlState.owner,
             admins: newAdmins,
-            moderation: this.controlState.moderation
+            moderation: qa.controlState.moderation
         }
         
-        this.dispatcher.emit(MessageType.CONTROL_MESSAGE, cmsg, this.identity!.getWallet())
+        const result = qa.dispatcher.emit(MessageType.CONTROL_MESSAGE, cmsg, this.identity!.getWallet())
+        if (!result) {
+            throw new Error("Failed to switch QA state")
+        }
     }
 
-    public async setAdmins(admins:string[]) {
-        if (!this.dispatcher || !this.currentId) throw new Error("Qaku not initialized properly")
+    public async setAdmins(id: Id, admins:string[]) {
+        const qa = this.qas.get(id)
+        if (!qa) throw new Error("failed to find QA")
 
-        if (!this.controlState) {
+        if (!qa.dispatcher) throw new Error("QA's Dispatcher not initialized properly")
+
+        if (!qa.controlState) {
             throw new Error("Q&A not initialized")
         }
 
         const cmsg:ControlMessage = {
-            title: this.controlState.title,
-            description: this.controlState.description,
-            id: this.controlState.id,
-            enabled: this.controlState.enabled,
-            timestamp: this.controlState.timestamp,
+            title: qa.controlState.title,
+            description: qa.controlState.description,
+            id: qa.controlState.id,
+            enabled: qa.controlState.enabled,
+            timestamp: qa.controlState.timestamp,
             updated: Date.now(),
-            owner: this.controlState.owner,
+            owner: qa.controlState.owner,
             admins: admins,
-            moderation: this.controlState.moderation
+            moderation: qa.controlState.moderation
         }
         
-        this.dispatcher.emit(MessageType.CONTROL_MESSAGE, cmsg, this.identity!.getWallet())
+        const result = qa.dispatcher.emit(MessageType.CONTROL_MESSAGE, cmsg, this.identity!.getWallet())
+        if (!result) {
+            throw new Error("Failed to switch QA state")
+        }
     }
     
 
-    public async newQuestion(question:string):Promise<string | undefined> {
-        if (!this.dispatcher || !this.currentId) throw new Error("Qaku not initialized properly")
-        const qmsg:QuestionMessage = {question: question, timestamp: new Date()}
-        const result = await this.dispatcher.emit(MessageType.QUESTION_MESSAGE, qmsg)
-        if (result) {
-            this.history.updateType(this.currentId, HistoryTypes.PARTICIPATED)
+    public async newQuestion(id: Id, question:string):Promise<string | undefined> {
+        const qa = this.qas.get(id)
+        if (!qa) throw new Error("failed to find QA")
 
-            this.emit(QakuEvents.NEW_QUESTION_PUBLISHED, this.controlState!.id, this.identity!.getWallet())
+        if (!qa.dispatcher) throw new Error("QA's Dispatcher not initialized properly")
+
+        if (!qa.controlState) {
+            throw new Error("Q&A not initialized")
+        }
+        
+        const qmsg:QuestionMessage = {question: question, timestamp: new Date()}
+        const result = await qa.dispatcher.emit(MessageType.QUESTION_MESSAGE, qmsg)
+        if (result) {
+            this.history.updateType(id, HistoryTypes.PARTICIPATED)
+
+            this.emit(QakuEvents.NEW_QUESTION_PUBLISHED, qa.controlState.id, this.identity!.getWallet())
             return questionHash(qmsg)
         }  
 
@@ -453,14 +514,20 @@ export class Qaku extends EventEmitter {
         return undefined
     }
 
-    public async upvote(questionHash:string):Promise<boolean> {
-        if (!this.dispatcher || !this.currentId) throw new Error("Qaku not initialized properly")
+    public async upvote(id: Id, questionHash:string):Promise<boolean> {
+        const qa = this.qas.get(id)
+        if (!qa) throw new Error("failed to find QA")
 
+        if (!qa.dispatcher) throw new Error("QA's Dispatcher not initialized properly")
+
+        if (!qa.controlState) {
+            throw new Error("Q&A not initialized")
+        }
         const amsg:UpvoteMessage = {hash: questionHash}
-        const result = await this.dispatcher.emit(MessageType.UPVOTE_MESSAGE, amsg, this.identity!.getWallet())
+        const result = await qa.dispatcher.emit(MessageType.UPVOTE_MESSAGE, amsg, this.identity!.getWallet())
 
         if (result) {
-            this.history.updateType(this.currentId, HistoryTypes.PARTICIPATED)
+            this.history.updateType(id, HistoryTypes.PARTICIPATED)
 
             this.emit(QakuEvents.NEW_UPVOTE_PUBLISHED, questionHash)
             return true
@@ -470,11 +537,18 @@ export class Qaku extends EventEmitter {
         return false
     }
 
-    public async answer(questionHash:string, answer?:string):Promise<boolean> {
-        if (!this.dispatcher || !this.currentId) throw new Error("Qaku not initialized properly")
+    public async answer(id: Id, questionHash:string, answer?:string):Promise<boolean> {
+        const qa = this.qas.get(id)
+        if (!qa) throw new Error("failed to find QA")
+
+        if (!qa.dispatcher) throw new Error("QA's Dispatcher not initialized properly")
+
+        if (!qa.controlState) {
+            throw new Error("Q&A not initialized")
+        }
 
         const amsg:AnsweredMessage = { hash: questionHash, text: answer }
-        const result = await this.dispatcher.emit(MessageType.ANSWERED_MESSAGE, amsg, this.identity!.getWallet())
+        const result = await qa.dispatcher.emit(MessageType.ANSWERED_MESSAGE, amsg, this.identity!.getWallet())
 
         if (result) {
             this.emit(QakuEvents.NEW_ANSWER_PUBLISHED, questionHash)
@@ -485,11 +559,17 @@ export class Qaku extends EventEmitter {
         return false
     }
 
-    public async moderate(questionHash:string, moderated:boolean):Promise<boolean> {
-        if (!this.dispatcher || !this.currentId) throw new Error("Qaku not initialized properly")
+    public async moderate(id: Id, questionHash:string, moderated:boolean):Promise<boolean> {
+        const qa = this.qas.get(id)
+        if (!qa) throw new Error("failed to find QA")
 
+        if (!qa.dispatcher) throw new Error("QA's Dispatcher not initialized properly")
+
+        if (!qa.controlState) {
+            throw new Error("Q&A not initialized")
+        }
         const mmsg:ModerationMessage = { hash: questionHash, moderated: moderated }
-        const result = await this.dispatcher.emit(MessageType.MODERATION_MESSAGE, mmsg, this.identity!.getWallet())
+        const result = await qa.dispatcher.emit(MessageType.MODERATION_MESSAGE, mmsg, this.identity!.getWallet())
 
         if (result) {
             this.emit(QakuEvents.NEW_MODERATION_PUBLISHED, questionHash)
@@ -499,7 +579,16 @@ export class Qaku extends EventEmitter {
         return false
     }
 
-    public async newPoll(poll: Poll):Promise<boolean> {
+    public async newPoll(id: Id, poll: Poll):Promise<boolean> {
+        const qa = this.qas.get(id)
+        if (!qa) throw new Error("failed to find QA")
+
+        if (!qa.dispatcher) throw new Error("QA's Dispatcher not initialized properly")
+
+        if (!qa.controlState) {
+            throw new Error("Q&A not initialized")
+        }
+
         const ts = Date.now()
         const newPoll:NewPoll = {
             creator: this.identity!.address(),
@@ -513,8 +602,7 @@ export class Qaku extends EventEmitter {
             timestamp: ts
         }
 
-        const result = await this.dispatcher!.emitTo(this.dispatcher!.encoder!, MessageType.POLL_CREATE_MESSAGE, newPoll, this.identity!.getWallet(), this.dispatcher?.autoEncrypt, true)
-        console.log(result)
+        const result = await qa.dispatcher.emit(MessageType.POLL_CREATE_MESSAGE, newPoll, this.identity!.getWallet())
         if (result) {
             this.emit(QakuEvents.NEW_POLL_PUBLISHED, newPoll.poll.id)
             return true
@@ -523,22 +611,38 @@ export class Qaku extends EventEmitter {
         return false
     }
 
-    public async pollVote(pollId: string, option: number):Promise<boolean> {
-        if (!this.dispatcher || !this.currentId) throw new Error("Qaku not initialized properly")
+    public async pollVote(id: Id, pollId: string, option: number):Promise<boolean> {
+        const qa = this.qas.get(id)
+        if (!qa) throw new Error("failed to find QA")
 
-        const res = await this.dispatcher!.emit(MessageType.POLL_VOTE_MESSAGE, {id: pollId, option: option} as PollVote, this.identity!.getWallet())
+        if (!qa.dispatcher) throw new Error("QA's Dispatcher not initialized properly")
+
+        if (!qa.controlState) {
+            throw new Error("Q&A not initialized")
+        }
+
+        const res = await qa.dispatcher.emit(MessageType.POLL_VOTE_MESSAGE, {id: pollId, option: option} as PollVote, this.identity!.getWallet())
 
         if (!res) {
             console.error("Failed to vote on poll", pollId, option)
             return false
         }
 
-        this.history.updateType(this.currentId, HistoryTypes.PARTICIPATED)
+        this.history.updateType(id, HistoryTypes.PARTICIPATED)
         return true
     }
 
-    public async pollActive(pollId: string, newState: boolean):Promise<boolean> {
-        const res = await this.dispatcher!.emit(MessageType.POLL_ACTIVE_MESSAGE, {id: pollId, active: newState} as PollActive, this.identity!.getWallet())
+    public async pollActive(id: Id, pollId: string, newState: boolean):Promise<boolean> {
+        const qa = this.qas.get(id)
+        if (!qa) throw new Error("failed to find QA")
+
+        if (!qa.dispatcher) throw new Error("QA's Dispatcher not initialized properly")
+
+        if (!qa.controlState) {
+            throw new Error("Q&A not initialized")
+        }
+
+        const res = await qa.dispatcher.emit(MessageType.POLL_ACTIVE_MESSAGE, {id: pollId, active: newState} as PollActive, this.identity!.getWallet())
         if (!res) {
             console.error("Failed to set poll active state", pollId, newState)  
             return false
@@ -546,8 +650,11 @@ export class Qaku extends EventEmitter {
         return true
     }
 
-    public getQuestions(sortBy:QuestionSort[], show:QuestionShow[] = [QuestionShow.ALL]) {
-        let q = Array.from(this.questions.values())
+    public getQuestions(id: Id, sortBy:QuestionSort[], show:QuestionShow[] = [QuestionShow.ALL]) {
+        const qa = this.qas.get(id)
+        if (!qa) throw new Error("failed to find QA")
+
+        let q = Array.from(qa.questions.values())
         
         q = q.filter((v:EnhancedQuestionMessage) => {
             let res = false
@@ -614,6 +721,13 @@ export class Qaku extends EventEmitter {
 
     }
 
+    public getPolls(id: Id) {
+        const qa = this.qas.get(id)
+        if (!qa) throw new Error("failed to find QA")
+
+        return qa.polls
+    }
+
 
 /*
     public checkCodexAvailable = async ():Promise<boolean> => {
@@ -632,15 +746,29 @@ export class Qaku extends EventEmitter {
         return true
     }
 */
-    public async destroy() {
-        await destroyDispatcher()
-        this.controlState = undefined
-        this.questions = new Map<string, EnhancedQuestionMessage>()
-        this.polls = []
+    public async destroy(id: Id) {
+        const qa = this.qas.get(id)
+        if (!qa) return
+
+        
+        qa.controlState = undefined
+        qa.questions = new Map<string, EnhancedQuestionMessage>()
+        qa.polls = []
+        //this.state = QakuState.UNDEFINED
+        await qa.dispatcher?.stop()
+        qa.dispatcher = null
+
+        //this.currentId = undefined
+    }
+
+    public async destroyAll() {
         this.state = QakuState.UNDEFINED
-        this.dispatcher = null
         this.identity = undefined
         this.node = undefined
-        this.currentId = undefined
+        //this.currentId = undefined
+
+        for (const id of this.qas.keys()) {
+            this.destroy(id)
+        }
     }
 }

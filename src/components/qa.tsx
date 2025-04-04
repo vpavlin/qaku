@@ -76,7 +76,7 @@ const QA = () => {
                     <NewQuestion id={controlState.id} />
                 }
                 {(isOwner || isAdmin) &&
-                    <CreatePoll />
+                    <CreatePoll id={controlState.id} />
                 }
                 <div className="tabs tabs-lifted tabs-lg m-auto ">
                     <a href={`#${Tabs.Questions}`} className={`tab ${activeTab == Tabs.Questions && "tab-active"}`} onClick={() => setActiveTab(Tabs.Questions)}>Questions ({localQuestions.length})</a>
@@ -89,13 +89,13 @@ const QA = () => {
                             <div className="p-5">There are no questions yet.</div>
                         :
                             localQuestions.filter((msg => isAdmin || isOwner || !msg.moderated)).map((msg, i) =>
-                                <Question moderation={controlState!.moderation} msg={msg} key={i.toString()} />
+                                <Question id={controlState.id} moderation={controlState.moderation} msg={msg} key={i.toString()} />
                             )
                     )
                 }
                 {
                     activeTab == Tabs.Polls &&
-                        <Polls />
+                        <Polls id={controlState.id} />
                 }
                 </div>
                 

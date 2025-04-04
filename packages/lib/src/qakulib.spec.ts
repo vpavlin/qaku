@@ -77,7 +77,7 @@ describe('Qaku', () => {
     q.on(QakuEvents.NEW_ANSWER_PUBLISHED, (hash) => {
       console.log("New answer published for Q: ", hash)
     })
-    const qHash = await q.newQuestion(`Does this work? ${Date.now()}`)
+    const qHash = await q.newQuestion(id, `Does this work? ${Date.now()}`)
     expect(qHash).not.equal(undefined)
     await new Promise((r) => setTimeout(r, 1000))
     await q.answer(qHash!, "It might")
@@ -155,13 +155,16 @@ describe('Qaku', () => {
     })
     await q.init()
 
-    q.questions = data
+    const id = "abc"
 
-    console.log("Sort TIME DESC", q.getQuestions([QuestionSort.TIME_DESC]))
-    console.log("Sort UPVOTES, TIME", q.getQuestions([QuestionSort.UPVOTES_DESC, QuestionSort.TIME_ASC]))
-    console.log("Show ANSWERED", q.getQuestions([QuestionSort.UPVOTES_DESC, QuestionSort.TIME_ASC], [QuestionShow.ANSWERED]))
-    console.log("Show MODERATED", q.getQuestions([QuestionSort.UPVOTES_DESC, QuestionSort.TIME_ASC], [QuestionShow.MODERATED]))
-    console.log("Show ANSWERED + MODERATED", q.getQuestions([QuestionSort.UPVOTES_DESC, QuestionSort.TIME_ASC], [QuestionShow.ANSWERED, QuestionShow.MODERATED]))
+    q.qas.set(id, {dispatcher: null, controlState: undefined, polls: [], questions: data})
+
+
+    console.log("Sort TIME DESC", q.getQuestions(id, [QuestionSort.TIME_DESC]))
+    console.log("Sort UPVOTES, TIME", q.getQuestions(id, [QuestionSort.UPVOTES_DESC, QuestionSort.TIME_ASC]))
+    console.log("Show ANSWERED", q.getQuestions(id, [QuestionSort.UPVOTES_DESC, QuestionSort.TIME_ASC], [QuestionShow.ANSWERED]))
+    console.log("Show MODERATED", q.getQuestions(id, [QuestionSort.UPVOTES_DESC, QuestionSort.TIME_ASC], [QuestionShow.MODERATED]))
+    console.log("Show ANSWERED + MODERATED", q.getQuestions(id, [QuestionSort.UPVOTES_DESC, QuestionSort.TIME_ASC], [QuestionShow.ANSWERED, QuestionShow.MODERATED]))
 
   })
 })

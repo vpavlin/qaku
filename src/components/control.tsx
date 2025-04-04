@@ -42,7 +42,7 @@ const Control = ({id}: IProps) => {
                     <div>
                         <h1 className="font-bold">{controlState.title}</h1>
                         <div className="flex m-auto items-center justify-center">
-                            <div className="flex-col m-2"><button onClick={() => qaku?.switchQAState(!enabled)} disabled={!id || !controlState} className={`btn`}>{ enabled ? "disable" : "enable"}</button></div>
+                            <div className="flex-col m-2"><button onClick={() => qaku?.switchQAState(id, !enabled)} disabled={!id || !controlState} className={`btn`}>{ enabled ? "disable" : "enable"}</button></div>
                             
                         </div>
                     </div>

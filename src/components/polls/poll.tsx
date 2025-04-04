@@ -1,9 +1,13 @@
 import { useState } from "react";
 import { useQakuContext } from "../../hooks/useQaku";
 import { useToastContext } from "../../hooks/useToast";
-import { LocalPoll, PollVoter } from "qakulib";
+import { Id, LocalPoll, PollVoter } from "qakulib";
 
-const Polls = () => {
+interface IProps {
+    id: Id
+}
+
+const Polls = ({id}: IProps) => {
     const {polls, qaku, isOwner, isAdmin} = useQakuContext()
     const [submitting, setSubmitting] = useState(false)
     const {info, error} = useToastContext()
@@ -13,7 +17,7 @@ const Polls = () => {
         if (!qaku || !qaku.identity) return
         setSubmitting(true)
 
-        const res = await qaku.pollVote(pollId, option)
+        const res = await qaku.pollVote(id, pollId, option)
         setSubmitting(false)
         if (!res) {
             error("Failed to publish a vote")
@@ -25,7 +29,7 @@ const Polls = () => {
     const handleActiveSwitch = async (pollId: string, newState: boolean) => {
         if (!qaku! || !qaku.identity || (!isOwner && !isAdmin) ) return
         setSubmitting(true)
-        const res = await qaku.pollActive(pollId, newState)
+        const res = await qaku.pollActive(id, pollId, newState)
         setSubmitting(false)
         if (!res) {
             error("Failed to switch poll state")

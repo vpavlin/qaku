@@ -1,16 +1,10 @@
 import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityMessage, AnsweredMessage, ControlMessage, EnhancedQuestionMessage, MessageType, ModerationMessage, QakuMessage, QuestionMessage, DownloadSnapshot, UpvoteMessage, replacer, reviver, unique, qaHash } from "../utils/messages";
-import { DecodedMessage, bytesToUtf8, createDecoder, createEncoder, utf8ToBytes } from "@waku/sdk";
 import { CODEX_PUBLIC_URL_STORAGE_KEY, CODEX_URL_STORAGE_KEY, CONTENT_TOPIC_ACTIVITY, CONTENT_TOPIC_MAIN, CONTENT_TOPIC_PERSIST, DEFAULT_CODEX_URL, DEFAULT_PUBLIC_CODEX_URL, DEFAULT_PUBLISH_INTERVAL } from "../constants";
-import { sha256 } from "js-sha256";
-import { Wallet } from "ethers";
-import useIdentity from "./useIdentity";
 import { useWakuContext } from "./useWaku";
 import { Codex, CodexData } from "@codex-storage/sdk-js";
 import { getStoredSnapshotInfo, PersistentSnapshot, setStoredSnapshotInfo, Snapshot } from "../utils/snapshots";
-import { QakuCache } from "../utils/cache";
-import { sleep } from "../utils/utils";
-import {HistoryTypes, HistoryEntry, LocalPoll, Qaku, QakuEvents, QakuState, QuestionSort, History, HistoryEvents} from "qakulib"
+import {HistoryTypes, HistoryEntry, LocalPoll, Qaku, QakuEvents, QakuState, QuestionSort, History, HistoryEvents, Id} from "qakulib"
 
 export type QakuInfo = {
     qaku:Qaku | undefined;
@@ -53,6 +47,8 @@ interface Props {
     updateStatus: (msg:string, typ:string, delay?:number) => void;
     children: React.ReactNode;
 }
+
+const sorting = [QuestionSort.ANSWERED_ASC,QuestionSort.UPVOTES_DESC, QuestionSort.TIME_ASC]
 
 
 export const QakuContextProvider = ({ id, password, updateStatus, children }: Props) => {
@@ -332,53 +328,6 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
 
             const q = new Qaku(node as any) //FIXME
             setHistoryService(q.history)
-            q.on(QakuEvents.QAKU_STATE_UPDATE, (msg) => {
-                if (msg == QakuState.INIT_PROTOCOL) {
-                    setProtocolInitialized(true)
-                }
-                updateStatus(msg, "info", 2000)
-            })
-            const sorting = [QuestionSort.ANSWERED_ASC,QuestionSort.UPVOTES_DESC, QuestionSort.TIME_ASC]
-            q.on(QakuEvents.NEW_QUESTION, () => {
-                const questions = q.getQuestions(sorting)
-                console.log(questions)
-                setLocalQuestions(questions)
-            })
-
-            q.on(QakuEvents.NEW_ANSWER, () => {
-                const questions = q.getQuestions(sorting)
-                console.log(questions)
-                setLocalQuestions(questions)
-            })
-            q.on(QakuEvents.NEW_MODERATION, () => {
-                const questions = q.getQuestions(sorting)
-                console.log(questions)
-                setLocalQuestions(questions)
-            })
-            q.on(QakuEvents.NEW_UPVOTE, () => {
-                const questions = q.getQuestions(sorting)
-                console.log(questions)
-                setLocalQuestions(questions)
-            })
-            q.on(QakuEvents.NEW_CONTROL_MESSAGE, ((qid:string) => {
-                console.log(q.controlState, qid, id)
-                if (qid == id) {
-                    console.log("setting control state")
-                    setControlState(q.controlState)
-                }
-            }).bind(id))
-
-            q.on(QakuEvents.NEW_POLL, () => {
-                setPolls([...q.polls])
-            })
-
-            q.on(QakuEvents.NEW_POLL_VOTE, () => {
-                setPolls([...q.polls])
-            })
-
-            q.on(QakuEvents.POLL_STATE_CHANGE, (id) => {
-                setPolls([...q.polls])
-            })
 
             await q.init()
             console.log("Qaku is ready")
@@ -390,21 +339,70 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
     useEffect(() => {
         if (!qaku || !id || !node || (id && id.startsWith("X") && !password)) return;
    
+        const updateQuestions = (qid: Id) => {
+            console.log("update questions", qid, id)
+            if (qid != id) return
+            const questions = qaku.getQuestions(qid, sorting)
+            console.log(questions)
+            setLocalQuestions(questions)
+        } 
+
+        const updateControlState = (qid: Id) => {
+            if (qid != id) return
+            const qa = qaku.qas.get(qid)
+            if (!qa) {
+                console.error("QA not found")
+                return
+            }
+            console.log(qa.controlState, qid, id)
+            console.log("setting control state")
+            setControlState(qa.controlState)
+            setProtocolInitialized(true)
+            
+        }
+
+        const updatePolls = (qid: Id) => {
+            if (qid != id) return
+            const polls = qaku.getPolls(id)
+            setPolls([...polls])
+        }
 
         (async () => {
             setLoading(true)
 
-            console.log(qaku.controlState?.id, id, password)
-            if (!protocolInitialized) {
-                qaku.initQA(id, password)
+            let qa = qaku.qas.get(id)
+            if (!qa || !protocolInitialized) {
+               /* qaku.on(QakuEvents.QAKU_STATE_UPDATE, ((state: string, qid: Id) => {
+                    if (state == QakuState.INIT_PROTOCOL && qid == id) {
+                        setProtocolInitialized(true)
+                    }
+                }).bind(id))*/
+                qaku.on(QakuEvents.NEW_QUESTION, updateQuestions.bind(id))
+                qaku.on(QakuEvents.NEW_ANSWER, updateQuestions.bind(id))
+                qaku.on(QakuEvents.NEW_MODERATION, updateQuestions.bind(id))
+                qaku.on(QakuEvents.NEW_UPVOTE, updateQuestions.bind(id))
+                qaku.on(QakuEvents.NEW_CONTROL_MESSAGE, updateControlState.bind(id))
+    
+                qaku.on(QakuEvents.NEW_POLL, updatePolls.bind(id))
+                qaku.on(QakuEvents.NEW_POLL_VOTE, updatePolls.bind(id))
+                qaku.on(QakuEvents.POLL_STATE_CHANGE, updatePolls.bind(id))
+
+                await qaku.initQA(id, password)
+                qa = qaku.qas.get(id)
             }
+
+            if (!qa) {
+                updateStatus("Failed to find QA", "error", 2000)
+                return
+            }   
             
-            if (qaku.controlState && qaku.controlState.id == id) {
-                console.log("Setting control state in useQaku", qaku.controlState)
-                setControlState(qaku.controlState)
+            if (qa.controlState && qa.controlState.id == id) {
+                console.log("Setting control state in useQaku", qa.controlState)
+                setControlState(qa.controlState)
+                setProtocolInitialized(true)
             }
             if (lastId == undefined) {
-                setLastId(id    )
+                setLastId(id)
             }
             updateStatus("Qaku initialized", "info", 2000)
             setLoading(false)
@@ -419,8 +417,32 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
         return () => {
             clearInterval(codexCheckInterval)
         }
-    }, [id, qaku, password])
+    }, [id, qaku, password, protocolInitialized])
 
+    useEffect(() => {
+        if (!qaku) return
+
+        (async () => {
+            const qas = qaku.history.getAll().filter(qa => qa.type == HistoryTypes.CREATED || qa.type == HistoryTypes.ADMIN)
+            for (const qa of qas) {
+                if (!qa.isActive) continue
+
+               await qaku.initQA(qa.id, qa.password).then((res) => console.log("QA initialized: ", id))
+            }
+        })()
+
+    }, [qaku])
+
+    useEffect(() => {
+        if (!controlState || !id || !qaku) return
+        console.log("Loading")
+
+        const questions = qaku.getQuestions(id, sorting)
+        setLocalQuestions(questions)
+
+        const polls = qaku.getPolls(id)
+        setPolls(polls)
+    }, [controlState])
     /*useEffect(() => {
         if (!qaku || !wallet || !id || !controlState) return
 
@@ -446,27 +468,52 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
     useEffect(() => {
         console.log("LastID vs. new ID", lastId, id)
         if (lastId != undefined && id != lastId) {
-            (async () =>{
-                console.log("Destroying everything!")
-                setQaku(undefined)
-                clearInterval(codexCheckInterval)
-                clearInterval(regularSnapshotInterval)
-                setLastId(id)
+            console.log("Destroying everything!")
+
+            //setQaku(undefined)
+            clearInterval(codexCheckInterval)
+            clearInterval(regularSnapshotInterval)
+            
+            //setControlState(undefined)
+ 
+            //setQuestions(new Map<string, EnhancedQuestionMessage>())
+            
+            //setPolls([])
+            //setLocalQuestions([])
+            //await qaku?.destroy() //FIXME: Will this work?
+            //setHistoryService(undefined)
+            console.log("Destroyed everything!")
+            if (!qaku || !id) return
+
+            if (!qaku.qas.get(id)) {
                 setControlState(undefined)
-                setOwner(false)
-                setAdmin(false)
                 setQuestions(new Map<string, EnhancedQuestionMessage>())
-                setActive(1)
-                setSnapshot(undefined)
                 setPolls([])
                 setLocalQuestions([])
-                await qaku?.destroy() //FIXME: Will this work?
-                setProtocolInitialized(false)
-                setHistoryService(undefined)
-                console.log("Destroyed everything!")
+                return
+            } else {
+                const sorting = [QuestionSort.ANSWERED_ASC,QuestionSort.UPVOTES_DESC, QuestionSort.TIME_ASC]
+                const questions = qaku.getQuestions(id, sorting)
+                console.log(questions)
+                setLocalQuestions(questions)
 
-            })()
+                const polls = qaku.getPolls(id)
+                setPolls([...polls])
+            }
         }
+
+        if (lastId != undefined && id == undefined) {
+            setControlState(undefined)
+            setPolls([])
+            setLocalQuestions([])
+        }
+
+        setLastId(id)
+        setOwner(false)
+        setAdmin(false)
+        setSnapshot(undefined)
+        setProtocolInitialized(false)
+
     }, [id])
 
     useEffect(() => {
