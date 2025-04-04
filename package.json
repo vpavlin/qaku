@@ -12,9 +12,9 @@
     "@types/node": "^16.18.46",
     "@types/react": "^18.2.21",
     "@types/react-dom": "^18.2.7",
+    "@waku/interfaces": "0.0.29",
     "@waku/message-encryption": "0.0.32",
     "@waku/sdk": "0.0.30",
-    "@waku/interfaces":"0.0.29",
     "@yudiel/react-qr-scanner": "^1.1.10",
     "buffer": "^6.0.3",
     "daisyui": "^4.12.22",
@@ -40,7 +40,6 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
-
   "browserslist": {
     "production": [
       ">0.2%",
