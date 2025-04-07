@@ -12,15 +12,16 @@
     "@types/node": "^16.18.46",
     "@types/react": "^18.2.21",
     "@types/react-dom": "^18.2.7",
+    "@waku/interfaces": "0.0.29",
     "@waku/message-encryption": "0.0.32",
     "@waku/sdk": "0.0.30",
-    "@waku/interfaces":"0.0.29",
     "@yudiel/react-qr-scanner": "^1.1.10",
     "buffer": "^6.0.3",
     "daisyui": "^4.12.22",
     "elliptic": "^6.5.4",
     "ethers": "^6.12.0",
     "js-sha256": "^0.10.1",
+    "qakulib": "./packages/lib",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-icons": "^4.11.0",
@@ -29,20 +30,14 @@
     "react-router-dom": "^6.15.0",
     "react-scripts": "5.0.1",
     "typescript": "^4.9.5",
-    "waku-dispatcher": "^0.0.21",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
+    "preinstall": "cd packages/lib/ && npm install && npm run build",
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
-  },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
   },
   "browserslist": {
     "production": [

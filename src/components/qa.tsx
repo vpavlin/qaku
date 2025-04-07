@@ -4,7 +4,6 @@ import { useQakuContext } from "../hooks/useQaku";
 import Question from "./question";
 import CreatePoll from "./polls/create";
 import { useEffect, useState } from "react";
-import Poll from "./polls/poll";
 import Polls from "./polls/poll";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 
@@ -15,7 +14,7 @@ enum Tabs {
 
 const QA = () => {
 
-    const  { controlState, localQuestions, dispatcher, isOwner, isAdmin, polls, loading } = useQakuContext()
+    const  { controlState, localQuestions, qaku, isOwner, isAdmin, polls, ready } = useQakuContext()
     const {hash} = useLocation()
     
     const navigate = useNavigate();
@@ -57,10 +56,8 @@ const QA = () => {
                     <div><button className="btn btn-lg" onClick={() => navigate(`/q/${id}/${passwordInput}`)}>Unlock</button></div>
                 </div>
             }
-            <div>
-                <button className="btn btn-sm" disabled={!dispatcher} onClick={() => {dispatcher?.clearDuplicateCache();dispatcher?.dispatchQuery()} }>Force Reload</button>
-            </div>
-            {!dispatcher && <span className="loading loading-lg"></span>}
+    
+            {!ready && <span className="loading loading-lg"></span>}
             { controlState &&
             <div  className="space-y-3">
                 {controlState.moderation && <div className="bg-error text-error-content text-xl rounded-md m-3 p-3"> This Q&A can be moderated by owner (i.e. questions can be hidden!)</div>}
@@ -79,7 +76,7 @@ const QA = () => {
                     <NewQuestion id={controlState.id} />
                 }
                 {(isOwner || isAdmin) &&
-                    <CreatePoll />
+                    <CreatePoll id={controlState.id} />
                 }
                 <div className="tabs tabs-lifted tabs-lg m-auto ">
                     <a href={`#${Tabs.Questions}`} className={`tab ${activeTab == Tabs.Questions && "tab-active"}`} onClick={() => setActiveTab(Tabs.Questions)}>Questions ({localQuestions.length})</a>
@@ -92,13 +89,13 @@ const QA = () => {
                             <div className="p-5">There are no questions yet.</div>
                         :
                             localQuestions.filter((msg => isAdmin || isOwner || !msg.moderated)).map((msg, i) =>
-                                <Question moderation={controlState!.moderation} msg={msg} key={i.toString()} />
+                                <Question id={controlState.id} moderation={controlState.moderation} msg={msg} key={i.toString()} />
                             )
                     )
                 }
                 {
                     activeTab == Tabs.Polls &&
-                        <Polls />
+                        <Polls id={controlState.id} />
                 }
                 </div>
                 
@@ -109,3 +106,8 @@ const QA = () => {
 }
 
 export default QA;
+
+/*       <!--<div>
+<button className="btn btn-sm" disabled={!qaku} onClick={() => {dispatcher?.clearDuplicateCache();dispatcher?.dispatchQuery()} }>Force Reload</button>
+</div>-->
+*/
