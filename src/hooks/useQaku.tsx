@@ -1,9 +1,7 @@
 import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityMessage, AnsweredMessage, ControlMessage, EnhancedQuestionMessage, MessageType, ModerationMessage, QakuMessage, QuestionMessage, DownloadSnapshot, UpvoteMessage, replacer, reviver, unique, qaHash } from "../utils/messages";
-import { CODEX_PUBLIC_URL_STORAGE_KEY, CODEX_URL_STORAGE_KEY, CONTENT_TOPIC_ACTIVITY, CONTENT_TOPIC_MAIN, CONTENT_TOPIC_PERSIST, DEFAULT_CODEX_URL, DEFAULT_PUBLIC_CODEX_URL, DEFAULT_PUBLISH_INTERVAL } from "../constants";
+import { ActivityMessage, AnsweredMessage, ControlMessage, EnhancedQuestionMessage } from "../utils/messages";
+import { CODEX_PUBLIC_URL_STORAGE_KEY, CODEX_URL_STORAGE_KEY, DEFAULT_CODEX_URL, DEFAULT_PUBLIC_CODEX_URL, DEFAULT_PUBLISH_INTERVAL } from "../constants";
 import { useWakuContext } from "./useWaku";
-import { Codex, CodexData } from "@codex-storage/sdk-js";
-import { getStoredSnapshotInfo, PersistentSnapshot, setStoredSnapshotInfo, Snapshot } from "../utils/snapshots";
 import {HistoryTypes, HistoryEntry, LocalPoll, Qaku, QakuEvents, QakuState, QuestionSort, History, HistoryEvents, Id} from "qakulib"
 
 export type QakuInfo = {
@@ -87,238 +85,11 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
 
     const [ loading, setLoading ] = useState<boolean>(false)
 
-    const [ snapshot, setSnapshot ] = useState<Snapshot>()
-    const [ regularSnapshotInterval, setRegularSnapshotInterval] = useState<NodeJS.Timer>()
-
-    const [processingSnapshot, setProcessingSnapshot] = useState<string>()
-
     const codexURL = localStorage.getItem(CODEX_URL_STORAGE_KEY) || DEFAULT_CODEX_URL
     const publicCodexURL = localStorage.getItem(CODEX_PUBLIC_URL_STORAGE_KEY) || DEFAULT_PUBLIC_CODEX_URL
 
     const [codexAvailable, setCodexAvailable] = useState(false)
-    const [ codexCheckInterval, setCodexCheckInterval] = useState<NodeJS.Timer>()
 
-
-   /* const importPrivateKey = async (result: string) => {
-        const parsed = JSON.parse(result)
-        storePrivateKey(parsed.key)
-
-        if (parsed.history)
-            setHistory(parsed.history)
-        
-        window.location.reload()
-
-    }*/
-
-    /*const doSnapshot = ():DownloadSnapshot | undefined => {
-        if (!controlState || localQuestions.length == 0 || !wallet) return
-
-        const snap = {
-            metadata: controlState,
-            polls: polls,
-            questions: localQuestions,
-            signature: ""
-        }
-
-        const sig = wallet.signMessageSync(JSON.stringify(snap))
-
-        snap.signature = sig
-       
-        return snap
-    }*/
-
-
-   /* const publishSnapshot = async () => {
-        if (!qaku || !wallet || !id) return 
-
-        const encoder = createEncoder({contentTopic: CONTENT_TOPIC_PERSIST, ephemeral: true, pubsubTopicShardInfo: {clusterId: 42, shard: 0}})
-        const snap = await dispatcher.getLocalMessages()
-
-        if (!snap) {
-            console.error("Failed to get snapshot")
-            return
-        }
-
-        const codex = new Codex(codexURL);
-
-        try {
-            const cache = new QakuCache(publicCodexURL)
-            const infoResp = await cache.info()
-            if (infoResp.error) {
-                console.error("Failed to get a public cache Codex node info")
-            }   
-
-            const data = await (infoResp.data as Response).json()
-            const res = await codex.node.connect(data.peerId, [data.addr])
-            if (res.error) {
-                console.error(res.data)
-            }
-        } catch (e) {
-            console.error(e)
-        }
-
-        try {
-            const serialized = JSON.stringify(snap)
-            const hash = sha256(serialized)
-
-            const toPersist: PersistentSnapshot = {hash: hash, owner: wallet.address, messages: snap}
-            console.log(toPersist)
-
-            const storedSnap = getStoredSnapshotInfo(id)
-
-            //let cid = storedSnap?.cid
-            const timestamp = Date.now()
-            //console.log(cid)
-            
-            const res = await codex.data.upload(JSON.stringify(toPersist), undefined, {filename: hash, mimetype: "application/json"}).result
-            console.log(res)
-            if (res.error) {
-                console.error("Failed to upload to Codex:", res.data)
-                updateStatus("Failed to upload snapshot to Codex", "error")
-                return
-            }
-            
-            const cid = res.data as string
-            console.log(cid)
-            const smsg: Snapshot = {hash: hash, cid: cid, timestamp: timestamp}
-            console.log(smsg)
-            const result = await qaku.dispatcher!.emitTo(encoder, MessageType.PERSIST_SNAPSHOT, smsg, wallet, false)
-            if (!result) {
-                console.error("Failed to publish")
-            }
-            
-            const toStore:Snapshot = {cid: cid!, hash: hash, timestamp: timestamp} 
-            const result2 =  await qaku.dispatcher!.emit(MessageType.SNAPSHOT, toStore as Snapshot, wallet)
-            if (!result2) {
-                console.error("Failed to publish snapshot")
-                updateStatus("Failed to publish a snapsthot", "error")
-                return
-            }
-
-            updateStatus("Published snapshot with CID \n" + cid, "info", 5000)
-            setStoredSnapshotInfo(id, toStore)
-        } catch(e) {
-            console.error(e)
-            updateStatus("Failed to publish a snapsthot", "error")
-            return
-        }
-
-    }
-
-    const importFromSnapshot = async (cid:string):Promise<boolean> => {
-        if (!qaku || !id) return false
-        let codex: CodexData | QakuCache | undefined = undefined
-        
-        codex = new Codex(codexURL).data;
-        const spaceResp = await codex.space()
-        if (spaceResp.error) {
-           codex = new QakuCache(publicCodexURL)
-        }
-        
-        
-        let response: Response | null = null
-        let persisted:PersistentSnapshot | null = null
-        for (let i=0;i < 5;i++) {
-            try {
-                const data = await codex.networkDownloadStream(cid)
-                if (data.error) {
-                    console.error(data.data)
-                    await sleep((i+1)*2000)
-                    continue
-                }
-                response = data.data as Response
-                persisted = await response.json()
-            } catch(e) {
-                await sleep((i+1)*2000)
-                continue
-            }
-            break;
-        }
-
-        if (!response) {
-            updateStatus("Failed to get a snapshot", "error")
-            console.error("failed to get a snapshot")
-            return false
-        }
-         
-        if(!persisted || !persisted.messages || persisted.messages.length == 0) return false
-
-        setProcessingSnapshot(persisted.hash)
-
-        const [dmsg, encrypted] = await qaku.dispatcher!.decryptMessage(persisted.messages[0].dmsg.payload)
-
-        if (qaku.dispatcher!.autoEncrypt != encrypted) {
-            console.error("expected ", encrypted ? "encrypted" :"plain", "message")
-            setProcessingSnapshot(undefined)
-            return false
-        }
-
-        if (dmsg.type != MessageType.CONTROL_MESSAGE) {
-            console.error("expeced CONTROL_MESSAGE, got", dmsg.type)
-            setProcessingSnapshot(undefined)
-            return false
-        }
-
-        if (dmsg.signer != persisted.owner) {
-            console.error("unexpected signer ", dmsg.signer, "!=", persisted.owner)
-            setProcessingSnapshot(undefined)
-            return false
-        }
-        const cmsg:ControlMessage = dmsg.payload
-        const testId = qaHash(cmsg.title, cmsg.timestamp, cmsg.owner)
-        const pureId = id?.startsWith('X') ? id.slice(1) : id
-
-        if (testId != cmsg.id || testId != pureId) {
-            console.error("unexpected QA id", testId)
-            setProcessingSnapshot(undefined)
-            return false
-        }
-
-        
-        console.log(processingSnapshot)
-        console.log(persisted)
-
-        if (processingSnapshot && processingSnapshot == persisted.hash) {
-            return false
-        }
-        updateStatus("Importing snapshot", "info", 2000)
-
-        try {
-            await qaku.dispatcher!.importLocalMessage(persisted.messages)
-            console.debug("imported, dispatching local query")
-            updateStatus("Successfully imported messaged from snapshot", "success", 3000)
-        } catch (e) {
-            console.error(e)
-            setProcessingSnapshot(undefined)
-            return false
-
-        }
-
-        //console.debug("about to dispatch local query")
-        qaku.dispatcher!.clearDuplicateCache()
-        await qaku.dispatcher!.dispatchLocalQuery()
-        //console.debug("done with local query")
-
-        setProcessingSnapshot(undefined)
-
-        return true
-    
-    }*/
-
-    const checkCodexAvailable = async () => {
-        const codex = new Codex(codexURL);
-        const res = await codex.debug.info()
-        if (res.error) {
-            setCodexAvailable(false)
-            return
-        }
-        if (res.data.table.nodes.length < 5) {
-            setCodexAvailable(false)
-            return
-        }
-
-        setCodexAvailable(true)
-    }
 
     useEffect(() => {
         console.log(qaku)
@@ -329,7 +100,7 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
             const q = new Qaku(node as any) //FIXME
             setHistoryService(q.history)
 
-            await q.init()
+            await q.init(codexURL, publicCodexURL)
             console.log("Qaku is ready")
             setQaku(q)
         })()
@@ -348,6 +119,7 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
         } 
 
         const updateControlState = (qid: Id) => {
+            console.log("Update control state", qid, id)
             if (qid != id) return
             const qa = qaku.qas.get(qid)
             if (!qa) {
@@ -358,6 +130,7 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
             console.log("setting control state")
             setControlState(qa.controlState)
             setProtocolInitialized(true)
+            updateQuestions(qid)
             
         }
 
@@ -369,6 +142,15 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
 
         (async () => {
             setLoading(true)
+            qaku.on(QakuEvents.NEW_QUESTION, updateQuestions)
+            qaku.on(QakuEvents.NEW_ANSWER, updateQuestions)
+            qaku.on(QakuEvents.NEW_MODERATION, updateQuestions)
+            qaku.on(QakuEvents.NEW_UPVOTE, updateQuestions)
+            qaku.on(QakuEvents.NEW_CONTROL_MESSAGE, updateControlState)
+
+            qaku.on(QakuEvents.NEW_POLL, updatePolls.bind(id))
+            qaku.on(QakuEvents.NEW_POLL_VOTE, updatePolls.bind(id))
+            qaku.on(QakuEvents.POLL_STATE_CHANGE, updatePolls.bind(id))
 
             let qa = qaku.qas.get(id)
             if (!qa || !protocolInitialized) {
@@ -377,15 +159,6 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
                         setProtocolInitialized(true)
                     }
                 }).bind(id))*/
-                qaku.on(QakuEvents.NEW_QUESTION, updateQuestions.bind(id))
-                qaku.on(QakuEvents.NEW_ANSWER, updateQuestions.bind(id))
-                qaku.on(QakuEvents.NEW_MODERATION, updateQuestions.bind(id))
-                qaku.on(QakuEvents.NEW_UPVOTE, updateQuestions.bind(id))
-                qaku.on(QakuEvents.NEW_CONTROL_MESSAGE, updateControlState.bind(id))
-    
-                qaku.on(QakuEvents.NEW_POLL, updatePolls.bind(id))
-                qaku.on(QakuEvents.NEW_POLL_VOTE, updatePolls.bind(id))
-                qaku.on(QakuEvents.POLL_STATE_CHANGE, updatePolls.bind(id))
 
                 await qaku.initQA(id, password)
                 qa = qaku.qas.get(id)
@@ -400,22 +173,28 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
                 console.log("Setting control state in useQaku", qa.controlState)
                 setControlState(qa.controlState)
                 setProtocolInitialized(true)
+                updateQuestions(id)
             }
             if (lastId == undefined) {
                 setLastId(id)
             }
             updateStatus("Qaku initialized", "info", 2000)
             setLoading(false)
-        
-        
-            //checkCodexAvailable()
-            //setCodexCheckInterval(setInterval(checkCodexAvailable, 3000))
          
             setLoading(false)
         })()
 
         return () => {
-            clearInterval(codexCheckInterval)
+            console.log("Clearing Qaku listeners")
+            qaku.off(QakuEvents.NEW_QUESTION, updateQuestions)
+            qaku.off(QakuEvents.NEW_ANSWER, updateQuestions)
+            qaku.off(QakuEvents.NEW_MODERATION, updateQuestions)
+            qaku.off(QakuEvents.NEW_UPVOTE, updateQuestions)
+            qaku.off(QakuEvents.NEW_CONTROL_MESSAGE, updateControlState)
+
+            qaku.off(QakuEvents.NEW_POLL, updatePolls.bind(id))
+            qaku.off(QakuEvents.NEW_POLL_VOTE, updatePolls.bind(id))
+            qaku.off(QakuEvents.POLL_STATE_CHANGE, updatePolls.bind(id))
         }
     }, [id, qaku, password, protocolInitialized])
 
@@ -443,27 +222,7 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
         const polls = qaku.getPolls(id)
         setPolls(polls)
     }, [controlState])
-    /*useEffect(() => {
-        if (!qaku || !wallet || !id || !controlState) return
 
-        if (wallet.address != controlState.owner) return
-
-        const snap = getStoredSnapshotInfo(id)
-
-        if (!snap || snap.timestamp+DEFAULT_PUBLISH_INTERVAL < Date.now()) {
-            console.log("Publishing snapshot")
-            console.log(snap)
-            publishSnapshot()
-        } else {
-            console.log("no need to publish")
-        }
-
-        setRegularSnapshotInterval(setInterval(publishSnapshot, DEFAULT_PUBLISH_INTERVAL))
-
-        return () => {
-            clearInterval(regularSnapshotInterval)
-        }
-    }, [qaku, wallet, id, controlState])*/
 
     useEffect(() => {
         console.log("LastID vs. new ID", lastId, id)
@@ -471,8 +230,6 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
             console.log("Destroying everything!")
 
             //setQaku(undefined)
-            clearInterval(codexCheckInterval)
-            clearInterval(regularSnapshotInterval)
             
             //setControlState(undefined)
  
@@ -511,7 +268,6 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
         setLastId(id)
         setOwner(false)
         setAdmin(false)
-        setSnapshot(undefined)
         setProtocolInitialized(false)
 
     }, [id])
@@ -544,23 +300,6 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
         if (!activeList) return
         setActive(activeList.length)
     }, [activeList])
-
-    /*useEffect(() => {
-        if (!qaku || !snapshot || !id) return
-
-        (async () => {
-            try {
-                console.log(snapshot)
-                if (await importFromSnapshot(snapshot.cid)) {
-                    setStoredSnapshotInfo(id, snapshot)
-                }
-            } catch (e) {
-                console.error(e)
-            }
-        })()
-
-
-    }, [qaku, snapshot, id])*/
 
     const qakuInfo = useMemo(
         () => ({

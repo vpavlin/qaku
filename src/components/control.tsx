@@ -4,7 +4,7 @@ import { EnhancedQuestionMessage, DownloadSnapshot } from "../utils/messages"
 
 interface IProps {
     id: string
-}
+} 
 
 const Control = ({id}: IProps) => {
     const {controlState, qaku, isOwner, localQuestions, polls} = useQakuContext()
@@ -43,8 +43,11 @@ const Control = ({id}: IProps) => {
                         <h1 className="font-bold">{controlState.title}</h1>
                         <div className="flex m-auto items-center justify-center">
                             <div className="flex-col m-2"><button onClick={() => qaku?.switchQAState(id, !enabled)} disabled={!id || !controlState} className={`btn`}>{ enabled ? "disable" : "enable"}</button></div>
-                            
+                            <div className="flex-col m-2">
+                                { (localQuestions.length > 0 || polls.length > 0) && <button className="btn" onClick={()=> qaku?.snapshotManager?.publishSnapshot(id)}>Publish Snapshot</button>}
+                            </div>   
                         </div>
+
                     </div>
                 </div>
                 </>

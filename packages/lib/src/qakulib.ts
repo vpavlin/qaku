@@ -3,7 +3,7 @@ import { Dispatcher, DispatchMetadata, Signer, Store} from "waku-dispatcher"
 import { AnsweredMessage, ControlMessage, EnhancedQuestionMessage, Id, LocalPoll, MessageType, ModerationMessage, NewPoll, Poll, PollActive, PollVote, QakuEvents, QakuState, QAList, QAType, QuestionMessage, QuestionShow, QuestionSort, UpvoteMessage } from "./types.js";
 import { createEncoder, LightNode, utf8ToBytes,  } from "@waku/sdk";
 import { Protocols } from "@waku/interfaces"
-import { CONTENT_TOPIC_MAIN } from "./constants.js";
+import { CONTENT_TOPIC_MAIN, DEFAULT_CODEX_URL, DEFAULT_PUBLIC_CODEX_URL } from "./constants.js";
 import { sha256 } from "js-sha256";
 import { EventEmitter } from "events";
 import { Identity } from "./identity.js";
@@ -12,6 +12,7 @@ import sortArray from "sort-array";
 import { contentTopicToShardIndex, pubsubTopicsToShardInfo } from "@waku/utils"
 import { History } from "./history/history.js";
 import { HistoryTypes } from "./history/types.js";
+import { SnapshotManager } from "./snapshot/snapshot.js";
 
 
 export class Qaku extends EventEmitter {
@@ -22,13 +23,10 @@ export class Qaku extends EventEmitter {
     node:LightNode | undefined = undefined
     history:History = new History()
     dispatcher:Dispatcher | null = null
-    //controlState:ControlMessage | undefined = undefined
+    snapshotManager:SnapshotManager | null = null
     identity:Identity | undefined = undefined
 
-   // currentId: string | undefined = undefined
-
-    //questions:QuestionList = new Map<string, EnhancedQuestionMessage>()
-    //polls:LocalPoll[] = []
+    store: Store | undefined = undefined 
 
     qas:QAList = new Map<Id, QAType>()
 
@@ -36,9 +34,10 @@ export class Qaku extends EventEmitter {
         super();
 
         this.node = node
+        this.store = new Store(`qaku`)   
     }
 
-    public async init() {
+    public async init(codexURL?: string, qakuCacheURL?: string) {
         if (this.state == QakuState.INITIALIZED) {
             console.error("Already initialized")
             return
@@ -56,6 +55,7 @@ export class Qaku extends EventEmitter {
                     throw new Error("Failed to initialize Waku Dispatcher")
                 }
                 this.dispatcher = disp 
+
         
                 this.state = QakuState.INIT_IDENTITY
                 this.emit(QakuEvents.QAKU_STATE_UPDATE, this.state)
@@ -65,7 +65,10 @@ export class Qaku extends EventEmitter {
                 this.state = QakuState.INITIALIZED
                 this.emit(QakuEvents.QAKU_STATE_UPDATE, this.state)
 
-                
+                codexURL = codexURL || DEFAULT_CODEX_URL
+                qakuCacheURL = qakuCacheURL || DEFAULT_PUBLIC_CODEX_URL
+
+                this.snapshotManager = new SnapshotManager({codexURL: codexURL, publicCodexURL: qakuCacheURL}, this.identity, this.qas)              
             }
             if (!this.dispatcher) {
                 this.state = QakuState.FAILED
@@ -92,14 +95,9 @@ export class Qaku extends EventEmitter {
 
         //await this.dispatcher?.stop()
 
-        let s: Store
-        try {
-            s = new Store(`qaku-${id}`)   
-        } catch(e) {
-            console.error(e)
-            throw e
-        }  
-        const disp = new Dispatcher(this.node as any, "", false, s)
+        if (!this.store) throw new Error("Store not initialized")
+
+        const disp = new Dispatcher(this.node as any, "", false, this.store)
         if (!disp) {
             throw new Error("Failed to init QA: dispatcher recreation failed")
         }
@@ -126,6 +124,8 @@ export class Qaku extends EventEmitter {
         disp.on(MessageType.POLL_CREATE_MESSAGE, this.handlePollCreateMessage.bind(this, id), true, disp.autoEncrypt)
         disp.on(MessageType.POLL_VOTE_MESSAGE, this.handlePollVoteMessage.bind(this, id), true, disp.autoEncrypt)
         disp.on(MessageType.POLL_ACTIVE_MESSAGE, this.handlePollActiveMessage.bind(this,id), true, disp.autoEncrypt)
+
+        disp.on(MessageType.SNAPSHOT, this.snapshotManager!.handleSnapshotMessage.bind(this.snapshotManager, id, this.identity!), true, disp.autoEncrypt, disp.contentTopic, false)
         await disp.start()
 
         if (!this.history.get(id))
@@ -144,6 +144,8 @@ export class Qaku extends EventEmitter {
                 await disp.dispatchQuery()
                 console.log(qa.questions)
             }
+
+            this.snapshotManager?.startPublishLoop(id)
 
             this.emit(QakuEvents.QAKU_STATE_UPDATE, {state: QakuState.INIT_PROTOCOL, id: id})
         } catch (e) {
@@ -501,11 +503,11 @@ export class Qaku extends EventEmitter {
         }
         
         const qmsg:QuestionMessage = {question: question, timestamp: new Date()}
-        const result = await qa.dispatcher.emit(MessageType.QUESTION_MESSAGE, qmsg)
+        const result = await qa.dispatcher.emit(MessageType.QUESTION_MESSAGE, qmsg, this.identity!.getWallet())
         if (result) {
             this.history.updateType(id, HistoryTypes.PARTICIPATED)
 
-            this.emit(QakuEvents.NEW_QUESTION_PUBLISHED, qa.controlState.id, this.identity!.getWallet())
+            this.emit(QakuEvents.NEW_QUESTION_PUBLISHED, qa.controlState.id)
             return questionHash(qmsg)
         }  
 
@@ -727,24 +729,6 @@ export class Qaku extends EventEmitter {
         return qa.polls
     }
 
-
-/*
-    public checkCodexAvailable = async ():Promise<boolean> => {
-        const codex = new Codex(this.codexURL);
-        const res = await codex.debug.info()
-        if (res.error) {
-            //setCodexAvailable(false)
-            return false
-        }
-        if (res.data.table.nodes.length < 5) {
-            //setCodexAvailable(false)
-            return false
-        }
-
-        //setCodexAvailable(true)
-        return true
-    }
-*/
     public async destroy(id: Id) {
         const qa = this.qas.get(id)
         if (!qa) return
@@ -768,6 +752,7 @@ export class Qaku extends EventEmitter {
 
         for (const id of this.qas.keys()) {
             this.destroy(id)
+            this.snapshotManager?.cleanupInterval(id)
         }
     }
 }

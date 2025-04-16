@@ -1,6 +1,6 @@
 {
   "name": "qakulib",
-  "version": "0.0.1",
+  "version": "0.0.4",
   "main": "index.js",
   "type": "module",
   "types": "./dist/index.d.ts",
@@ -25,13 +25,14 @@
   "homepage": "https://github.com/vpavlin/qaku#readme",
   "description": "",
   "dependencies": {
+    "@codex-storage/sdk-js": "^0.0.16",
     "@waku/interfaces": "0.0.29",
     "@waku/sdk": "0.0.30",
     "@waku/utils": "0.0.22",
     "js-sha256": "^0.11.0",
     "node-localstorage": "^3.0.5",
     "sort-array": "^5.0.0",
-    "waku-dispatcher": "^0.0.22"
+    "waku-dispatcher": "^0.0.23-dev"
   },
   "devDependencies": {
     "@eslint/js": "^9.20.0",

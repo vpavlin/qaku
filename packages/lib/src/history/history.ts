@@ -135,5 +135,4 @@ export class History extends EventEmitter {
 
         return this.history[i]
     }
-
 }
