@@ -142,12 +142,9 @@ export class Qaku extends EventEmitter {
             console.log("Dispatching local query")
             await disp.dispatchLocalQuery() 
 
-            console.log(qa.questions)
-
             if (qa.questions.size == 0) {
                 console.log("Dispatching general query")
                 await disp.dispatchQuery()
-                console.log(qa.questions)
             }
 
             this.snapshotManager?.startPublishLoop(id)
@@ -204,7 +201,6 @@ export class Qaku extends EventEmitter {
 
         if (!isQAEnabled(qa.controlState)) throw Error("upvote: Q&A closed")
         if (payload.delegationInfo && !await this.verifyDelegationInfo(payload.delegationInfo, signer)) throw new Error("failed to verify delegation info")
-        console.log(payload.delegationInfo)
 
         const hash = sha256(JSON.stringify(payload))
         if (qa.questions.has(hash)) {
@@ -454,8 +450,7 @@ export class Qaku extends EventEmitter {
         const shardIndex = contentTopicToShardIndex(contentTopic, shardInfo.shards.length)
         //dispatcher.on(MessageType.CONTROL_MESSAGE, () => {})
         const encoder = createEncoder({ contentTopic: contentTopic, ephemeral: false, pubsubTopicShardInfo: {clusterId: shardInfo.clusterId, shard: shardIndex} })
-        const result = await qa.dispatcher!.emitTo(encoder, MessageType.CONTROL_MESSAGE, cmsg, this.identity!.getWallet(), key, true)
-        console.debug(result)
+        const result = await qa.dispatcher!.emitTo(encoder, MessageType.CONTROL_MESSAGE, cmsg, this.identity!.getWallet(), key, false)
         if (result) {
             try {
                 this.history.add(hash, HistoryTypes.CREATED, password, title, ts.valueOf(), enabled, desc)
@@ -587,7 +582,6 @@ export class Qaku extends EventEmitter {
 
         if (useExternal) {
             qmsg.delegationInfo = await this.getDelegationInfo()
-            console.log("Delegation info attached!", qmsg.delegationInfo)
         }
 
 

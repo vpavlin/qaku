@@ -8,6 +8,7 @@ import { qaHash } from '../utils.js';
 import { CONTENT_TOPIC_PERSIST } from '../constants.js';
 import { DispatchMetadata, Signer } from 'waku-dispatcher';
 import { Identity } from '../identity.js';
+import { contentTopicToShardIndex, pubsubTopicsToShardInfo } from '@waku/utils';
 
 export class SnapshotManager {
     private codex: Codex;
@@ -15,6 +16,7 @@ export class SnapshotManager {
     private identity: Identity; // replace with actual wallet type
     private qas: QAList;
     private intervals: Map<string,  NodeJS.Timeout>
+    private processingSnapshots: Map<string, string>
 
     constructor(codexOptions: CodexOptions, wallet: Identity, qas: QAList) {
         this.codex = new Codex(codexOptions.codexURL);
@@ -23,6 +25,7 @@ export class SnapshotManager {
         this.identity = wallet;
         this.qas = qas;
         this.intervals = new Map<string,  NodeJS.Timeout>
+        this.processingSnapshots = new Map<string, string>
     
     }
     prepDownload(id: string):DownloadSnapshot | undefined {
@@ -55,7 +58,10 @@ export class SnapshotManager {
         if (!qa) throw new Error("QA does not exist")
         if (!qa.dispatcher) throw new Error("Dispatcher not initialized")
 
-        const encoder = createEncoder({ contentTopic: CONTENT_TOPIC_PERSIST, ephemeral: true });
+        const pubsubTopics = qa.dispatcher.node.connectionManager.pubsubTopics
+        const shardInfo = pubsubTopicsToShardInfo(pubsubTopics)
+        const shardIndex = contentTopicToShardIndex(CONTENT_TOPIC_PERSIST, shardInfo.shards.length)
+        const encoder = createEncoder({ contentTopic: CONTENT_TOPIC_PERSIST, ephemeral: true, pubsubTopicShardInfo: {clusterId: shardInfo.clusterId, shard: shardIndex}});
         const snap = await qa.dispatcher.getLocalMessages();
 
         if (!snap) {
@@ -97,7 +103,8 @@ export class SnapshotManager {
 
             const cid = res.data as string;
             const smsg: Snapshot = { hash, cid, timestamp };
-            const result = await qa.dispatcher.emitTo(encoder, MessageType.PERSIST_SNAPSHOT, smsg, this.identity.getWallet(), false);
+            const result = await qa.dispatcher.emitTo(encoder, MessageType.PERSIST_SNAPSHOT, smsg, this.identity.getWallet(), true);
+            console.log(result)
             if (!result) {
                 console.error('Failed to publish');
             }
@@ -133,22 +140,31 @@ export class SnapshotManager {
 
             const persisted: PersistentSnapshot = await res.data.json()
             if (!persisted || !persisted.messages || persisted.messages.length === 0) return false;
+            const processingSnapshot = this.processingSnapshots.get(id)
+            if (processingSnapshot && processingSnapshot == persisted.hash) {
+                return false
+            }
+
+            this.processingSnapshots.set(id, persisted.hash)
 
             // verify the snapshot
             const [dmsg, encrypted] = await qa.dispatcher.decryptMessage(persisted.messages[0].dmsg.payload);
             if (qa.dispatcher.autoEncrypt !== encrypted) {
                 console.error('expected ', encrypted ? 'encrypted' : 'plain', 'message');
+                this.processingSnapshots.delete(id)
                 return false;
             }
 
 
             if (dmsg.type != MessageType.CONTROL_MESSAGE) {
                 console.error("expeced CONTROL_MESSAGE, got", dmsg.type)
+                this.processingSnapshots.delete(id)
                 return false
             }
 
             if (dmsg.signer != persisted.owner) {
                 console.error("unexpected signer ", dmsg.signer, "!=", persisted.owner)
+                this.processingSnapshots.delete(id)
                 return false
             }
             const cmsg: ControlMessage = dmsg.payload
@@ -158,6 +174,7 @@ export class SnapshotManager {
 
             if (testId != cmsg.id || testId != id) {
                 console.error("unexpected QA id", testId)
+                this.processingSnapshots.delete(id)
                 return false
             }
 
@@ -167,11 +184,14 @@ export class SnapshotManager {
                 console.debug("imported, dispatching local query")
             } catch (e) {
                 console.error(e)
+                this.processingSnapshots.delete(id)
                 return false
             }
 
             qa.dispatcher.clearDuplicateCache()
             await qa.dispatcher.dispatchLocalQuery()
+            this.processingSnapshots.delete(id)
+
 
             return true;
         } catch (e) {
@@ -192,31 +212,28 @@ export class SnapshotManager {
     }
 
     async handleSnapshotMessage(id: Id, identity: Identity, payload:Snapshot, signer: Signer, _3: DispatchMetadata) {
-        if (!id) return
+        if (!id) throw new Error("no id")
     
         const qa = this.qas.get(id)
     
         if (!qa) throw new Error("QA does not exist")
         if (!qa.dispatcher) throw new Error("Dispatcher not initialized")
-        if (signer == identity.address()) return
+        if (signer == identity.address()) throw new Error("ignoring own snapshot")
         const snap = getStoredSnapshotInfo(id)
         if (snap !== undefined) {
             if (payload.timestamp === undefined) {
-                console.error("old version of snapshot, ignoring")
-                return
+                throw new Error("old version of snapshot, ignoring")
             }
             if (snap.timestamp > payload.timestamp) {
-                console.debug("new snapshot is older than loaded one")
-                return
+                throw new Error("new snapshot is older than loaded one")
+                
             }
             if (snap.hash == payload.hash) {
-                console.log("already on this snapshot")
-                return
+                throw new Error("already on this snapshot")
             }
     
             if (payload.timestamp+18*60*60*1000 < Date.now()) {
-                console.log("snapshot older than 18h, ignoring")
-                return
+                throw new Error("snapshot older than 18h, ignoring")
             }
         }
 
@@ -235,7 +252,6 @@ export class SnapshotManager {
         const snap = getStoredSnapshotInfo(id)
 
         //Check is stored snapshot is older than 1h and publish immediately if it is
-        console.log(snap?.timestamp, Date.now() - 3600 * 1000)
         if (snap && snap.timestamp < Date.now() - 3600 * 1000) {
             console.log("Publishing snapshot immediately")
             this.publishSnapshot(id)

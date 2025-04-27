@@ -24,9 +24,6 @@ const Question = ({id, msg, moderation}:IProps) => {
     const d = new Date(msg.timestamp)
     const formatter = new Intl.DateTimeFormat('cs-CZ', { day: '2-digit', month: '2-digit', year: 'numeric', hour: 'numeric', minute: 'numeric',  });
 
-    console.log(qaku?.identity)
-    console.log("Question: ", msg)
-
     const publishAnswer =  async (answer?: string) => {
         if (!qaku || !controlState) return
 

@@ -98,7 +98,6 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
 
 
     useEffect(() => {
-        console.log(qaku)
         if (!node || qaku) return
         (async () => {
             updateStatus("Loading Qaku", "info", 2000)
@@ -123,22 +122,18 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
         if (!qaku || !id || !node || (id && id.startsWith("X") && !password)) return;
    
         const updateQuestions = (qid: Id) => {
-            console.log("update questions", qid, id)
             if (qid != id) return
             const questions = qaku.getQuestions(qid, sorting)
-            console.log(questions)
             setLocalQuestions(questions)
         } 
 
         const updateControlState = (qid: Id) => {
-            console.log("Update control state", qid, id)
             if (qid != id) return
             const qa = qaku.qas.get(qid)
             if (!qa) {
                 console.error("QA not found")
                 return
             }
-            console.log(qa.controlState, qid, id)
             console.log("setting control state")
             setControlState(qa.controlState)
             setProtocolInitialized(true)
@@ -251,7 +246,7 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
             //setLocalQuestions([])
             //await qaku?.destroy() //FIXME: Will this work?
             //setHistoryService(undefined)
-            console.log("Destroyed everything!")
+
             if (!qaku || !id) return
 
             if (!qaku.qas.get(id)) {
@@ -263,7 +258,6 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
             } else {
                 const sorting = [QuestionSort.ANSWERED_ASC,QuestionSort.UPVOTES_DESC, QuestionSort.TIME_ASC]
                 const questions = qaku.getQuestions(id, sorting)
-                console.log(questions)
                 setLocalQuestions(questions)
 
                 const polls = qaku.getPolls(id)
@@ -322,7 +316,6 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
 
 
     const tryConnectWallet = async () => {
-        console.log("Here")
         if (!qaku || !qaku.identity) return
         if ('ethereum' in window && window.ethereum) {
          
@@ -360,7 +353,6 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
                 if (name) setExternalAddr(name)
             }).catch(e => console.debug(e))
             try {
-                console.log("probably failing here!")
                 const delegationInfo = qaku.externalWallet.getDelegationInfo()
                 if (!delegationInfo) {
                     console.error("Failed to get delegation info")

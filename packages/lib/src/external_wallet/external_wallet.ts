@@ -100,15 +100,11 @@ export class ExternalWallet {
     public async verifyDelegationInfo(delegationInfo: DelegationInfo): Promise<string | null> {
     try {
         const message = this.getMessage(delegationInfo.qakuIdentity, delegationInfo.externalAddress, delegationInfo.expiresAt)
-        console.log(message
-        )
-
-        const recoveredAddress = ethers.verifyMessage(message, delegationInfo.signature);
-        console.log(recoveredAddress)
+          const recoveredAddress = ethers.verifyMessage(message, delegationInfo.signature);
         if (recoveredAddress.toLowerCase() === delegationInfo.externalAddress.toLowerCase()) {
-        return recoveredAddress;
+            return recoveredAddress;
         } else {
-        console.error('Recovered address does not match the external address');
+            console.error('Recovered address does not match the external address');
         return null;
         }
     } catch (error) {
