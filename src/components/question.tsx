@@ -1,12 +1,10 @@
-import { sha256 } from "js-sha256";
-import { PiArrowFatLinesDownDuotone, PiThumbsUpLight, PiUser } from "react-icons/pi";
+import { PiThumbsUpLight, PiUser } from "react-icons/pi";
 import ReactMarkdown from "react-markdown";
 import { useState } from "react";
-import { CONTENT_TOPIC_MAIN } from "../constants";
 import { useQakuContext } from "../hooks/useQaku";
 import { useToastContext } from "../hooks/useToast";
 import { shortAddr } from "../utils/crypto";
-import { EnhancedQuestionMessage, Id, MessageType, UpvoteType } from "qakulib";
+import { EnhancedQuestionMessage, Id, UpvoteType } from "qakulib";
 import Answer from "./answer";
 
 interface IProps {
