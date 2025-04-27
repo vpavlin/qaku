@@ -27,7 +27,7 @@ const Question = ({id, msg, moderation}:IProps) => {
     const publishAnswer =  async (answer?: string) => {
         if (!qaku || !controlState) return
 
-        const result = await qaku.answer(id, msg.hash, false, answer)
+        const result = await qaku.answer(id, msg.hash, useExternal, answer)
         if (!result) {
             console.log("Failed to answer")
             error("Failed to publish answer")

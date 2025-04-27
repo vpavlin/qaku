@@ -19,6 +19,7 @@ const Answer = ({questionId, data, upvote}: iProps) => {
     if (!name && data.delegationInfo && qaku) {
         qaku.externalWallet?.getName(data.delegationInfo.externalAddress).then(name => setName(name || shortAddr(data.delegationInfo!.externalAddress))).catch(e => setName(shortAddr(data.author)))
     }
+
     return (
         <>
                     <div className="text-right pl-1 mb-1 border border-white rounded-lg w-full p-1  self-end"> 
