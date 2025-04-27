@@ -4,12 +4,13 @@ import { useQakuContext } from "../hooks/useQaku";
 
 import { useWakuContext } from "../hooks/useWaku";
 import { useToastContext } from "../hooks/useToast";
+import ExternalWallet from "./external_wallet";
 
 
 const NewQA = () => {
     const { error } = useToastContext()
     const { node, connected } = useWakuContext()
-    const { qaku } = useQakuContext()
+    const { qaku, walletConnected } = useQakuContext()
     const navigate = useNavigate();
 
     const [title, setTitle] = useState<string>()
@@ -18,6 +19,7 @@ const NewQA = () => {
     const [moderation, SetModeration] = useState<boolean>(false)
     const [password, setPassword] = useState<string>()
     const [admins, setAdmins] = useState<string[]>([])
+    const [useExternal, setUseExternal] = useState(walletConnected)
 
 
     const submit = async () => {
@@ -25,7 +27,7 @@ const NewQA = () => {
         if (!qaku || !node || !title) return
 
         console.log("Doing something")
-        const id = await qaku.newQA(title, desc, enabled, admins, moderation, password)
+        const id = await qaku.newQA(title, desc, enabled, admins, moderation, password, useExternal)
         await qaku.initQA(id, password)
 
         if (id) {
@@ -75,9 +77,8 @@ const NewQA = () => {
                 <span className="label-text">Admins (list of addresses separated by a newline)</span>
                 <textarea className="textarea textarea-bordered textarea-lg w-full" onChange={(e) => setAdmins(e.target.value.split("\n"))}></textarea>
             </label>
-            <div>
-                {qaku?.identity?.address()}
-            </div>
+            <ExternalWallet shouldUseExternal={setUseExternal} />
+
 
             
             <button onClick={() => submit()}  disabled={!qaku} className="btn btn-lg">Submit {qaku == undefined ? "failed" : "ready"}</button>

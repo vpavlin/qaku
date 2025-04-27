@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { useQakuContext } from "../hooks/useQaku"
-import { EnhancedQuestionMessage, DownloadSnapshot } from "../utils/messages"
+import { DownloadSnapshot } from "../utils/messages"
 
 interface IProps {
     id: string

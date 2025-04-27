@@ -14,7 +14,7 @@ enum Tabs {
 
 const QA = () => {
 
-    const  { controlState, localQuestions, qaku, isOwner, isAdmin, polls, ready } = useQakuContext()
+    const  { controlState, localQuestions, qaku, isOwner, isAdmin, polls, ready, } = useQakuContext()
     const {hash} = useLocation()
     
     const navigate = useNavigate();
@@ -26,6 +26,7 @@ const QA = () => {
 
     const [needsPassword, setNeedsPassword] = useState<boolean>()
     const [passwordInput, setPasswordInput] = useState<string>()
+    const [ownerENS, setOwnerENS] = useState<string>()
 
 
     useEffect(() => {
@@ -45,6 +46,16 @@ const QA = () => {
     useEffect(() => {
         setNeedsPassword(!(password || (id && !id.startsWith("X"))))
     }, [id, password])
+
+    useEffect(() => {
+        if (controlState && controlState.delegationInfo) {
+            console.log("trying to get ens")
+            qaku?.externalWallet?.getName(controlState.delegationInfo.externalAddress).then(name => {
+                console.log("Got ens:", name)
+                name && setOwnerENS(name)
+            }).catch(e => console.debug(e))
+        }
+    }, [controlState, ready, qaku])
         
 
     return (
@@ -67,7 +78,7 @@ const QA = () => {
                     {controlState?.description}
                 </div>
                 <div className="space-x-2">
-                    <div className="badge badge-lg badge-neutral">{controlState.owner.slice(0, 7)+"..."+controlState.owner.slice(controlState.owner.length-5)}</div>
+                    <div className="badge badge-lg badge-neutral">{ownerENS || controlState.owner.slice(0, 7)+"..."+controlState.owner.slice(controlState.owner.length-5)}</div>
                     {isAdmin ? <div className="badge badge-lg badge-secondary">admin</div> : <div className="badge badge-lg badge-primary">owner</div>}
                 </div>
                 <div className="divider"></div>

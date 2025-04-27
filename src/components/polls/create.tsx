@@ -1,7 +1,6 @@
 import { useState } from "react"
 import { useQakuContext } from "../../hooks/useQaku"
 import { sha256 } from "js-sha256"
-import { MessageType } from "../../utils/messages"
 import { useToastContext } from "../../hooks/useToast"
 import { Id, PollOption } from "qakulib"
 
@@ -22,6 +21,7 @@ const CreatePollOption = ({title, index, setOption}:IOptionProps) => {
             </label>
         </div>
     </>)
+    
 }
 
 interface IProps {

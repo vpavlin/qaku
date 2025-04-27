@@ -1,8 +1,9 @@
 import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityMessage, AnsweredMessage, ControlMessage, EnhancedQuestionMessage } from "../utils/messages";
 import { CODEX_PUBLIC_URL_STORAGE_KEY, CODEX_URL_STORAGE_KEY, DEFAULT_CODEX_URL, DEFAULT_PUBLIC_CODEX_URL, DEFAULT_PUBLISH_INTERVAL } from "../constants";
 import { useWakuContext } from "./useWaku";
-import {HistoryTypes, HistoryEntry, LocalPoll, Qaku, QakuEvents, QakuState, QuestionSort, History, HistoryEvents, Id} from "qakulib"
+import {HistoryTypes, HistoryEntry, LocalPoll, Qaku, QakuEvents, QakuState, QuestionSort, History, HistoryEvents, Id, ControlMessage, EnhancedQuestionMessage, ActivityMessage, DelegationInfo, ExternalWallet} from "qakulib"
+import { ethers } from "ethers";
+import { shortAddr } from "../utils/crypto";
 
 export type QakuInfo = {
     qaku:Qaku | undefined;
@@ -19,6 +20,11 @@ export type QakuInfo = {
     loading: boolean
     codexAvailable: boolean;
     ready: boolean;
+    handleConnectWallet: () => void;
+    requestSign: () => void;
+    walletConnected: boolean
+    externalAddr: string | undefined
+    delegationValid: boolean
 }
 
 export type QakuContextData = {
@@ -100,7 +106,13 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
             const q = new Qaku(node as any) //FIXME
             setHistoryService(q.history)
 
-            await q.init(codexURL, publicCodexURL)
+            let walletProvider:ethers.BrowserProvider | undefined = undefined
+ 
+            if ('ethereum' in window && window.ethereum) {
+                walletProvider = new ethers.BrowserProvider(window.ethereum as ethers.Eip1193Provider);
+            }
+
+            await q.init(codexURL, publicCodexURL, walletProvider)
             console.log("Qaku is ready")
             setQaku(q)
         })()
@@ -301,6 +313,84 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
         setActive(activeList.length)
     }, [activeList])
 
+
+    const [walletConnected, setWalletConnected] = useState(false);
+    const [delegationInfo, setDelegationInfo] = useState<DelegationInfo | null>(null);
+    const [externalWallet, setExternalWallet] = useState<ExternalWallet | null>(null);
+    const [externalAddr, setExternalAddr] = useState<string>()
+    const [delegationValid, setIsValid] = useState(false)
+
+
+    const tryConnectWallet = async () => {
+        console.log("Here")
+        if (!qaku || !qaku.identity) return
+        if ('ethereum' in window && window.ethereum) {
+         
+            await qaku.externalWallet?.initExternalAddress();
+
+            setExternalAddr(shortAddr(qaku.externalWallet?.externalAddress!))
+            setWalletConnected(true)
+        } else {
+            console.log("COuld not find the eth provider")
+        }
+
+    };
+
+    const handleConnectWallet = async () => {
+        if ('ethereum' in window && window.ethereum) {
+            const walletProvider = new ethers.BrowserProvider(window.ethereum as ethers.Eip1193Provider);
+
+            await walletProvider.send('eth_requestAccounts', []);
+            await tryConnectWallet()
+        }
+    }
+
+    useEffect(() => {
+        try {
+            tryConnectWallet()
+        } catch(e) {
+            console.log("Could not connect", e)
+        }
+        
+    }, [qaku])
+
+    useEffect(() => {
+        if (qaku && qaku.externalWallet) {
+            qaku.externalWallet?.getName().then(name => {
+                if (name) setExternalAddr(name)
+            }).catch(e => console.debug(e))
+            try {
+                console.log("probably failing here!")
+                const delegationInfo = qaku.externalWallet.getDelegationInfo()
+                if (!delegationInfo) {
+                    console.error("Failed to get delegation info")
+                    return
+                }
+                qaku.externalWallet.verifyDelegationInfo(delegationInfo).then(result => {
+                    if (result)
+                        setIsValid(true)
+                    
+                })
+            } catch (e) {
+                console.error("Could not get delegation info: ", e)
+            }
+
+        }
+    }, [qaku, externalAddr])
+
+    const requestSign =  async () => {
+        if (qaku && qaku.externalWallet) {
+            try {
+                await qaku.externalWallet.requestSignature();
+                const delegationInfo = qaku.externalWallet.getDelegationInfo();
+                setDelegationInfo(delegationInfo);
+                setWalletConnected(true);
+            } catch (error) {
+                console.error('Error connecting wallet:', error);
+            }
+            }
+    }
+
     const qakuInfo = useMemo(
         () => ({
             qaku,
@@ -317,6 +407,11 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
             loading,
             codexAvailable,
             ready: protocolInitialized,
+            handleConnectWallet,
+            requestSign,
+            walletConnected,
+            externalAddr,
+            delegationValid,
         }),
         [
             qaku,
@@ -333,6 +428,11 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
             loading,
             codexAvailable,
             protocolInitialized,
+            handleConnectWallet,
+            requestSign,
+            walletConnected,
+            externalAddr,
+            delegationValid,
         ]
     )
 

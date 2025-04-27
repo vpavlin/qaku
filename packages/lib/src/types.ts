@@ -1,5 +1,6 @@
 import { sha256 } from "js-sha256"
 import { Dispatcher } from "waku-dispatcher"
+import { DelegationInfo } from "./external_wallet/external_wallet"
 
 export type QuestionList = Map<string, EnhancedQuestionMessage>
 export type Id = string
@@ -60,6 +61,8 @@ export enum QuestionShow {
 export type QuestionMessage = {
     question: string;
     timestamp: Date;
+    author?: string;
+    delegationInfo?: DelegationInfo;
 }
 
 export type ActivityMessage = {
@@ -81,20 +84,24 @@ export enum MessageType {
     PERSIST_SNAPSHOT = "persist_snapshot",
 }
 
-export type QakuMessage = {
-    type: MessageType;
-    payload: string;
-    signer: string;
-    signature: string | undefined;
+export enum UpvoteType {
+    ANSWER = "answer",
+    QUESTION = "question"
 }
 
 export type UpvoteMessage = {
+    questionId: string | undefined;
     hash: string;
+    type: UpvoteType;
+    timestamp: number;
+    delegationInfo?: DelegationInfo;
 }
 
 export type AnsweredMessage = {
     hash: string;
     text: string | undefined
+    timestamp: number
+    delegationInfo?: DelegationInfo;
 }
 
 export type ModerationMessage = {
@@ -112,20 +119,40 @@ export type ControlMessage = {
     moderation: boolean;
     description: string;
     updated: number;
+    startDate: number;
+    endDate?: number;
+    allowsParticipantsReplies: boolean;
+    delegationInfo?: DelegationInfo;
 }
 
 export type EnhancedQuestionMessage = {
-    hash: string,
-    question: string;
+    qaId: Id;
+    hash: string;
+    content: string;
     timestamp: Date;
-    answer: string | undefined;
-    answered: boolean;
-    answeredBy: string | undefined;
+    answers: AnswerType[]
     upvotes: number;
     upvoters: string[]
     upvotedByMe: boolean;
     moderated: boolean;
     signer: string | undefined
+    author?: string;
+    delegationInfo?: DelegationInfo;
+}
+
+export type BaseMessageType = {
+    id: string
+    timestamp: number
+    content: string
+    author: string
+    likesCount: number
+    likers: string[]
+    delegationInfo?: DelegationInfo;
+}
+
+export type AnswerType = BaseMessageType & {
+    questionId: string
+    qnaId: string
 }
 
 export type QakuHash = {
@@ -163,12 +190,14 @@ export type LocalPoll = Poll & {
     votes?: PollVoter[]
     voteCount?: number
     owner: string
+    delegationInfo?: DelegationInfo;
 } 
 
 export type NewPoll = {
     creator: string
     poll: Poll
     timestamp: number
+    delegationInfo?: DelegationInfo;
 }
 
 export type PollOption = {
@@ -187,6 +216,7 @@ export type PollActive = {
 export type PollVote = {
     id: string
     option: number
+    delegationInfo?: DelegationInfo;
 }
 
 export type Poll = {

@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useQakuContext } from "../hooks/useQaku"
 import QRCode from "react-qr-code"
 import { QrScanner } from "@yudiel/react-qr-scanner"
@@ -92,10 +92,11 @@ interface IWallet {
 }
 
 export const Wallet = ({short}: IWallet) => {
-    const { qaku } = useQakuContext()
+    const { qaku, handleConnectWallet, requestSign, walletConnected, externalAddr, delegationValid } = useQakuContext()
     const [ tooltip, setTooltip] = useState(qaku && qaku.identity && qaku.identity.address()) 
 
     const addr = short ? (qaku?.identity ? qaku.identity.address().substring(0, 6)+ "..." +qaku.identity.address().substring(qaku.identity.address().length - 4) : "0x....." ) : qaku?.identity?.address()
+
 
 
     const copy = async () => {
@@ -106,8 +107,18 @@ export const Wallet = ({short}: IWallet) => {
         }, 2000)
     }
     return (
-        <div className="tooltip text-center" data-tip={tooltip}>
-            <button className="font-bold" onClick={copy}>{addr}</button>
+        <div>
+            <div className="tooltip text-center" data-tip={tooltip}>
+                <button className="font-bold" onClick={copy}>{addr}</button>
+            </div>
+            <div className="mt-2">
+                {walletConnected && externalAddr ?
+                    (!delegationValid ? <button className="btn" onClick={requestSign}>Delegate by {externalAddr}</button> : <span>Delegated by {externalAddr}</span>)
+                    :
+                     <button className="btn" onClick={handleConnectWallet}>Connect External Wallet</button>
+                }
+            </div>
         </div>
+        
     )
 }

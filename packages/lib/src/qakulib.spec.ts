@@ -95,58 +95,54 @@ describe('Qaku', () => {
     
     data.set('a487dfbcc60618b1ad81cba048ed4c84e7b511385bd9603e41c4d9bd17e1175b', {
       hash: 'a487dfbcc60618b1ad81cba048ed4c84e7b511385bd9603e41c4d9bd17e1175b',
-      question: 'Does this work? 1740662086981',
+      content: 'Does this work? 1740662086981',
       timestamp: new Date('2025-02-27T13:14:46.982Z'),
       moderated: false,
-      answer: 'It might',
-      answered: true,
-      answeredBy: '0x0f13BF2856681d4673A75d41a22bdF18a2700841',
+      answers: [{content: 'It might', likers: [], likesCount: 0, author: "0xXYZ", id: "abc", qnaId: "a487dfbcc60618b1ad81cba048ed4c84e7b511385bd9603e41c4d9bd17e1175b", questionId: "a487dfbcc60618b1ad81cba048ed4c84e7b511385bd9603e41c4d9bd17e1175b", timestamp: Date.now()}],
       upvotedByMe: false,
       upvotes: 0,
       upvoters: [],
       signer: undefined,
+      qaId: "abc"
     })
 
     data.set('ab', {
       hash: 'ab',
-      question: 'Time +1h',
+      content: 'Time +1h',
       timestamp: new Date('2025-02-27T14:14:46.982Z'),
       moderated: true,
-      answer: undefined,
-      answered: false,
-      answeredBy: '0x0f13BF2856681d4673A75d41a22bdF18a2700841',
+      answers: [],
       upvotedByMe: false,
       upvotes: 0,
       upvoters: [],
       signer: undefined,
+      qaId: "abc"
     })
 
     data.set('xx', {
       hash: 'xx',
-      question: 'Upvoted',
+      content: 'Upvoted',
       timestamp: new Date('2025-02-27T13:14:46.982Z'),
       moderated: false,
-      answer: undefined,
-      answered: false,
-      answeredBy: '0x0f13BF2856681d4673A75d41a22bdF18a2700841',
+      answers: [],
       upvotedByMe: false,
       upvotes: 1,
       upvoters: ['0xAAAAAF2856681d4673A75d41a22bdF18a2700841'],
       signer: undefined,
+      qaId: "abc"
     })
 
     data.set('xy', {
       hash: 'xy',
-      question: 'Upvoted',
+      content: 'Upvoted',
       timestamp: new Date('2025-02-28T13:14:46.982Z'),
       moderated: false,
-      answer: 'It might',
-      answered: true,
-      answeredBy: '0x0f13BF2856681d4673A75d41a22bdF18a2700841',
+      answers: [{content: 'It might', likers: [], likesCount: 0, author: "0xXYZ", id: "abc", qnaId: "a487dfbcc60618b1ad81cba048ed4c84e7b511385bd9603e41c4d9bd17e1175b", questionId: "a487dfbcc60618b1ad81cba048ed4c84e7b511385bd9603e41c4d9bd17e1175b", timestamp: Date.now()}],
       upvotedByMe: false,
       upvotes: 1,
       upvoters: ['0xAAAAAF2856681d4673A75d41a22bdF18a2700841'],
       signer: undefined,
+      qaId: "abc"
     })
 
 
