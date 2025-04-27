@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react"
 import { useQakuContext } from "../hooks/useQaku"
-import { EnhancedQuestionMessage, DownloadSnapshot } from "../utils/messages"
+import { DownloadSnapshot } from "../utils/messages"
 
 interface IProps {
     id: string
-}
+} 
 
 const Control = ({id}: IProps) => {
-    const {controlState, switchState, isOwner, localQuestions, polls, snapshot, publishSnapshot} = useQakuContext()
+    const {controlState, qaku, isOwner, localQuestions, polls} = useQakuContext()
     const [enabled, setEnabled] = useState(false)
 
     const saveTemplateAsFile = (filename:string, dataObjToWrite:DownloadSnapshot | undefined) => {
@@ -42,14 +42,12 @@ const Control = ({id}: IProps) => {
                     <div>
                         <h1 className="font-bold">{controlState.title}</h1>
                         <div className="flex m-auto items-center justify-center">
-                            <div className="flex-col m-2"><button onClick={() => switchState(!enabled)} disabled={!id || !controlState} className={`btn`}>{ enabled ? "disable" : "enable"}</button></div>
+                            <div className="flex-col m-2"><button onClick={() => qaku?.switchQAState(id, !enabled)} disabled={!id || !controlState} className={`btn`}>{ enabled ? "disable" : "enable"}</button></div>
                             <div className="flex-col m-2">
-                                { (localQuestions.length > 0 || polls.length > 0) && <button className="btn" onClick={()=> saveTemplateAsFile("data.json", snapshot())}>Download</button>}
-                            </div>
-                            <div className="flex-col m-2">
-                                { (localQuestions.length > 0 || polls.length > 0) && <button className="btn" onClick={()=> publishSnapshot()}>Publish Snapshot</button>}
-                            </div>
+                                { (localQuestions.length > 0 || polls.length > 0) && <button className="btn" onClick={()=> qaku?.snapshotManager?.publishSnapshot(id)}>Publish Snapshot</button>}
+                            </div>   
                         </div>
+
                     </div>
                 </div>
                 </>
@@ -59,3 +57,11 @@ const Control = ({id}: IProps) => {
 }
 
 export default Control;
+
+/*
+<div className="flex-col m-2">
+                                { (localQuestions.length > 0 || polls.length > 0) && <button className="btn" onClick={()=> saveTemplateAsFile("data.json", snapshot())}>Download</button>}
+                            </div>
+                            <div className="flex-col m-2">
+                                { (localQuestions.length > 0 || polls.length > 0) && <button className="btn" onClick={()=> publishSnapshot()}>Publish Snapshot</button>}
+                            </div>*/

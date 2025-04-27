@@ -1,9 +1,8 @@
 import { useState } from "react"
-import { NewPoll, PollOption } from "./types"
 import { useQakuContext } from "../../hooks/useQaku"
 import { sha256 } from "js-sha256"
-import { MessageType } from "../../utils/messages"
 import { useToastContext } from "../../hooks/useToast"
+import { Id, PollOption } from "qakulib"
 
 
 interface IOptionProps {
@@ -22,12 +21,17 @@ const CreatePollOption = ({title, index, setOption}:IOptionProps) => {
             </label>
         </div>
     </>)
+    
+}
+
+interface IProps {
+    id: Id
 }
 
 
-const CreatePoll = () => {
+const CreatePoll = ({id}: IProps) => {
 
-    const {wallet, dispatcher} = useQakuContext()
+    const {qaku} = useQakuContext()
     const {info, error} = useToastContext()
 
     const [options, setOptions] = useState<PollOption[]>([])
@@ -48,7 +52,7 @@ const CreatePoll = () => {
     }
 
     const handleSubmit = async () => {
-        if (dispatcher === undefined || wallet === undefined) return
+        if (qaku === undefined || qaku.identity === undefined) return
 
         if (options.length < 2) {
             error("Too few options, please provide at least 2")
@@ -60,25 +64,21 @@ const CreatePoll = () => {
         }
 
         setSubmitting(true)
- 
-        const poll:NewPoll = {
-            creator: wallet.address,
-            poll: {
-                active: active,
-                options: options,
-                question: question,
-                title: title,
-                id: sha256(`poll-${question}-${Date.now()}`),
-            },
-            timestamp: Date.now()
-        }
 
-        console.log(poll)
-        const res = await dispatcher.emit(MessageType.POLL_CREATE_MESSAGE, poll, wallet)
+        const res = await qaku.newPoll(id, {
+            active: active,
+            options: options,
+            question: question,
+            title: title,
+            id: "",
+        })
+ 
         if (!res) {
-            error("Failed to  publish a poll")
-            return
+            setSubmitting(false)
+            error("Failed to publish poll")
+            return 
         }
+        
 
         info(`Successfully published a poll ${title}`)
         setCollapsed(true)
