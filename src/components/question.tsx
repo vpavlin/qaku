@@ -19,7 +19,7 @@ const Question = ({id, msg, moderation}:IProps) => {
     const [ useExternal, setuseExternal] = useState(true)
     const [ name, setName] = useState<string>()
 
-    const { controlState, isOwner, qaku , isAdmin} = useQakuContext()
+    const { controlState, isOwner, qaku , isAdmin, externalAddr} = useQakuContext()
 
     const d = new Date(msg.timestamp)
     const formatter = new Intl.DateTimeFormat('cs-CZ', { day: '2-digit', month: '2-digit', year: 'numeric', hour: 'numeric', minute: 'numeric',  });
@@ -27,7 +27,12 @@ const Question = ({id, msg, moderation}:IProps) => {
     const publishAnswer =  async (answer?: string) => {
         if (!qaku || !controlState) return
 
-        const result = await qaku.answer(id, msg.hash, useExternal, answer)
+        let ext = useExternal
+
+        if (!externalAddr) ext = false
+        console.log("External add: ", externalAddr)
+
+        const result = await qaku.answer(id, msg.hash, ext, answer)
         if (!result) {
             console.log("Failed to answer")
             error("Failed to publish answer")

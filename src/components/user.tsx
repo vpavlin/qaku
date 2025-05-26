@@ -115,7 +115,7 @@ export const Wallet = ({short}: IWallet) => {
                 {walletConnected && externalAddr ?
                     (!delegationValid ? <button className="btn" onClick={requestSign}>Delegate by {externalAddr}</button> : <span>Delegated by {externalAddr}</span>)
                     :
-                     <button className="btn" onClick={handleConnectWallet}>Connect External Wallet</button>
+                     <button className="btn bg-primary" onClick={handleConnectWallet}>Connect External Wallet</button>
                 }
             </div>
         </div>
