@@ -8,7 +8,6 @@ import { qaHash } from '../utils.js';
 import { CONTENT_TOPIC_PERSIST } from '../constants.js';
 import { DispatchMetadata, Signer } from 'waku-dispatcher';
 import { Identity } from '../identity.js';
-import { contentTopicToShardIndex, pubsubTopicsToShardInfo } from '@waku/utils';
 
 export class SnapshotManager {
     private codex: Codex;
@@ -58,10 +57,8 @@ export class SnapshotManager {
         if (!qa) throw new Error("QA does not exist")
         if (!qa.dispatcher) throw new Error("Dispatcher not initialized")
 
-        const pubsubTopics = qa.dispatcher.node.connectionManager.pubsubTopics
-        const shardInfo = pubsubTopicsToShardInfo(pubsubTopics)
-        const shardIndex = contentTopicToShardIndex(CONTENT_TOPIC_PERSIST, shardInfo.shards.length)
-        const encoder = createEncoder({ contentTopic: CONTENT_TOPIC_PERSIST, ephemeral: true, pubsubTopicShardInfo: {clusterId: shardInfo.clusterId, shard: shardIndex}});
+
+        const encoder = createEncoder({ contentTopic: CONTENT_TOPIC_PERSIST, ephemeral: true});
         const snap = await qa.dispatcher.getLocalMessages();
 
         if (!snap) {

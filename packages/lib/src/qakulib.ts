@@ -9,7 +9,6 @@ import { EventEmitter } from "events";
 import { Identity } from "./identity.js";
 import { isQAEnabled, qaHash, questionHash } from "./utils.js";
 import sortArray from "sort-array";
-import { contentTopicToShardIndex, pubsubTopicsToShardInfo } from "@waku/utils"
 import { History } from "./history/history.js";
 import { HistoryTypes } from "./history/types.js";
 import { SnapshotManager } from "./snapshot/snapshot.js";
@@ -445,11 +444,8 @@ export class Qaku extends EventEmitter {
         if (!qa) throw new Error("Failed to find QA after initialization")
 
         const contentTopic = CONTENT_TOPIC_MAIN(hash)
-        const pubsubTopics = this.node.connectionManager.pubsubTopics
-        const shardInfo = pubsubTopicsToShardInfo(pubsubTopics)
-        const shardIndex = contentTopicToShardIndex(contentTopic, shardInfo.shards.length)
         //dispatcher.on(MessageType.CONTROL_MESSAGE, () => {})
-        const encoder = createEncoder({ contentTopic: contentTopic, ephemeral: false, pubsubTopicShardInfo: {clusterId: shardInfo.clusterId, shard: shardIndex} })
+        const encoder = createEncoder({ contentTopic: contentTopic, ephemeral: false })
         const result = await qa.dispatcher!.emitTo(encoder, MessageType.CONTROL_MESSAGE, cmsg, this.identity!.getWallet(), key, false)
         if (result) {
             try {

@@ -13,3 +13,5 @@ export const MAINNET_RPC_URLS = [
     "https://rpc.ankr.com/eth",
     "https://eth.llamarpc.com"
   ];
+
+//CID cache - allowing to set and get mapping between human readble namCIDs

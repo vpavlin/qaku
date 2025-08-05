@@ -4,15 +4,13 @@ import {
     waitForRemotePeer,
     createDecoder,
     LightNode,
-    EConnectionStateEvents,
+    //EConnectionStateEvents,
   } from "@waku/sdk";
 import {
     HealthStatus,
-    HealthStatusChangeEvents,
     IWaku
 } from "@waku/interfaces"
-import { wakuPeerExchangeDiscovery } from "@waku/discovery";
-import { derivePubsubTopicsFromNetworkConfig } from "@waku/utils"
+
 import { DEFAULT_BOOTSTRAP, DEFAULT_WAKU_CLUSTER_ID, DEFAULT_WAKU_SHARD_ID, PROTOCOLS, STATIC_NODES, WAKU_CLUSTER_ID_STORAGE_KEY, WAKU_SHARD_ID } from "../constants";
 
 export type WakuInfo = {
@@ -60,10 +58,10 @@ const bootstrapNodes = [
     "/dns4/node-01.ac-cn-hongkong-c.waku.test.statusim.net/tcp/8000/wss/p2p/16Uiu2HAkzHaTP5JsUwfR9NR8Rj9HC24puS6ocaU8wze4QrXr9iXp",
 ]*/
 
-const bootstrapNodes: string[] = [
+/*const bootstrapNodes: string[] = [
    "/dns4/waku-test.bloxy.one/tcp/8095/wss/p2p/16Uiu2HAmSZbDB7CusdRhgkD81VssRjQV5ZH13FbzCGcdnbbh6VwZ",
    "/dns4/node-01.do-ams3.waku.sandbox.status.im/tcp/8000/wss/p2p/16Uiu2HAmNaeL4p3WEYzC9mgXBmBWSgWjPHRvatZTXnp8Jgv3iKsb",
-]
+]*/
 
 
 export const WakuContextProvider = ({ children, updateStatus }: Props) => {
@@ -80,50 +78,26 @@ export const WakuContextProvider = ({ children, updateStatus }: Props) => {
         setStatus("starting")
         updateStatus("Starting Waku node", "info", 2000)
 
-        const wakuClusterId = localStorage.getItem(WAKU_CLUSTER_ID_STORAGE_KEY) || DEFAULT_WAKU_CLUSTER_ID
-        const wakuShardId = localStorage.getItem(WAKU_SHARD_ID) || DEFAULT_WAKU_SHARD_ID
-        let libp2p = undefined
-        const networkConfig =  {clusterId: parseInt(wakuClusterId), shards: [parseInt(wakuShardId)]}
-        
-        if (wakuClusterId != "1") {
-            libp2p = {
-                peerDiscovery: [
-                  wakuPeerExchangeDiscovery(derivePubsubTopicsFromNetworkConfig(networkConfig))
-                ]
-              }
-        }
-        await createLightNode({
-            networkConfig:networkConfig,
-            defaultBootstrap: false,
-            bootstrapPeers: bootstrapNodes,
-            numPeersToUse: 3,
-            libp2p: libp2p,
-        }).then( async (ln: LightNode) => {
-            if (node) return
-            setNode(ln)
-            setStatus("connecting")
-
-            ln.connectionManager.addEventListener(EConnectionStateEvents.CONNECTION_STATUS, (e) => {
-                //console.log(e)
-            })
-
-            
-            try {
-                await ln.waitForPeers(PROTOCOLS, 30000)
-                updateStatus("Waku node successfully connected", "success", 5000)
-                console.log(await ln.libp2p.peerStore.all())
-                ln.health.addEventListener(HealthStatusChangeEvents.StatusChange, (hs) => {
-                        setHealth(hs.detail)
-                    })
-                setStatus("connected")
-                setConnected(true)
-                setConnecting(false)
-            } finally {
-                setConnecting(false)
-            }
+        const ln = await createLightNode({
+            defaultBootstrap: true,
         })
-
-
+        await ln.start()
+        if (node) return
+        setNode(ln)
+        setStatus("connecting")
+        try {
+            await ln.waitForPeers(PROTOCOLS, 30000)
+            updateStatus("Waku node successfully connected", "success", 5000)
+            console.log(await ln.libp2p.peerStore.all())
+            ln.events.addEventListener("waku:health", (hs) => {
+                    setHealth(hs.detail)
+            })
+            setStatus("connected")
+            setConnected(true)
+            setConnecting(false)
+        } finally {
+            setConnecting(false)
+        }
      }, [])
 
     const stop = () => {

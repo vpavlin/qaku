@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useQakuContext } from "../hooks/useQaku";
 import { useWakuContext } from "../hooks/useWaku";
-import {HealthStatus, HealthStatusChangeEvents} from "@waku/interfaces"
+import {HealthStatus} from "@waku/interfaces"
 
 const Status = () => {
     const { codexAvailable } = useQakuContext()

@@ -34,8 +34,8 @@ interface Props {
 export const ToastElement = ({toasts}: IProps) => {
     return (
         <div className="toast">
-            {Array.from(toasts.entries()).map((v: [string, Toast]) => 
-                    <div id={v[0]} className={`alert alert-${v[1].typ}`}>
+            {Array.from(toasts.entries()).map((v: [string, Toast], index) => 
+                    <div key={index} id={v[0]} className={`alert alert-${v[1].typ}`}>
                         <span>{v[1].msg}</span>
                     </div>
             )}

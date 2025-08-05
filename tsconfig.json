@@ -22,5 +22,5 @@
   },
   "include": [
     "src"
-  ]
+, "packages/lib/src/snapshot/cache.ts"  ]
 }
