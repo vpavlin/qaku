@@ -2,8 +2,8 @@ import { CodexOptions, DownloadSnapshot, PersistentSnapshot, Snapshot } from './
 import { sha256 } from 'js-sha256';
 import { ControlMessage, Id, MessageType, QAList } from '../types.js';
 import { QakuCache } from './cache.js';
-import { createEncoder } from '@waku/sdk';
 import { Codex } from '@codex-storage/sdk-js';
+import { BrowserUploadStrategy } from '@codex-storage/sdk-js/browser'
 import { qaHash } from '../utils.js';
 import { CONTENT_TOPIC_PERSIST } from '../constants.js';
 import { DispatchMetadata, Signer } from 'waku-dispatcher';
@@ -58,7 +58,7 @@ export class SnapshotManager {
         if (!qa.dispatcher) throw new Error("Dispatcher not initialized")
 
 
-        const encoder = createEncoder({ contentTopic: CONTENT_TOPIC_PERSIST, ephemeral: true});
+        const encoder = qa.dispatcher.node.createEncoder({ contentTopic: CONTENT_TOPIC_PERSIST, ephemeral: true});
         const snap = await qa.dispatcher.getLocalMessages();
 
         if (!snap) {
@@ -90,7 +90,8 @@ export class SnapshotManager {
 
             const timestamp = Date.now();
 
-            const res = await this.codex.data.upload(JSON.stringify(toPersist), undefined, { filename: hash, mimetype: 'application/json' }).result;
+            const strategy = new BrowserUploadStrategy(JSON.stringify(toPersist), undefined, { filename: hash, mimetype: 'application/json' });
+            const res = await this.codex.data.upload(strategy).result;
             console.log(res);
             if (res.error) {
                 console.error('Failed to upload to Codex:', res.data);

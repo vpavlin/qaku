@@ -1,7 +1,7 @@
 //import { Codex } from "@codex-storage/sdk-js";
 import { Dispatcher, DispatchMetadata, Signer, Store} from "waku-dispatcher"
 import { AnsweredMessage, AnswerType, ControlMessage, EnhancedQuestionMessage, Id, LocalPoll, MessageType, ModerationMessage, NewPoll, Poll, PollActive, PollVote, QakuEvents, QakuState, QAList, QAType, QuestionMessage, QuestionShow, QuestionSort, UpvoteMessage, UpvoteType } from "./types.js";
-import { createEncoder, LightNode, utf8ToBytes,  } from "@waku/sdk";
+import { LightNode, utf8ToBytes,  } from "@waku/sdk";
 import { Protocols } from "@waku/interfaces"
 import { CONTENT_TOPIC_MAIN, DEFAULT_CODEX_URL, DEFAULT_PUBLIC_CODEX_URL } from "./constants.js";
 import { sha256 } from "js-sha256";
@@ -445,7 +445,7 @@ export class Qaku extends EventEmitter {
 
         const contentTopic = CONTENT_TOPIC_MAIN(hash)
         //dispatcher.on(MessageType.CONTROL_MESSAGE, () => {})
-        const encoder = createEncoder({ contentTopic: contentTopic, ephemeral: false })
+        const encoder = this.node.createEncoder({ contentTopic: contentTopic, ephemeral: false })
         const result = await qa.dispatcher!.emitTo(encoder, MessageType.CONTROL_MESSAGE, cmsg, this.identity!.getWallet(), key, false)
         if (result) {
             try {
