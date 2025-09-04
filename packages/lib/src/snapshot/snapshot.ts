@@ -2,7 +2,7 @@ import { CodexOptions, DownloadSnapshot, PersistentSnapshot, Snapshot } from './
 import { sha256 } from 'js-sha256';
 import { ControlMessage, Id, MessageType, QAList } from '../types.js';
 import { QakuCache } from './cache.js';
-import { Codex } from '@codex-storage/sdk-js';
+import { Codex, CodexError } from '@codex-storage/sdk-js';
 import { BrowserUploadStrategy } from '@codex-storage/sdk-js/browser'
 import { qaHash } from '../utils.js';
 import { CONTENT_TOPIC_PERSIST } from '../constants.js';
@@ -131,9 +131,13 @@ export class SnapshotManager {
         if (!qa.dispatcher) throw new Error("Dispatcher not initialized")
         // implementation of importSnapshot function
         try {
-            const res = await this.codex.data.networkDownloadStream(cid);
+            let res = await this.codex.data.networkDownloadStream(cid);
             if (res.error) {
-                throw new Error(res.data.message)
+                res = await this.cache.networkDownloadStream(cid)
+                console.log("downloaded from cache", res)
+                if (res.error) {
+                    throw new Error((res.data as CodexError).message)
+                }
             }
 
             const persisted: PersistentSnapshot = await res.data.json()
