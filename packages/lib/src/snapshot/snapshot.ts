@@ -61,7 +61,7 @@ export class SnapshotManager {
         const encoder = qa.dispatcher.node.createEncoder({ contentTopic: CONTENT_TOPIC_PERSIST, ephemeral: true});
         const snap = await qa.dispatcher.getLocalMessages();
 
-        if (!snap) {
+        if (!snap || !snap.length) {
             console.error('Failed to get snapshot');
             return false;
         }
@@ -302,7 +302,6 @@ const getStoredSnapshotInfo = (id: string) => {
 
 const setStoredSnapshotInfo = (id: string, snap: Snapshot) => {
     const snapshots = load()
-    console.log(snap)
 
     snapshots[id] = snap
     localStorage.setItem(LOCAL_STORAGE_SNAPSHOT_KEY, JSON.stringify(snapshots))
