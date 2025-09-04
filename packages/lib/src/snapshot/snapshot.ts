@@ -101,7 +101,7 @@ export class SnapshotManager {
 
             const cid = res.data as string;
             const smsg: Snapshot = { hash, cid, timestamp };
-            const result = await qa.dispatcher.emitTo(encoder, MessageType.PERSIST_SNAPSHOT, smsg, this.identity.getWallet(), true);
+            const result = await qa.dispatcher.emitTo(encoder, MessageType.PERSIST_SNAPSHOT, smsg, this.identity.getWallet(), undefined, true);
             console.log(result)
             if (!result) {
                 console.error('Failed to publish');
