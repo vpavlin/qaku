@@ -9,9 +9,6 @@
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
     "@types/jest": "^27.5.2",
-    "@types/node": "^16.18.46",
-    "@types/react": "^18.2.21",
-    "@types/react-dom": "^18.2.7",
     "@waku/interfaces": "0.0.32",
     "@waku/message-encryption": "0.0.35",
     "@waku/sdk": "0.0.33",
@@ -29,16 +26,16 @@
     "react-markdown": "^8.0.7",
     "react-qr-code": "^2.0.12",
     "react-router-dom": "^6.15.0",
-    "react-scripts": "5.0.1",
-    "typescript": "^4.9.5",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
     "preinstall": "cd packages/lib/ && npm install && npm run build",
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "dev": "vite",
+    "build": "vite build",
+    "build:dev": "vite build --mode development",
+    "lint": "eslint .",
+    "preview": "vite preview"
+
   },
   "browserslist": {
     "production": [
@@ -53,10 +50,22 @@
     ]
   },
   "devDependencies": {
-    "@types/elliptic": "^6.4.14",
-    "autoprefixer": "^10.4.15",
-    "postcss": "^8.4.29",
-    "tailwindcss": "^3.3.3"
+    "@eslint/js": "^9.32.0",
+    "@tailwindcss/typography": "^0.5.16",
+    "@types/node": "^22.16.5",
+    "@types/react": "^18.3.23",
+    "@types/react-dom": "^18.3.7",
+    "@vitejs/plugin-react-swc": "^3.11.0",
+    "autoprefixer": "^10.4.21",
+    "eslint": "^9.32.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.20",
+    "globals": "^15.15.0",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.38.0",
+    "vite": "^5.4.19"
   },
   "proxy": "http://localhost:8080"
 }
