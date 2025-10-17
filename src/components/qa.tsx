@@ -5,7 +5,8 @@ import CreatePoll from "./polls/create";
 import { useEffect, useState } from "react";
 import Polls from "./polls/poll";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { User, Lock, AlertTriangle } from "lucide-react";
+import { User, Lock, AlertTriangle, ArrowUpDown, Filter } from "lucide-react";
+import { QuestionSort, QuestionShow, EnhancedQuestionMessage } from "qakulib";
 
 enum Tabs {
     Questions = "questions",
@@ -24,6 +25,11 @@ const QA = () => {
     const [needsPassword, setNeedsPassword] = useState<boolean>()
     const [passwordInput, setPasswordInput] = useState<string>()
     const [ownerENS, setOwnerENS] = useState<string>()
+    
+    // Sorting and filtering state
+    const [sortBy, setSortBy] = useState<QuestionSort>(QuestionSort.UPVOTES_DESC)
+    const [filterBy, setFilterBy] = useState<QuestionShow>(QuestionShow.ALL)
+    const [filteredQuestions, setFilteredQuestions] = useState<EnhancedQuestionMessage[]>([])
 
     useEffect(() => {
         switch(hash) {
@@ -49,6 +55,18 @@ const QA = () => {
             }).catch(e => console.debug(e))
         }
     }, [controlState, ready, qaku])
+
+    // Update filtered questions when sort/filter changes
+    useEffect(() => {
+        if (!qaku || !id) return
+        
+        try {
+            const questions = qaku.getQuestions(id, [sortBy], [filterBy])
+            setFilteredQuestions(questions)
+        } catch (e) {
+            console.error("Failed to get questions:", e)
+        }
+    }, [qaku, id, sortBy, filterBy, localQuestions])
 
     if (needsPassword) {
         return (
@@ -150,56 +168,107 @@ const QA = () => {
                 <CreatePoll id={controlState.id} />
             )}
 
-            {/* Tabs */}
-            <div className="border-b border-border">
-                <nav className="flex gap-6">
-                    <button
-                        onClick={() => {
-                            setActiveTab(Tabs.Questions)
-                            navigate(`#${Tabs.Questions}`)
-                        }}
-                        className={`pb-4 px-2 font-medium transition-colors relative ${
-                            activeTab === Tabs.Questions
-                                ? 'text-primary'
-                                : 'text-muted-foreground hover:text-foreground'
-                        }`}
-                    >
-                        Questions ({localQuestions.length})
-                        {activeTab === Tabs.Questions && (
-                            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
-                        )}
-                    </button>
-                    <button
-                        onClick={() => {
-                            setActiveTab(Tabs.Polls)
-                            navigate(`#${Tabs.Polls}`)
-                        }}
-                        className={`pb-4 px-2 font-medium transition-colors relative ${
-                            activeTab === Tabs.Polls
-                                ? 'text-primary'
-                                : 'text-muted-foreground hover:text-foreground'
-                        }`}
-                    >
-                        Polls ({polls.length})
-                        {activeTab === Tabs.Polls && (
-                            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
-                        )}
-                    </button>
-                </nav>
+            {/* Tabs & Controls */}
+            <div className="space-y-4">
+                <div className="border-b border-border">
+                    <nav className="flex gap-6">
+                        <button
+                            onClick={() => {
+                                setActiveTab(Tabs.Questions)
+                                navigate(`#${Tabs.Questions}`)
+                            }}
+                            className={`pb-4 px-2 font-medium transition-colors relative ${
+                                activeTab === Tabs.Questions
+                                    ? 'text-primary'
+                                    : 'text-muted-foreground hover:text-foreground'
+                            }`}
+                        >
+                            Questions ({localQuestions.length})
+                            {activeTab === Tabs.Questions && (
+                                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+                            )}
+                        </button>
+                        <button
+                            onClick={() => {
+                                setActiveTab(Tabs.Polls)
+                                navigate(`#${Tabs.Polls}`)
+                            }}
+                            className={`pb-4 px-2 font-medium transition-colors relative ${
+                                activeTab === Tabs.Polls
+                                    ? 'text-primary'
+                                    : 'text-muted-foreground hover:text-foreground'
+                            }`}
+                        >
+                            Polls ({polls.length})
+                            {activeTab === Tabs.Polls && (
+                                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+                            )}
+                        </button>
+                    </nav>
+                </div>
+
+                {/* Sort & Filter Controls (only show for Questions tab) */}
+                {activeTab === Tabs.Questions && (
+                    <div className="flex flex-wrap gap-3">
+                        {/* Sort Control */}
+                        <div className="flex items-center gap-2">
+                            <ArrowUpDown className="w-4 h-4 text-muted-foreground" />
+                            <select
+                                value={sortBy}
+                                onChange={(e) => setSortBy(e.target.value as QuestionSort)}
+                                className="px-3 py-2 bg-input border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring cursor-pointer"
+                            >
+                                <option value={QuestionSort.UPVOTES_DESC}>Most Upvoted</option>
+                                <option value={QuestionSort.UPVOTES_ASC}>Least Upvoted</option>
+                                <option value={QuestionSort.TIME_DESC}>Newest First</option>
+                                <option value={QuestionSort.TIME_ASC}>Oldest First</option>
+                                <option value={QuestionSort.ANSWERED_DESC}>Answered First</option>
+                                <option value={QuestionSort.ANSWERED_ASC}>Unanswered First</option>
+                            </select>
+                        </div>
+
+                        {/* Filter Control */}
+                        <div className="flex items-center gap-2">
+                            <Filter className="w-4 h-4 text-muted-foreground" />
+                            <select
+                                value={filterBy}
+                                onChange={(e) => setFilterBy(e.target.value as QuestionShow)}
+                                className="px-3 py-2 bg-input border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring cursor-pointer"
+                            >
+                                <option value={QuestionShow.ALL}>All Questions</option>
+                                <option value={QuestionShow.ANSWERED}>Answered Only</option>
+                                <option value={QuestionShow.UNANSWERED}>Unanswered Only</option>
+                                {(isOwner || isAdmin) && (
+                                    <option value={QuestionShow.MODERATED}>Moderated Only</option>
+                                )}
+                            </select>
+                        </div>
+
+                        {/* Question count badge */}
+                        <div className="flex items-center px-3 py-2 bg-secondary/50 rounded-lg text-sm">
+                            <span className="text-muted-foreground">
+                                Showing: <span className="font-semibold text-foreground">{filteredQuestions.length}</span>
+                            </span>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Content */}
             <div>
                 {activeTab === Tabs.Questions && (
                     <div className="space-y-4">
-                        {localQuestions.length === 0 ? (
+                        {filteredQuestions.length === 0 ? (
                             <div className="text-center py-12 bg-card border border-border rounded-xl">
                                 <p className="text-muted-foreground">
-                                    No questions yet. Be the first to ask!
+                                    {localQuestions.length === 0 
+                                        ? "No questions yet. Be the first to ask!"
+                                        : "No questions match the selected filters."
+                                    }
                                 </p>
                             </div>
                         ) : (
-                            localQuestions
+                            filteredQuestions
                                 .filter((msg) => isAdmin || isOwner || !msg.moderated)
                                 .map((msg, i) => (
                                     <Question 
