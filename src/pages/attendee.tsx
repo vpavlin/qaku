@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useWakuContext } from "../hooks/useWaku";
 import { QakuContextProvider, useQakuContext } from "../hooks/useQaku";
@@ -9,6 +9,7 @@ import { Wallet } from "lucide-react";
 
 const AttendeeContent = () => {
     const { handleConnectWallet, walletConnected, externalAddr } = useQakuContext();
+    const [connecting, setConnecting] = useState(false);
 
     return (
         <div className="min-h-screen bg-background">
@@ -24,11 +25,16 @@ const AttendeeContent = () => {
                             </div>
                         ) : (
                             <button
-                                onClick={handleConnectWallet}
-                                className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors text-sm"
+                                onClick={async () => {
+                                    setConnecting(true)
+                                    await handleConnectWallet()
+                                    setConnecting(false)
+                                }}
+                                disabled={connecting}
+                                className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 <Wallet className="w-4 h-4" />
-                                Connect Wallet
+                                {connecting ? 'Connecting...' : 'Connect Wallet'}
                             </button>
                         )}
                         <Status />

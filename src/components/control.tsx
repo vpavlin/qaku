@@ -10,6 +10,8 @@ interface IProps {
 const Control = ({id}: IProps) => {
     const {controlState, qaku, isOwner, localQuestions, polls} = useQakuContext()
     const [enabled, setEnabled] = useState(false)
+    const [switching, setSwitching] = useState(false)
+    const [publishing, setPublishing] = useState(false)
 
     const saveTemplateAsFile = (filename:string, dataObjToWrite:DownloadSnapshot | undefined) => {
         if (!dataObjToWrite) return
@@ -51,25 +53,34 @@ const Control = ({id}: IProps) => {
                         <span className="text-sm font-medium">Q&A Status</span>
                     </div>
                     <button 
-                        onClick={() => qaku?.switchQAState(id, !enabled)} 
-                        disabled={!id || !controlState}
-                        className={`px-4 py-1.5 rounded-lg font-medium text-sm transition-colors ${
+                        onClick={async () => {
+                            setSwitching(true)
+                            await qaku?.switchQAState(id, !enabled)
+                            setSwitching(false)
+                        }} 
+                        disabled={!id || !controlState || switching}
+                        className={`px-4 py-1.5 rounded-lg font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                             enabled 
                                 ? 'bg-accent text-accent-foreground hover:bg-accent/90' 
                                 : 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
                         }`}
                     >
-                        {enabled ? 'Enabled' : 'Disabled'}
+                        {switching ? 'Updating...' : enabled ? 'Enabled' : 'Disabled'}
                     </button>
                 </div>
 
                 {(localQuestions.length > 0 || polls.length > 0) && (
                     <button 
-                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-secondary hover:bg-secondary/80 rounded-lg transition-colors text-sm font-medium"
-                        onClick={() => qaku?.snapshotManager?.publishSnapshot(id)}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-secondary hover:bg-secondary/80 rounded-lg transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                        onClick={async () => {
+                            setPublishing(true)
+                            await qaku?.snapshotManager?.publishSnapshot(id)
+                            setPublishing(false)
+                        }}
+                        disabled={publishing}
                     >
                         <Camera className="w-4 h-4" />
-                        Publish Snapshot
+                        {publishing ? 'Publishing...' : 'Publish Snapshot'}
                     </button>
                 )}
             </div>

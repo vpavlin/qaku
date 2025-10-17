@@ -19,11 +19,13 @@ const NewQA = () => {
     const [password, setPassword] = useState<string>()
     const [admins, setAdmins] = useState<string[]>([])
     const [useExternal, setUseExternal] = useState(walletConnected)
+    const [submitting, setSubmitting] = useState(false)
 
     const submit = async () => {
         console.log("Submitting...", qaku)
         if (!qaku || !node || !title) return
 
+        setSubmitting(true)
         console.log("Doing something")
         const id = await qaku.newQA(title, desc, enabled, admins, moderation, password, useExternal)
         await qaku.initQA(id, password)
@@ -36,6 +38,7 @@ const NewQA = () => {
             }
         } else {
             error("Failed to create the Q&A")
+            setSubmitting(false)
         }
     }
 
@@ -191,10 +194,10 @@ const NewQA = () => {
                 {/* Submit */}
                 <button 
                     onClick={() => submit()}  
-                    disabled={!qaku || !title} 
+                    disabled={!qaku || !title || submitting} 
                     className="w-full px-6 py-4 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all mt-6"
                 >
-                    {!qaku ? 'Initializing...' : !title ? 'Enter a title to continue' : 'Create Q&A Session'}
+                    {submitting ? 'Creating...' : !qaku ? 'Initializing...' : !title ? 'Enter a title to continue' : 'Create Q&A Session'}
                 </button>
             </div>
         </div>

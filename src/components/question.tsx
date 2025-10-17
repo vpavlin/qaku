@@ -19,6 +19,9 @@ const Question = ({id, msg, moderation}:IProps) => {
     const [ useExternal, setuseExternal] = useState(true)
     const [ name, setName] = useState<string>()
     const [ showAnswerModal, setShowAnswerModal ] = useState(false)
+    const [ upvoting, setUpvoting ] = useState(false)
+    const [ answering, setAnswering ] = useState(false)
+    const [ moderating, setModerating ] = useState(false)
 
     const { controlState, isOwner, qaku , isAdmin, externalAddr} = useQakuContext()
 
@@ -34,10 +37,13 @@ const Question = ({id, msg, moderation}:IProps) => {
     const publishAnswer = async (answer?: string) => {
         if (!qaku || !controlState) return
 
+        setAnswering(true)
         let ext = useExternal
         if (!externalAddr) ext = false
 
         const result = await qaku.answer(id, msg.hash, ext, answer)
+        setAnswering(false)
+        
         if (!result) {
             error("Failed to publish answer")
             return
@@ -50,7 +56,10 @@ const Question = ({id, msg, moderation}:IProps) => {
     const upvote = async (hash: string, type: UpvoteType, questionId?: string) => {
         if (!qaku || !controlState) return
         
+        setUpvoting(true)
         const result = await qaku.upvote(id, hash, type, false, questionId)
+        setUpvoting(false)
+        
         if (!result) {
             error("Failed to publish upvote")
             return
@@ -61,7 +70,9 @@ const Question = ({id, msg, moderation}:IProps) => {
     const moderate = async (moderated:boolean) => {
         if (!qaku || !controlState) return
 
-       const result = await qaku.moderate(id, msg.hash, moderated)
+        setModerating(true)
+        const result = await qaku.moderate(id, msg.hash, moderated)
+        setModerating(false)
 
         if (!result) { 
             error("Failed to publish moderation message")
@@ -135,7 +146,8 @@ const Question = ({id, msg, moderation}:IProps) => {
                     {!isOwner && !msg.upvotedByMe && !msg.moderated && (
                         <button 
                             onClick={() => upvote(msg.hash, UpvoteType.QUESTION)}
-                            className="flex items-center gap-2 px-3 py-1.5 bg-secondary hover:bg-primary hover:text-primary-foreground rounded-lg transition-colors text-sm"
+                            disabled={upvoting}
+                            className="flex items-center gap-2 px-3 py-1.5 bg-secondary hover:bg-primary hover:text-primary-foreground rounded-lg transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <ThumbsUp className="w-4 h-4" />
                             <span className="font-semibold">{msg.upvotes}</span>
@@ -163,8 +175,9 @@ const Question = ({id, msg, moderation}:IProps) => {
                 <div className="flex items-center gap-2">
                     {(isOwner || isAdmin) && !msg.moderated && (
                         <button 
-                            className="flex items-center gap-2 px-3 py-1.5 bg-secondary hover:bg-secondary/80 rounded-lg transition-colors text-sm font-medium"
+                            className="flex items-center gap-2 px-3 py-1.5 bg-secondary hover:bg-secondary/80 rounded-lg transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                             onClick={() => setShowAnswerModal(true)}
+                            disabled={answering}
                         >
                             <MessageSquare className="w-4 h-4" />
                             Answer
@@ -173,11 +186,12 @@ const Question = ({id, msg, moderation}:IProps) => {
 
                     {isOwner && moderation && (
                         <button 
-                            className="flex items-center gap-2 px-3 py-1.5 bg-destructive/10 hover:bg-destructive/20 text-destructive rounded-lg transition-colors text-sm font-medium"
+                            className="flex items-center gap-2 px-3 py-1.5 bg-destructive/10 hover:bg-destructive/20 text-destructive rounded-lg transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                             onClick={() => moderate(!msg.moderated)}
+                            disabled={moderating}
                         >
                             {msg.moderated ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                            {msg.moderated ? 'Show' : 'Hide'}
+                            {moderating ? 'Processing...' : msg.moderated ? 'Show' : 'Hide'}
                         </button>
                     )}
                 </div>
@@ -210,17 +224,19 @@ const Question = ({id, msg, moderation}:IProps) => {
 
                             <div className="flex gap-3">
                                 <button 
-                                    className="flex-1 px-6 py-3 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 transition-colors"
+                                    className="flex-1 px-6 py-3 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                     onClick={() => publishAnswer(answer)}
+                                    disabled={answering || !answer?.trim()}
                                 >
-                                    Submit Answer
+                                    {answering ? 'Publishing...' : 'Submit Answer'}
                                 </button>
                                 <button 
-                                    className="px-6 py-3 bg-secondary hover:bg-secondary/80 rounded-lg font-medium transition-colors"
+                                    className="px-6 py-3 bg-secondary hover:bg-secondary/80 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                     onClick={() => {
                                         setShowAnswerModal(false)
                                         setAnswer("")
                                     }}
+                                    disabled={answering}
                                 >
                                     Cancel
                                 </button>

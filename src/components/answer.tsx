@@ -14,6 +14,7 @@ interface iProps {
 const Answer = ({questionId, data, upvote}: iProps) => {
     const {qaku, controlState} = useQakuContext()
     const [name, setName] = useState<string>()
+    const [upvoting, setUpvoting] = useState(false)
 
     useEffect(() => {
         if (!name && data.delegationInfo && qaku) {
@@ -50,8 +51,13 @@ const Answer = ({questionId, data, upvote}: iProps) => {
                 <div className="flex items-center gap-2">
                     {qaku && qaku.identity && !hasLiked && (
                         <button 
-                            onClick={() => upvote(data.id, UpvoteType.ANSWER, questionId)}
-                            className="flex items-center gap-1.5 px-2.5 py-1 hover:bg-accent/20 hover:text-accent rounded-md transition-colors"
+                            onClick={async () => {
+                                setUpvoting(true)
+                                await upvote(data.id, UpvoteType.ANSWER, questionId)
+                                setUpvoting(false)
+                            }}
+                            disabled={upvoting}
+                            className="flex items-center gap-1.5 px-2.5 py-1 hover:bg-accent/20 hover:text-accent rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <ThumbsUp className="w-3.5 h-3.5" />
                             <span className="font-semibold">{data.likesCount}</span>
