@@ -54,8 +54,10 @@ const Control = ({id}: IProps) => {
                     </div>
                     <button 
                         onClick={async () => {
+                            const newState = !enabled
                             setSwitching(true)
-                            await qaku?.switchQAState(id, !enabled)
+                            setEnabled(newState) // Update optimistically
+                            await qaku?.switchQAState(id, newState)
                             setSwitching(false)
                         }} 
                         disabled={!id || !controlState || switching}
