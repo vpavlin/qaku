@@ -17,6 +17,7 @@
     "daisyui": "^4.12.22",
     "elliptic": "^6.5.4",
     "ethers": "^6.12.0",
+    "eventemitter3": "^5.0.1",
     "js-sha256": "^0.10.1",
     "lovable-tagger": "^1.1.11",
     "lucide-react": "^0.546.0",

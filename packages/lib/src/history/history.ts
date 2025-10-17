@@ -1,5 +1,5 @@
 import { HistoryEntry, HistoryEvents, HistoryTypes } from "./types.js";
-import { EventEmitter } from "events";
+import { EventEmitter } from "eventemitter3";
 
 
 const HISTORY_STORAGE_KEY = "qaku:history"

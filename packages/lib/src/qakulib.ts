@@ -5,7 +5,7 @@ import { LightNode, utf8ToBytes,  } from "@waku/sdk";
 import { Protocols } from "@waku/interfaces"
 import { CONTENT_TOPIC_MAIN, DEFAULT_CODEX_URL, DEFAULT_PUBLIC_CODEX_URL } from "./constants.js";
 import { sha256 } from "js-sha256";
-import { EventEmitter } from "events";
+import { EventEmitter } from "eventemitter3";
 import { Identity } from "./identity.js";
 import { isQAEnabled, qaHash, questionHash } from "./utils.js";
 import sortArray from "sort-array";
