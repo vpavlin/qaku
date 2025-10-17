@@ -1,4 +1,4 @@
-import { PiThumbsUpLight, PiUser } from "react-icons/pi";
+import { ThumbsUp, User, MessageSquare, Clock } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useState } from "react";
 import { useQakuContext } from "../hooks/useQaku";
@@ -79,64 +79,136 @@ const Question = ({id, msg, moderation}:IProps) => {
 
 
 
+    const statusStyles = msg.answers.length > 0 
+        ? "border-l-4 border-l-success bg-success/5" 
+        : msg.moderated 
+        ? "border-l-4 border-l-error bg-error/10 opacity-75" 
+        : "border-l-4 border-l-transparent";
+
     return (
-        <div key={msg.hash} className={`flex flex-col bg-base-200 border border-neutral rounded-xl p-3 my-2 focus:shadow-md hover:shadow-md hover:-mx-3 hover:transition-all ${msg.answers.length > 0 && "opacity-60 bg-success text-success-content"}  ${msg.moderated && "ml-10 opacity-60 bg-error text-error-content"} hover:opacity-100`}>
-        <div className="text-left flex-row">
-            <ReactMarkdown children={msg.content} />
-            <div className="text-right items-end">{msg.delegationInfo ?
-                    <span><PiUser className="inline-block" /> {name}</span>
-                    :
-                    msg.author && <span><PiUser className="inline-block" /> {msg.author} {msg.signer && `(${shortAddr(msg.signer)})`}</span>
-                }
-                </div>
-            
-        </div>
-        <div className="flex-row  items-end justify-end">
-        { msg.answers.length > 0 && msg.answers.sort((a, b) => b.timestamp - a.timestamp).sort((a, b) => b.likesCount - a.likesCount).map(a => <Answer data={a} questionId={msg.hash} upvote={upvote} />)
-        }
-        </div>
-        <div className={`text-right text-sm flex gap-x-2 justify-end items-center`}>
-            {(isOwner || isAdmin) && !msg.moderated &&
-                <div>
-                    <button className="btn btn-sm btn-neutral mx-1" onClick={() => {
-                        setAnswer("");
-                        (document.getElementsByClassName('answer_modal_'+msg.hash)[0] as HTMLDialogElement).showModal()
-                        }}>Answer</button>
-                    <dialog className={`modal answer_modal_${msg.hash}`}>
-                        <div className="modal-box text-left">
-                            <div className="text-left m-2"><ReactMarkdown>{msg.content}</ReactMarkdown></div>
-                            <div className="font-bold m-1">Answer</div>
-                            <textarea onChange={(e) => setAnswer(e.target.value)} value={answer} className="textarea textarea-bordered w-full h-44 m-auto mb-1"></textarea>
-                            <div className="modal-action">
-                            <form method="dialog">
-                                <button className="btn btn-sm m-1" onClick={() => publishAnswer(answer)}>Submit</button>
-                                <button className="btn btn-sm m-1">Close</button>
-                            </form>
-                            </div>
-                        </div>
-                    </dialog>
-                </div>
-            }
-            {
-                isOwner && moderation &&
-                    <div>
-                        <button className="btn btn-sm btn-neutral m-1" onClick={() => moderate(!msg.moderated)}>{msg.moderated ? "Show" : "Hide"}</button> 
-                    </div>
-            }
-            <div className="font-bold items-center flex">
-                {!isOwner && !msg.upvotedByMe && !msg.moderated &&
-                    <span className="items-center cursor-pointer m-1 hover:bg-primary p-1 hover:rounded-lg" onClick={() => upvote(msg.hash, UpvoteType.QUESTION)}>
-                        <PiThumbsUpLight size={25} className="" />
+        <div key={msg.hash} className={`group bg-base-200/50 backdrop-blur-sm rounded-lg border border-base-300 p-5 my-3 transition-all duration-200 hover:shadow-lg hover:border-primary/50 hover:bg-base-200 ${statusStyles}`}>
+            {/* Question Header */}
+            <div className="flex items-start justify-between gap-4 mb-4">
+                <div className="flex items-center gap-2 text-sm text-base-content/60">
+                    <User className="w-4 h-4" />
+                    <span className="font-medium">
+                        {msg.delegationInfo ? name : 
+                         msg.author ? `${msg.author}${msg.signer ? ` (${shortAddr(msg.signer)})` : ''}` : 
+                         'Anonymous'}
                     </span>
-                } 
-                <span className={`bg-primary border rounded-md p-1 text-primary-content border-primary ${msg.answers.length > 0 && "bg-primary"}`}>{msg.upvotes}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-base-content/60">
+                    <Clock className="w-4 h-4" />
+                    <time>{formatter.format(d)}</time>
+                </div>
             </div>
-            <div className="bg-primary border rounded-md p-1 text-primary-content border-primary">
-                {`${formatter.format(d)}`}
+
+            {/* Question Content */}
+            <div className="prose prose-sm max-w-none mb-4 text-base-content">
+                <ReactMarkdown>{msg.content}</ReactMarkdown>
+            </div>
+
+            {/* Answers Section */}
+            {msg.answers.length > 0 && (
+                <div className="space-y-2 mb-4 pl-4 border-l-2 border-success/30">
+                    {msg.answers
+                        .sort((a: any, b: any) => b.timestamp - a.timestamp)
+                        .sort((a: any, b: any) => b.likesCount - a.likesCount)
+                        .map((a: any) => (
+                            <Answer key={a.hash} data={a} questionId={msg.hash} upvote={upvote} />
+                        ))
+                    }
+                </div>
+            )}
+
+            {/* Actions Bar */}
+            <div className="flex items-center justify-between gap-3 pt-3 border-t border-base-300">
+                <div className="flex items-center gap-2">
+                    {/* Upvote Button */}
+                    {!isOwner && !msg.upvotedByMe && !msg.moderated && (
+                        <button 
+                            onClick={() => upvote(msg.hash, UpvoteType.QUESTION)}
+                            className="btn btn-sm btn-ghost gap-2 hover:btn-primary"
+                        >
+                            <ThumbsUp className="w-4 h-4" />
+                            <span className="font-semibold">{msg.upvotes}</span>
+                        </button>
+                    )}
+                    {(isOwner || msg.upvotedByMe) && (
+                        <div className="badge badge-primary gap-2">
+                            <ThumbsUp className="w-3 h-3" />
+                            {msg.upvotes}
+                        </div>
+                    )}
+
+                    {/* Answer Count Badge */}
+                    {msg.answers.length > 0 && (
+                        <div className="badge badge-success gap-2">
+                            <MessageSquare className="w-3 h-3" />
+                            {msg.answers.length} {msg.answers.length === 1 ? 'Answer' : 'Answers'}
+                        </div>
+                    )}
+                </div>
+
+                {/* Admin Actions */}
+                <div className="flex items-center gap-2">
+                    {(isOwner || isAdmin) && !msg.moderated && (
+                        <>
+                            <button 
+                                className="btn btn-sm btn-outline gap-2"
+                                onClick={() => {
+                                    setAnswer("");
+                                    (document.getElementsByClassName('answer_modal_'+msg.hash)[0] as HTMLDialogElement).showModal();
+                                }}
+                            >
+                                <MessageSquare className="w-4 h-4" />
+                                Answer
+                            </button>
+
+                            <dialog className={`modal answer_modal_${msg.hash}`}>
+                                <div className="modal-box max-w-2xl">
+                                    <h3 className="font-bold text-lg mb-4">Answer Question</h3>
+                                    <div className="prose prose-sm mb-4 p-4 bg-base-200 rounded-lg">
+                                        <ReactMarkdown>{msg.content}</ReactMarkdown>
+                                    </div>
+                                    <label className="form-control">
+                                        <div className="label">
+                                            <span className="label-text font-semibold">Your Answer</span>
+                                        </div>
+                                        <textarea 
+                                            onChange={(e) => setAnswer(e.target.value)} 
+                                            value={answer} 
+                                            className="textarea textarea-bordered h-32 w-full"
+                                            placeholder="Type your answer here..."
+                                        />
+                                    </label>
+                                    <div className="modal-action">
+                                        <form method="dialog" className="flex gap-2">
+                                            <button className="btn btn-primary" onClick={() => publishAnswer(answer)}>
+                                                Submit Answer
+                                            </button>
+                                            <button className="btn btn-ghost">Cancel</button>
+                                        </form>
+                                    </div>
+                                </div>
+                                <form method="dialog" className="modal-backdrop">
+                                    <button>close</button>
+                                </form>
+                            </dialog>
+                        </>
+                    )}
+
+                    {isOwner && moderation && (
+                        <button 
+                            className="btn btn-sm btn-outline btn-error"
+                            onClick={() => moderate(!msg.moderated)}
+                        >
+                            {msg.moderated ? 'Show' : 'Hide'}
+                        </button>
+                    )}
+                </div>
             </div>
         </div>
-        
-    </div>
     )
 }
 
