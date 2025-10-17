@@ -668,7 +668,7 @@ export class Qaku extends EventEmitter {
         return false
     }
 
-    public async newPoll(id: Id, poll: Poll, useExternal?: boolean):Promise<boolean> {
+    public async newPoll(id: Id, poll: Poll, useExternal?: boolean):Promise<string | null> {
         const qa = this.qas.get(id)
         if (!qa) throw new Error("failed to find QA")
 
@@ -679,6 +679,7 @@ export class Qaku extends EventEmitter {
         }
 
         const ts = Date.now()
+        const pollId = sha256(`poll-${poll.question}-${ts}`);
         const newPoll:NewPoll = {
             creator: this.identity!.address(),
             poll: {
@@ -686,7 +687,7 @@ export class Qaku extends EventEmitter {
                 options: poll.options,
                 question: poll.question,
                 title: poll.title,
-                id: sha256(`poll-${poll.question}-${ts}`),
+                id: pollId,
             },
             timestamp: ts
         }
@@ -698,10 +699,10 @@ export class Qaku extends EventEmitter {
         const result = await qa.dispatcher.emit(MessageType.POLL_CREATE_MESSAGE, newPoll, this.identity!.getWallet())
         if (result) {
             this.emit(QakuEvents.NEW_POLL_PUBLISHED, newPoll.poll.id)
-            return true
+            return pollId
         }
         console.error("Failed to create a new poll", poll)
-        return false
+        return null
     }
 
     public async pollVote(id: Id, pollId: string, option: number, useExternal?: boolean):Promise<boolean> {
