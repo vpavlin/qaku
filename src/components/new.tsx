@@ -4,6 +4,7 @@ import { useQakuContext } from "../hooks/useQaku";
 import { useWakuContext } from "../hooks/useWaku";
 import { useToastContext } from "../hooks/useToast";
 import ExternalWallet from "./external_wallet";
+import { Check } from "lucide-react";
 
 const NewQA = () => {
     const { error } = useToastContext()
@@ -94,12 +95,17 @@ const NewQA = () => {
                     </h3>
 
                     <label className="flex items-start gap-3 cursor-pointer group">
-                        <input 
-                            type="checkbox" 
-                            checked={enabled} 
-                            onChange={(e) => setEnabled(e.target.checked)}
-                            className="mt-1 w-4 h-4 rounded border-border bg-input checked:bg-primary checked:border-primary focus:ring-2 focus:ring-ring"
-                        />
+                        <div className="relative flex-shrink-0">
+                            <input 
+                                type="checkbox" 
+                                checked={enabled} 
+                                onChange={(e) => setEnabled(e.target.checked)}
+                                className="sr-only peer"
+                            />
+                            <div className="mt-1 w-5 h-5 rounded border-2 border-border bg-input peer-checked:bg-primary peer-checked:border-primary transition-all flex items-center justify-center">
+                                {enabled && <Check className="w-3.5 h-3.5 text-primary-foreground" strokeWidth={3} />}
+                            </div>
+                        </div>
                         <div className="flex-1">
                             <div className="font-medium group-hover:text-primary transition-colors">
                                 Enable immediately
@@ -111,12 +117,17 @@ const NewQA = () => {
                     </label>
 
                     <label className="flex items-start gap-3 cursor-pointer group">
-                        <input 
-                            type="checkbox" 
-                            checked={moderation} 
-                            onChange={(e) => SetModeration(e.target.checked)}
-                            className="mt-1 w-4 h-4 rounded border-border bg-input checked:bg-primary checked:border-primary focus:ring-2 focus:ring-ring"
-                        />
+                        <div className="relative flex-shrink-0">
+                            <input 
+                                type="checkbox" 
+                                checked={moderation} 
+                                onChange={(e) => SetModeration(e.target.checked)}
+                                className="sr-only peer"
+                            />
+                            <div className="mt-1 w-5 h-5 rounded border-2 border-border bg-input peer-checked:bg-primary peer-checked:border-primary transition-all flex items-center justify-center">
+                                {moderation && <Check className="w-3.5 h-3.5 text-primary-foreground" strokeWidth={3} />}
+                            </div>
+                        </div>
                         <div className="flex-1">
                             <div className="font-medium group-hover:text-primary transition-colors">
                                 Owner moderation
