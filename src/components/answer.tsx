@@ -22,16 +22,16 @@ const Answer = ({questionId, data, upvote}: iProps) => {
 
     return (
         <>
-                    <div className="text-right pl-1 mb-1 border border-white rounded-lg w-full p-1  self-end"> 
-                <ReactMarkdown className="font-bold" children={data.content} /> 
+                    <div className="text-right pl-1 mb-1 border border-base-300/50 rounded-lg w-full p-3 self-end bg-base-100/30"> 
+                <ReactMarkdown className="font-medium text-base-content" children={data.content} />
                 <div className="flex justify-end items-center">
                     {qaku && qaku.identity && !data.likers.find(l => l == qaku.identity!.address()) &&
-                        <span className="items-center cursor-pointer m-1 hover:bg-primary p-1 hover:rounded-lg" onClick={() => upvote(data.id, UpvoteType.ANSWER, questionId)}>
-                            <PiThumbsUpLight size={25} className="" />
+                        <span className="items-center cursor-pointer m-1 hover:bg-base-300/50 p-1 rounded transition-colors" onClick={() => upvote(data.id, UpvoteType.ANSWER, questionId)}>
+                            <PiThumbsUpLight size={20} className="text-base-content/60" />
                         </span>
                     }
-                    (answered by {controlState?.owner == data.author && "owner: "}{controlState?.admins.includes(data.author!) && "admin: "}{data.delegationInfo ? name : shortAddr(data.author!)})
-                    <span className={` border rounded-md px-1 mx-1 text-primary-content border-primary}`}>{data.likesCount}</span>
+                    <span className="text-base-content/60 text-sm">answered by {controlState?.owner == data.author && "owner: "}{controlState?.admins.includes(data.author!) && "admin: "}{data.delegationInfo ? name : shortAddr(data.author!)}</span>
+                    <span className="border rounded-md px-2 py-0.5 mx-1 text-base-content/80 border-base-300/50 bg-base-200/30 text-sm">{data.likesCount}</span>
                 </div>
             </div>
         </>

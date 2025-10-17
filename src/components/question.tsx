@@ -80,13 +80,13 @@ const Question = ({id, msg, moderation}:IProps) => {
 
 
     const statusStyles = msg.answers.length > 0 
-        ? "border-l-4 border-l-success bg-success/5" 
+        ? "border-l-2 border-l-success/40 bg-success/5" 
         : msg.moderated 
-        ? "border-l-4 border-l-error bg-error/10 opacity-75" 
-        : "border-l-4 border-l-transparent";
+        ? "border-l-2 border-l-error/40 bg-error/5 opacity-75" 
+        : "border-l-2 border-l-base-300";
 
     return (
-        <div key={msg.hash} className={`group bg-base-200/50 backdrop-blur-sm rounded-lg border border-base-300 p-5 my-3 transition-all duration-200 hover:shadow-lg hover:border-primary/50 hover:bg-base-200 ${statusStyles}`}>
+        <div key={msg.hash} className={`group bg-base-200/30 backdrop-blur-sm rounded-lg border border-base-300/50 p-5 my-3 transition-all duration-200 hover:shadow-md hover:border-base-300 hover:bg-base-200/50 ${statusStyles}`}>
             {/* Question Header */}
             <div className="flex items-start justify-between gap-4 mb-4">
                 <div className="flex items-center gap-2 text-sm text-base-content/60">
@@ -104,13 +104,13 @@ const Question = ({id, msg, moderation}:IProps) => {
             </div>
 
             {/* Question Content */}
-            <div className="prose prose-sm max-w-none mb-4 text-base-content">
+            <div className="prose prose-sm max-w-none mb-4 text-base-content text-left">
                 <ReactMarkdown>{msg.content}</ReactMarkdown>
             </div>
 
             {/* Answers Section */}
             {msg.answers.length > 0 && (
-                <div className="space-y-2 mb-4 pl-4 border-l-2 border-success/30">
+                <div className="space-y-2 mb-4 pl-4 border-l border-success/20">
                     {msg.answers
                         .sort((a: any, b: any) => b.timestamp - a.timestamp)
                         .sort((a: any, b: any) => b.likesCount - a.likesCount)
