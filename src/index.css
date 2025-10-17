@@ -21,31 +21,31 @@
     --gray-lighter: 240 5% 24%;
     --gray-lightest: 240 5% 29%;
     
-    /* Semantic Tokens */
-    --background: var(--gray-ultradark);
+    /* Semantic Tokens - Direct HSL values */
+    --background: 240 3% 8%;
     --foreground: 0 0% 100%;
     
-    --card: var(--gray-darker);
+    --card: 240 5% 11%;
     --card-foreground: 0 0% 100%;
     
-    --primary: var(--yellow);
-    --primary-foreground: var(--gray-ultradark);
+    --primary: 43 100% 60%;
+    --primary-foreground: 240 3% 8%;
     
-    --secondary: var(--gray-light);
+    --secondary: 240 5% 20%;
     --secondary-foreground: 0 0% 100%;
     
-    --accent: var(--green);
-    --accent-foreground: var(--gray-ultradark);
+    --accent: 151 43% 52%;
+    --accent-foreground: 240 3% 8%;
     
-    --destructive: var(--red);
+    --destructive: 348 82% 50%;
     --destructive-foreground: 0 0% 100%;
     
-    --border: var(--gray-light);
-    --input: var(--gray-lighter);
-    --ring: var(--yellow);
+    --border: 240 5% 20%;
+    --input: 240 5% 24%;
+    --ring: 43 100% 60%;
     
-    --muted: var(--gray);
-    --muted-foreground: var(--gray-lightest);
+    --muted: 240 4% 16%;
+    --muted-foreground: 240 5% 29%;
     
     /* Spacing & Layout */
     --sidebar-width: 280px;
