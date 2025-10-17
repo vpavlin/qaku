@@ -20,7 +20,7 @@ export type QakuInfo = {
     loading: boolean
     codexAvailable: boolean;
     ready: boolean;
-    handleConnectWallet: () => void;
+    handleConnectWallet: () => Promise<boolean>;
     requestSign: () => void;
     walletConnected: boolean
     externalAddr: string | undefined
@@ -335,7 +335,9 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
 
             await walletProvider.send('eth_requestAccounts', []);
             await tryConnectWallet()
+            return true
         }
+        return false // No wallet detected
     }
 
     useEffect(() => {
