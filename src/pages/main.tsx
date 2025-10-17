@@ -178,8 +178,8 @@ const Main = () => {
                 </aside>
 
                 {/* Main Content */}
-                <main className="flex-1 min-w-0 pt-16 lg:pt-0">
-                    <div className="hidden lg:flex items-center justify-end px-6 py-4 border-b border-border">
+                <main className="flex-1 min-w-0 pt-16 lg:pt-0 bg-background">
+                    <div className="hidden lg:flex items-center justify-end px-6 py-4 border-b border-border bg-card">
                         <Status />
                     </div>
                     <div className="p-6">
