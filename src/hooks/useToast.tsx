@@ -1,5 +1,6 @@
 import React, { useContext, useEffect, useMemo, useState } from "react";
 import {sha256} from "js-sha256"
+import { X, CheckCircle2, AlertCircle, Info } from "lucide-react";
 
 export type ToastInfo = {
     Element: () => JSX.Element
@@ -31,13 +32,55 @@ interface Props {
     children: React.ReactNode
 }
 
-export const ToastElement = ({toasts}: IProps) => {
+const getToastIcon = (type: string) => {
+    switch(type) {
+        case 'error':
+            return <AlertCircle className="w-5 h-5 flex-shrink-0" />;
+        case 'success':
+            return <CheckCircle2 className="w-5 h-5 flex-shrink-0" />;
+        case 'info':
+        default:
+            return <Info className="w-5 h-5 flex-shrink-0" />;
+    }
+}
+
+const getToastStyles = (type: string) => {
+    switch(type) {
+        case 'error':
+            return 'bg-destructive/10 border-destructive text-destructive';
+        case 'success':
+            return 'bg-accent/10 border-accent text-accent';
+        case 'info':
+        default:
+            return 'bg-primary/10 border-primary text-primary';
+    }
+}
+
+export const ToastElement = ({toasts, removeToast}: IProps) => {
     return (
-        <div className="toast">
-            {Array.from(toasts.entries()).map((v: [string, Toast], index) => 
-                    <div key={index} id={v[0]} className={`alert alert-${v[1].typ}`}>
-                        <span>{v[1].msg}</span>
-                    </div>
+        <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3 max-w-md">
+            {Array.from(toasts.entries()).map((v: [string, Toast]) => 
+                <div 
+                    key={v[0]} 
+                    id={v[0]} 
+                    className={`
+                        flex items-start gap-3 px-4 py-3 rounded-lg border-2
+                        backdrop-blur-sm shadow-lg
+                        animate-in slide-in-from-right duration-300
+                        ${getToastStyles(v[1].typ)}
+                    `}
+                >
+                    {getToastIcon(v[1].typ)}
+                    <span className="flex-1 text-sm font-medium text-foreground">
+                        {v[1].msg}
+                    </span>
+                    <button
+                        onClick={() => removeToast(v[0])}
+                        className="text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                        <X className="w-4 h-4" />
+                    </button>
+                </div>
             )}
         </div>
     )
@@ -46,13 +89,17 @@ export const ToastElement = ({toasts}: IProps) => {
 export const ToastContextProvider = ({ children }: Props) => {
     const [toasts, setToasts] = useState<Map<string, Toast>>(new Map<string, Toast>())
 
-    //const Element = <Element toasts={toasts} />
+    const removeToast = (id: string) => {
+        setToasts((t) => {
+            t.delete(id)
+            return new Map<string, Toast>(t)
+        })
+    }
 
-    let Element = () => ToastElement({toasts})
+    let Element = () => ToastElement({toasts, removeToast})
 
     useEffect(() =>{
-        Element = () => ToastElement({toasts})
-
+        Element = () => ToastElement({toasts, removeToast})
     }, [toasts])
 
     const error = (msg: string) => {
@@ -105,5 +152,6 @@ type Toast = {
 
 interface IProps {
     toasts: Map<string, Toast>
+    removeToast: (id: string) => void
 }
 
