@@ -20,17 +20,17 @@ const Attendee = () => {
     return (
         <>
             <QakuContextProvider id={id} password={password} updateStatus={toast}>
-                <div className="min-h-screen bg-base-100">
+                <div className="min-h-screen bg-background">
                     {/* Minimal header with status */}
-                    <div className="sticky top-0 z-50 bg-base-200/95 backdrop-blur-sm border-b border-base-300">
-                        <div className="container mx-auto px-4 py-2 flex justify-between items-center">
-                            <div className="text-lg font-semibold">Qaku Q&A</div>
+                    <div className="sticky top-0 z-50 bg-card/95 backdrop-blur-sm border-b border-border">
+                        <div className="container mx-auto px-4 py-3 flex justify-between items-center">
+                            <div className="text-lg font-bold font-mono text-primary">QAKU</div>
                             <Status />
                         </div>
                     </div>
 
                     {/* Main content - focused on Q&A only */}
-                    <div className="container mx-auto px-4 py-6">
+                    <div className="container mx-auto px-4 py-6 max-w-5xl">
                         <QA />
                     </div>
                 </div>
