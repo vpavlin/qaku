@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQakuContext } from "../../hooks/useQaku";
 import { useToastContext } from "../../hooks/useToast";
 import { Id, LocalPoll, PollVoter } from "qakulib";
+import { BarChart2, CheckCircle2, Power } from "lucide-react";
 
 interface IProps {
     id: Id
@@ -11,7 +12,6 @@ const Polls = ({id}: IProps) => {
     const {polls, qaku, isOwner, isAdmin} = useQakuContext()
     const [submitting, setSubmitting] = useState(false)
     const {info, error} = useToastContext()
-   
 
     const handleVote = async (pollId: string, option: number) => {
         if (!qaku || !qaku.identity) return
@@ -27,7 +27,7 @@ const Polls = ({id}: IProps) => {
     }
 
     const handleActiveSwitch = async (pollId: string, newState: boolean) => {
-        if (!qaku! || !qaku.identity || (!isOwner && !isAdmin) ) return
+        if (!qaku! || !qaku.identity || (!isOwner && !isAdmin)) return
         setSubmitting(true)
         const res = await qaku.pollActive(id, pollId, newState)
         setSubmitting(false)
@@ -35,57 +35,143 @@ const Polls = ({id}: IProps) => {
             error("Failed to switch poll state")
             return
         }
-        info(`Switched poll to ${newState ? "enabled" : "disabled"}`)
-
+        info(`Poll ${newState ? "activated" : "deactivated"}`)
     }
 
-    return (<div>
-        {
-            polls.map((p:LocalPoll) => {
-            let alreadyVoted = false
-            let max = -1
-            let maxI = -1
+    if (polls.length === 0) {
+        return (
+            <div className="text-center py-12 bg-card border border-border rounded-xl">
+                <BarChart2 className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+                <p className="text-muted-foreground">
+                    No polls yet
+                </p>
+            </div>
+        )
+    }
 
-            if (qaku?.identity && p.votes)
-                p.votes.map((o:PollVoter, i) => {
-                    alreadyVoted = alreadyVoted || o.voters.indexOf(qaku?.identity?.address()!) >= 0
-                    if (o.voters.length > max) {
-                        maxI = i
-                        max = o.voters.length
-                    }
-                })
+    return (
+        <div className="space-y-4">
+            {polls.map((p: LocalPoll) => {
+                let alreadyVoted = false
+                let max = -1
+                let maxI = -1
+                let totalVotes = p.voteCount || 0
 
-            
-            return <div className={`bg-neutral p-3 my-2 shadow-md`}>
-                {(isOwner || isAdmin)  && <div className="text-left lg:text-center">
-                        <button className="btn btn-xs" disabled={!qaku?.dispatcher || !qaku.identity || submitting} onClick={() => handleActiveSwitch(p.id, !p.active)}>{p.active ? "Deactivate" : "Activate"}</button>
-                    </div>
+                if (qaku?.identity && p.votes) {
+                    p.votes.forEach((o: PollVoter, i) => {
+                        alreadyVoted = alreadyVoted || o.voters.indexOf(qaku?.identity?.address()!) >= 0
+                        if (o.voters.length > max) {
+                            maxI = i
+                            max = o.voters.length
+                        }
+                    })
                 }
-                <div className="lg:flex lg:flex-row justify-end relative">
-                    <div className="space-x-2 lg:absolute right-0">
-                        <div className="badge">{p.active ? "active" : "inactive"}</div>
-                        <div className="badge">{p.voteCount || 0} votes</div>
-                        {alreadyVoted && <div className="badge badge-primary">voted</div>}
-                    </div>
-                    <div className="text-lg font-bold w-full lg:min-h-[1.5rem]">{p.title}</div>
-                </div>
-                <div className="p-1">{p.question}</div>
-                <div className="space-y-1">
-                {
-                    p.options.map((o, i) =>  o.title != "" &&
-                            <div className="flex flex-row items-center justify-between space-y-2 bg-base-100 p-1 ">
-                                <div className={`tooltip w-1/2 ${ i == maxI ? "tooltip-secondary" : "tooltip-primary"}`} data-tip={p.votes ? p.votes[i].voters.length : 0}>
-                                    <progress className={`progress ${ i == maxI ? "progress-secondary" : "progress-primary"}`} value={p.votes ? p.votes[i].voters.length : 0} title={p.votes ? p.votes[i].voters.length.toString() : "0"} max={p.voteCount || 0}></progress>
-                                </div>
 
-                                <div className="w-1/2"><button className="btn w-11/12" disabled={!qaku?.dispatcher || !qaku.identity || submitting || !p.active || alreadyVoted} onClick={() => handleVote(p.id, i)}>{o.title}</button></div>
+                return (
+                    <div 
+                        key={p.id}
+                        className="bg-card border border-border rounded-xl p-6 space-y-4"
+                    >
+                        {/* Header */}
+                        <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1 space-y-2">
+                                {p.title && (
+                                    <h3 className="text-lg font-bold">{p.title}</h3>
+                                )}
+                                <p className="text-foreground">{p.question}</p>
                             </div>
-                    )
-                }
-                </div>
-            </div>})
-        }
-    </div>)
+                            <div className="flex flex-col items-end gap-2">
+                                <div className="flex items-center gap-2">
+                                    <span className={`px-2.5 py-1 rounded-lg text-xs font-medium ${
+                                        p.active 
+                                            ? 'bg-accent/20 text-accent' 
+                                            : 'bg-muted text-muted-foreground'
+                                    }`}>
+                                        {p.active ? 'Active' : 'Closed'}
+                                    </span>
+                                    {alreadyVoted && (
+                                        <span className="flex items-center gap-1 px-2.5 py-1 bg-primary/20 text-primary rounded-lg text-xs font-medium">
+                                            <CheckCircle2 className="w-3 h-3" />
+                                            Voted
+                                        </span>
+                                    )}
+                                </div>
+                                <span className="text-sm text-muted-foreground">
+                                    {totalVotes} {totalVotes === 1 ? 'vote' : 'votes'}
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Admin Controls */}
+                        {(isOwner || isAdmin) && (
+                            <div className="flex justify-end">
+                                <button 
+                                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                                        p.active
+                                            ? 'bg-destructive/10 hover:bg-destructive/20 text-destructive'
+                                            : 'bg-accent/10 hover:bg-accent/20 text-accent'
+                                    }`}
+                                    disabled={!qaku?.dispatcher || !qaku.identity || submitting}
+                                    onClick={() => handleActiveSwitch(p.id, !p.active)}
+                                >
+                                    <Power className="w-4 h-4" />
+                                    {p.active ? 'Deactivate' : 'Activate'}
+                                </button>
+                            </div>
+                        )}
+
+                        {/* Options */}
+                        <div className="space-y-3">
+                            {p.options.map((o, i) => {
+                                if (o.title === "") return null
+                                
+                                const votes = p.votes ? p.votes[i].voters.length : 0
+                                const percentage = totalVotes > 0 ? (votes / totalVotes) * 100 : 0
+                                const isWinning = i === maxI && totalVotes > 0
+
+                                return (
+                                    <div key={i} className="space-y-2">
+                                        {/* Option with vote button */}
+                                        <div className="flex items-center gap-3">
+                                            <button
+                                                className={`flex-1 px-4 py-3 rounded-lg font-medium text-left transition-all ${
+                                                    !p.active || alreadyVoted || !qaku?.identity
+                                                        ? 'bg-secondary/50 cursor-not-allowed'
+                                                        : 'bg-secondary hover:bg-primary hover:text-primary-foreground'
+                                                }`}
+                                                disabled={!qaku?.dispatcher || !qaku.identity || submitting || !p.active || alreadyVoted}
+                                                onClick={() => handleVote(p.id, i)}
+                                            >
+                                                {o.title}
+                                            </button>
+                                            <span className="text-sm font-semibold text-muted-foreground min-w-[40px] text-right">
+                                                {votes}
+                                            </span>
+                                        </div>
+
+                                        {/* Progress bar */}
+                                        <div className="relative h-2 bg-secondary/30 rounded-full overflow-hidden">
+                                            <div 
+                                                className={`absolute inset-y-0 left-0 rounded-full transition-all duration-500 ${
+                                                    isWinning ? 'bg-primary' : 'bg-accent'
+                                                }`}
+                                                style={{ width: `${percentage}%` }}
+                                            />
+                                        </div>
+
+                                        {/* Percentage */}
+                                        <div className="text-xs text-muted-foreground text-right">
+                                            {percentage.toFixed(1)}%
+                                        </div>
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    </div>
+                )
+            })}
+        </div>
+    )
 }
 
 export default Polls;

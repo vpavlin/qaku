@@ -1,65 +1,75 @@
 import { useState } from "react"
 import { useQakuContext } from "../../hooks/useQaku"
-import { sha256 } from "js-sha256"
 import { useToastContext } from "../../hooks/useToast"
 import { Id, PollOption } from "qakulib"
-
+import { BarChart3, Plus, X, Send } from "lucide-react"
 
 interface IOptionProps {
     title: string
     index: number
     setOption: (index: number, text: string) => void
+    removeOption: (index: number) => void
 }
 
-const CreatePollOption = ({title, index, setOption}:IOptionProps) => {
-
-    return (<>
-        <div>
-            <label className="label">
-                <span className="min-w-[100px]">Option {index+1}</span>
-                <input type="text" className="input input-bordered" value={title} onChange={(e) => setOption(index, e.target.value)} />
-            </label>
+const CreatePollOption = ({title, index, setOption, removeOption}: IOptionProps) => {
+    return (
+        <div className="flex gap-2 items-center">
+            <span className="text-sm font-medium text-muted-foreground min-w-[80px]">
+                Option {index + 1}
+            </span>
+            <input 
+                type="text" 
+                className="flex-1 px-3 py-2 bg-input border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring text-sm" 
+                value={title} 
+                onChange={(e) => setOption(index, e.target.value)}
+                placeholder={`Enter option ${index + 1}`}
+            />
+            <button 
+                onClick={() => removeOption(index)}
+                className="p-2 hover:bg-destructive/20 text-destructive rounded-lg transition-colors"
+            >
+                <X className="w-4 h-4" />
+            </button>
         </div>
-    </>)
-    
+    )
 }
 
 interface IProps {
     id: Id
 }
 
-
 const CreatePoll = ({id}: IProps) => {
-
     const {qaku} = useQakuContext()
     const {info, error} = useToastContext()
 
     const [options, setOptions] = useState<PollOption[]>([])
-    const [title, setTitle] = useState<string>()
-    const [question, setQuestion] = useState<string>()
+    const [title, setTitle] = useState<string>("")
+    const [question, setQuestion] = useState<string>("")
     const [active, setActive] = useState<boolean>(false)
-
-    const [collapsed, setCollapsed] = useState<boolean>(false)
-
+    const [collapsed, setCollapsed] = useState<boolean>(true)
     const [submitting, setSubmitting] = useState<boolean>(false)
 
-    const handleOptionChange = (index:number, title:string) => {
+    const handleOptionChange = (index: number, title: string) => {
         setOptions((o) => {
-            if (title == "") return o
-            o[index].title = title;
-            return [...o]
+            const newOptions = [...o]
+            newOptions[index].title = title
+            return newOptions
         })
+    }
+
+    const handleRemoveOption = (index: number) => {
+        setOptions((o) => o.filter((_, i) => i !== index))
     }
 
     const handleSubmit = async () => {
         if (qaku === undefined || qaku.identity === undefined) return
 
         if (options.length < 2) {
-            error("Too few options, please provide at least 2")
-            return //FIXME
+            error("Please provide at least 2 options")
+            return
         }
-        if (!question || question.length == 0) {
-            error("You need to ask something!")
+        if (!question || question.length === 0) {
+            error("Please enter a question")
             return
         }
 
@@ -78,51 +88,117 @@ const CreatePoll = ({id}: IProps) => {
             error("Failed to publish poll")
             return 
         }
-        
 
-        info(`Successfully published a poll ${title}`)
+        info(`Successfully published poll ${title || question}`)
         setCollapsed(true)
         setQuestion("")
         setTitle("")
         setOptions([])
         setActive(false)
-
         setSubmitting(false)
     }
 
     return (
-        <>  
-            <div className="collapse collapse-arrow border border-base-100 my-5">
-                <input type="checkbox" checked={collapsed} onChange={(e) => {console.log(e.target.checked);setCollapsed(e.target.checked)}} />
-                <div className="collapse-title">Add Poll</div>
-                <div className="bg-neutral collapse-content">
-                    <label className="label">
-                        <span>Title (optional)</span>
-                        <input type="text" className="input input-bordered" value={title} onChange={(e) => setTitle(e.target.value)} />
-                    </label>
-                    <label className="label block text-left">
-                        <div>Question</div>
-                        <textarea className="input input-bordered w-full min-h-[14rem]" value={question} onChange={(e) => setQuestion(e.target.value)}></textarea>
-                    </label>
-                    <label className="label">
-                        <span>Active</span>
-                        <input type="checkbox" className="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)}/>
-                    </label>
-                    <div className="bg-base-100 p-3 shadow m-3">
-                        <span>Options:</span>
-                        <div>{
-                            options.map((o, i) => 
-                                <CreatePollOption title={o.title} index={i} setOption={handleOptionChange}/>
-                            )
-                        }</div>
-                        <div><button className="btn btn-lg" onClick={() => setOptions((o) => [...o, {title: ""}])}>+</button></div>
-                    </div>
-                    <div>
-                        <button className={`btn btn-lg`} disabled={submitting} onClick={() => handleSubmit()}>Submit</button>
-                    </div>
+        <div className="bg-card border border-border rounded-xl overflow-hidden">
+            {/* Header */}
+            <button
+                onClick={() => setCollapsed(!collapsed)}
+                className="w-full flex items-center justify-between p-6 hover:bg-secondary/30 transition-colors"
+            >
+                <div className="flex items-center gap-2">
+                    <BarChart3 className="w-5 h-5 text-primary" />
+                    <h3 className="font-semibold text-lg">Create Poll</h3>
                 </div>
-            </div>
-        </>
+                <div className={`text-muted-foreground transition-transform ${collapsed ? '' : 'rotate-180'}`}>
+                    ▼
+                </div>
+            </button>
+
+            {/* Content */}
+            {!collapsed && (
+                <div className="p-6 pt-0 space-y-6">
+                    {/* Title (optional) */}
+                    <div className="space-y-2">
+                        <label className="block text-sm font-medium">
+                            Title <span className="text-muted-foreground">(optional)</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            className="w-full px-4 py-3 bg-input border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring" 
+                            value={title} 
+                            onChange={(e) => setTitle(e.target.value)}
+                            placeholder="e.g., Feature Priority Vote"
+                        />
+                    </div>
+
+                    {/* Question */}
+                    <div className="space-y-2">
+                        <label className="block text-sm font-medium">
+                            Question <span className="text-destructive">*</span>
+                        </label>
+                        <textarea 
+                            className="w-full px-4 py-3 bg-input border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring min-h-[100px] resize-y" 
+                            value={question} 
+                            onChange={(e) => setQuestion(e.target.value)}
+                            placeholder="What question do you want to ask?"
+                        />
+                    </div>
+
+                    {/* Options */}
+                    <div className="space-y-3">
+                        <label className="block text-sm font-medium">
+                            Options <span className="text-destructive">*</span>
+                        </label>
+                        <div className="space-y-2">
+                            {options.map((o, i) => (
+                                <CreatePollOption 
+                                    key={i}
+                                    title={o.title} 
+                                    index={i} 
+                                    setOption={handleOptionChange}
+                                    removeOption={handleRemoveOption}
+                                />
+                            ))}
+                        </div>
+                        <button 
+                            className="flex items-center gap-2 px-4 py-2 bg-secondary hover:bg-secondary/80 rounded-lg transition-colors text-sm font-medium"
+                            onClick={() => setOptions((o) => [...o, {title: ""}])}
+                        >
+                            <Plus className="w-4 h-4" />
+                            Add Option
+                        </button>
+                    </div>
+
+                    {/* Active toggle */}
+                    <label className="flex items-center justify-between p-4 bg-secondary/30 rounded-lg cursor-pointer group">
+                        <div className="flex items-center gap-3">
+                            <div className="font-medium group-hover:text-primary transition-colors">
+                                Active immediately
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                                Start accepting votes right away
+                            </div>
+                        </div>
+                        <input 
+                            type="checkbox" 
+                            className="w-5 h-5 rounded border-border bg-input checked:bg-primary checked:border-primary focus:ring-2 focus:ring-ring"
+                            checked={active} 
+                            onChange={(e) => setActive(e.target.checked)}
+                        />
+                    </label>
+
+                    {/* Submit */}
+                    <button 
+                        className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                        disabled={submitting || options.length < 2 || !question}
+                        onClick={() => handleSubmit()}
+                    >
+                        <Send className="w-4 h-4" />
+                        {submitting ? 'Publishing...' : 'Publish Poll'}
+                    </button>
+                </div>
+            )}
+        </div>
     )
 }
 
