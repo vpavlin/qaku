@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQakuContext } from "../hooks/useQaku";
-import { Wallet, User } from "lucide-react";
+import { Wallet, User, Check } from "lucide-react";
 
 interface iProps {
     shouldUseExternal: (useExternal: boolean) => void
@@ -31,13 +31,18 @@ const ExternalWallet = ({shouldUseExternal, setNickname}: iProps) => {
         <div className="space-y-3">
             {/* External Wallet Toggle */}
             <label className="flex items-start gap-3 cursor-pointer group">
-                <input 
-                    type="checkbox" 
-                    checked={useExternal} 
-                    className="mt-1 w-4 h-4 rounded border-border bg-input checked:bg-primary checked:border-primary focus:ring-2 focus:ring-ring" 
-                    disabled={!walletConnected} 
-                    onChange={(e) => setUseExternal(e.target.checked)} 
-                />
+                <div className="relative flex-shrink-0">
+                    <input 
+                        type="checkbox" 
+                        checked={useExternal} 
+                        className="sr-only peer" 
+                        disabled={!walletConnected} 
+                        onChange={(e) => setUseExternal(e.target.checked)} 
+                    />
+                    <div className="mt-1 w-5 h-5 rounded border-2 border-border bg-input peer-checked:bg-primary peer-checked:border-primary peer-disabled:opacity-50 peer-disabled:cursor-not-allowed transition-all flex items-center justify-center">
+                        {useExternal && <Check className="w-3.5 h-3.5 text-primary-foreground" strokeWidth={3} />}
+                    </div>
+                </div>
                 <div className="flex-1">
                     <div className="flex items-center gap-2">
                         <Wallet className="w-4 h-4" />
