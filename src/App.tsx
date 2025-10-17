@@ -1,5 +1,6 @@
 import './App.css';
 import Main from './pages/main';
+import Attendee from './pages/attendee';
 import {
   Route,
   Routes,
@@ -19,6 +20,10 @@ function App() {
     <WakuContextProvider updateStatus={toast}>
     <div className="App">
       <Routes>
+        {/* Attendee view - focused participation without sidebar */}
+        <Route path='/a/:id/:password?' element={<Attendee />} />
+        
+        {/* Main admin/owner view with sidebar */}
         <Route path='/' element={<Main />}>
           <Route path='settings' element={<Settings />} />
           <Route path='q/:id/:password?' element={<MainQA />} />
