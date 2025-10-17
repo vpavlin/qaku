@@ -51,14 +51,14 @@ const Main = () => {
                 <aside className={`
                     fixed lg:sticky top-0 left-0 h-screen z-40
                     w-[280px] bg-card border-r border-border
-                    flex flex-col overflow-y-auto
+                    flex flex-col
                     transition-transform duration-200 ease-smooth
                     ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
                 `}>
                     {/* Logo */}
                     <Link 
                         to="/" 
-                        className="flex flex-col items-center py-8 px-6 border-b border-border"
+                        className="flex flex-col items-center py-8 px-6 border-b border-border flex-shrink-0"
                         onClick={() => setSidebarOpen(false)}
                     >
                         <img className="w-20 h-20 rounded-full mb-3" src={logo} alt="QAKU Logo" />
@@ -66,8 +66,8 @@ const Main = () => {
                         <p className="text-xs text-muted-foreground mt-1">Q&A powered by Waku</p>
                     </Link>
 
-                    {/* Navigation */}
-                    <nav className="flex-1 px-4 py-6 space-y-6">
+                    {/* Navigation - Scrollable */}
+                    <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
                         {/* New Q&A */}
                         <Link 
                             to="/" 
@@ -116,13 +116,16 @@ const Main = () => {
                                 <Visited />
                             </div>
                         </div>
+                    </nav>
 
+                    {/* Footer - Fixed at bottom */}
+                    <div className="border-t border-border flex-shrink-0">
                         {/* Go To Q&A */}
-                        <div className="pt-4 border-t border-border">
-                            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 mb-3">
+                        <div className="p-4">
+                            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
                                 Go To Q&A
                             </h3>
-                            <div className="flex gap-2 px-4">
+                            <div className="flex gap-2">
                                 <input 
                                     type="text" 
                                     className="flex-1 px-3 py-2 bg-input border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring" 
@@ -148,22 +151,24 @@ const Main = () => {
                                 </button>
                             </div>
                         </div>
-                    </nav>
 
-                    {/* Footer */}
-                    <div className="border-t border-border p-4 space-y-4">
-                        <div className="px-4">
-                            <div className="text-xs text-muted-foreground mb-2">Connected Wallet</div>
-                            <Wallet short={true} />
+                        {/* Wallet & Settings */}
+                        <div className="p-4 border-t border-border space-y-3">
+                            <div>
+                                <div className="text-xs text-muted-foreground mb-2">Connected Wallet</div>
+                                <Wallet short={true} />
+                            </div>
+                            <Link 
+                                to="/settings" 
+                                onClick={() => setSidebarOpen(false)}
+                                className="block px-4 py-2 text-center border border-border rounded-lg hover:bg-secondary transition-colors"
+                            >
+                                Settings
+                            </Link>
                         </div>
-                        <Link 
-                            to="/settings" 
-                            onClick={() => setSidebarOpen(false)}
-                            className="block px-4 py-2 text-center border border-border rounded-lg hover:bg-secondary transition-colors"
-                        >
-                            Settings
-                        </Link>
-                        <div className="flex gap-4 justify-center text-sm">
+
+                        {/* Links */}
+                        <div className="p-4 border-t border-border flex gap-4 justify-center text-sm">
                             <a href="https://github.com/vpavlin/qaku" className="text-muted-foreground hover:text-foreground transition-colors">
                                 Github
                             </a>
