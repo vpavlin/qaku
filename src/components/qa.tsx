@@ -118,18 +118,6 @@ const QA = () => {
         <div className="space-y-6">
             {/* Header */}
             <div className="bg-card border border-border rounded-xl p-6 md:p-8">
-                {controlState.moderation && (
-                    <div className="mb-4 p-4 bg-destructive/10 border border-destructive/20 rounded-lg flex items-start gap-3">
-                        <AlertTriangle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
-                        <div className="text-sm">
-                            <div className="font-semibold text-destructive mb-1">Moderated Session</div>
-                            <div className="text-muted-foreground">
-                                Questions can be hidden by the owner
-                            </div>
-                        </div>
-                    </div>
-                )}
-
                 <h1 className="text-3xl md:text-4xl font-bold mb-4">{controlState.title}</h1>
                 
                 {controlState.description && (
@@ -156,6 +144,13 @@ const QA = () => {
                         </span>
                     )}
                 </div>
+
+                {controlState.moderation && (
+                    <div className="mt-4 pt-4 border-t border-border flex items-center gap-2 text-xs text-muted-foreground">
+                        <AlertTriangle className="w-3.5 h-3.5" />
+                        <span>Moderated session - questions may be hidden by the owner</span>
+                    </div>
+                )}
             </div>
 
             {/* New Question Form */}
