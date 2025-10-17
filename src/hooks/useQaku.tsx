@@ -111,7 +111,7 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
                 walletProvider = new ethers.BrowserProvider(window.ethereum as ethers.Eip1193Provider);
             }
 
-            await q.init(codexURL, publicCodexURL, walletProvider)
+            await q.init(codexURL, publicCodexURL, walletProvider as any)
             console.log("Qaku is ready")
             setQaku(q)
         })()
