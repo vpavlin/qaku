@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { useQakuContext } from "../hooks/useQaku"
 import { DownloadSnapshot } from "../utils/messages"
+import { Settings, Power, Camera } from "lucide-react"
 
 interface IProps {
     id: string
@@ -32,36 +33,48 @@ const Control = ({id}: IProps) => {
     useEffect(() => {
         if (!controlState) return
         setEnabled(controlState.enabled)
-        
     }, [controlState])
-    return (
-        <>
-            { controlState && isOwner &&
-                <>
-                <div className="m-auto max-w-md text-center bg-neutral p-2 w-fill rounded-xl">
-                    <div>
-                        <h1 className="font-bold">{controlState.title}</h1>
-                        <div className="flex m-auto items-center justify-center">
-                            <div className="flex-col m-2"><button onClick={() => qaku?.switchQAState(id, !enabled)} disabled={!id || !controlState} className={`btn`}>{ enabled ? "disable" : "enable"}</button></div>
-                            <div className="flex-col m-2">
-                                { (localQuestions.length > 0 || polls.length > 0) && <button className="btn" onClick={()=> qaku?.snapshotManager?.publishSnapshot(id)}>Publish Snapshot</button>}
-                            </div>   
-                        </div>
 
+    if (!controlState || !isOwner) return null
+
+    return (
+        <div className="bg-card border border-border rounded-xl p-6">
+            <div className="flex items-center gap-2 mb-4">
+                <Settings className="w-5 h-5 text-primary" />
+                <h3 className="font-semibold text-lg">Control Panel</h3>
+            </div>
+
+            <div className="space-y-3">
+                <div className="flex items-center justify-between p-3 bg-secondary/30 rounded-lg">
+                    <div className="flex items-center gap-2">
+                        <Power className="w-4 h-4" />
+                        <span className="text-sm font-medium">Q&A Status</span>
                     </div>
+                    <button 
+                        onClick={() => qaku?.switchQAState(id, !enabled)} 
+                        disabled={!id || !controlState}
+                        className={`px-4 py-1.5 rounded-lg font-medium text-sm transition-colors ${
+                            enabled 
+                                ? 'bg-accent text-accent-foreground hover:bg-accent/90' 
+                                : 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
+                        }`}
+                    >
+                        {enabled ? 'Enabled' : 'Disabled'}
+                    </button>
                 </div>
-                </>
-            }
-        </>
+
+                {(localQuestions.length > 0 || polls.length > 0) && (
+                    <button 
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-secondary hover:bg-secondary/80 rounded-lg transition-colors text-sm font-medium"
+                        onClick={() => qaku?.snapshotManager?.publishSnapshot(id)}
+                    >
+                        <Camera className="w-4 h-4" />
+                        Publish Snapshot
+                    </button>
+                )}
+            </div>
+        </div>
     )
 }
 
 export default Control;
-
-/*
-<div className="flex-col m-2">
-                                { (localQuestions.length > 0 || polls.length > 0) && <button className="btn" onClick={()=> saveTemplateAsFile("data.json", snapshot())}>Download</button>}
-                            </div>
-                            <div className="flex-col m-2">
-                                { (localQuestions.length > 0 || polls.length > 0) && <button className="btn" onClick={()=> publishSnapshot()}>Publish Snapshot</button>}
-                            </div>*/
