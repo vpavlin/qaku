@@ -1,3 +1,80 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    /* Brand Colors */
+    --yellow-dark: 40 95% 55%;
+    --yellow: 43 100% 60%;
+    --red: 348 82% 50%;
+    --orange: 20 92% 42%;
+    --green: 151 43% 52%;
+    
+    /* Grayscale */
+    --gray-ultradark: 240 3% 8%;
+    --gray-darkest: 240 3% 10%;
+    --gray-darker: 240 5% 11%;
+    --gray-dark: 240 4% 14%;
+    --gray: 240 4% 16%;
+    --gray-light: 240 5% 20%;
+    --gray-lighter: 240 5% 24%;
+    --gray-lightest: 240 5% 29%;
+    
+    /* Semantic Tokens */
+    --background: var(--gray-ultradark);
+    --foreground: 0 0% 100%;
+    
+    --card: var(--gray-darker);
+    --card-foreground: 0 0% 100%;
+    
+    --primary: var(--yellow);
+    --primary-foreground: var(--gray-ultradark);
+    
+    --secondary: var(--gray-light);
+    --secondary-foreground: 0 0% 100%;
+    
+    --accent: var(--green);
+    --accent-foreground: var(--gray-ultradark);
+    
+    --destructive: var(--red);
+    --destructive-foreground: 0 0% 100%;
+    
+    --border: var(--gray-light);
+    --input: var(--gray-lighter);
+    --ring: var(--yellow);
+    
+    --muted: var(--gray);
+    --muted-foreground: var(--gray-lightest);
+    
+    /* Spacing & Layout */
+    --sidebar-width: 280px;
+    --sidebar-width-collapsed: 60px;
+    
+    /* Transitions */
+    --transition-smooth: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  .font-mono {
+    font-family: 'Monocraft', 'Courier New', monospace;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}

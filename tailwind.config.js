@@ -5,18 +5,70 @@ module.exports = {
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        background: 'hsl(var(--background))',
+        foreground: 'hsl(var(--foreground))',
+        card: {
+          DEFAULT: 'hsl(var(--card))',
+          foreground: 'hsl(var(--card-foreground))',
+        },
+        primary: {
+          DEFAULT: 'hsl(var(--primary))',
+          foreground: 'hsl(var(--primary-foreground))',
+        },
+        secondary: {
+          DEFAULT: 'hsl(var(--secondary))',
+          foreground: 'hsl(var(--secondary-foreground))',
+        },
+        accent: {
+          DEFAULT: 'hsl(var(--accent))',
+          foreground: 'hsl(var(--accent-foreground))',
+        },
+        destructive: {
+          DEFAULT: 'hsl(var(--destructive))',
+          foreground: 'hsl(var(--destructive-foreground))',
+        },
+        muted: {
+          DEFAULT: 'hsl(var(--muted))',
+          foreground: 'hsl(var(--muted-foreground))',
+        },
+        border: 'hsl(var(--border))',
+        input: 'hsl(var(--input))',
+        ring: 'hsl(var(--ring))',
+        gray: {
+          ultradark: 'hsl(var(--gray-ultradark))',
+          darkest: 'hsl(var(--gray-darkest))',
+          darker: 'hsl(var(--gray-darker))',
+          dark: 'hsl(var(--gray-dark))',
+          DEFAULT: 'hsl(var(--gray))',
+          light: 'hsl(var(--gray-light))',
+          lighter: 'hsl(var(--gray-lighter))',
+          lightest: 'hsl(var(--gray-lightest))',
+        },
+        yellow: {
+          dark: 'hsl(var(--yellow-dark))',
+          DEFAULT: 'hsl(var(--yellow))',
+        },
+        red: 'hsl(var(--red))',
+        orange: 'hsl(var(--orange))',
+        green: 'hsl(var(--green))',
+      },
+      fontFamily: {
+        sans: ['Helvetica Neue', 'Helvetica', 'Arial', 'sans-serif'],
+        mono: ['Monocraft', 'Courier New', 'monospace'],
+      },
+      transitionTimingFunction: {
+        smooth: 'cubic-bezier(0.4, 0, 0.2, 1)',
+      },
+    },
   },
   plugins: [require("daisyui")],
   daisyui: {
-    themes: ["dark"], // true: all themes | false: only light + dark | array: specific themes like this ["light", "dark", "cupcake"]
-    darkTheme: "dark", // name of one of the included themes for dark mode
-    base: true, // applies background color and foreground color for root element by default
-    styled: true, // include daisyUI colors and design decisions for all components
-    utils: true, // adds responsive and modifier utility classes
-    rtl: false, // rotate style direction from left-to-right to right-to-left. You also need to add dir="rtl" to your html tag and install `tailwindcss-flip` plugin for Tailwind CSS.
-    prefix: "", // prefix for daisyUI classnames (components, modifiers and responsive class names. Not colors)
-    logs: true, // Shows info about daisyUI version and used config in the console when building your CSS
+    themes: false,
+    base: false,
+    styled: true,
+    utils: true,
   },
 }
 
