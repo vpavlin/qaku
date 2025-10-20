@@ -8,10 +8,11 @@ interface IProps {
 } 
 
 const Control = ({id}: IProps) => {
-    const {controlState, qaku, isOwner, localQuestions, polls} = useQakuContext()
+    const {controlState, qaku, isOwner, localQuestions, polls, nextPublishTime} = useQakuContext()
     const [enabled, setEnabled] = useState(false)
     const [switching, setSwitching] = useState(false)
     const [publishing, setPublishing] = useState(false)
+    const [timeRemaining, setTimeRemaining] = useState<string>("")
 
     const saveTemplateAsFile = (filename:string, dataObjToWrite:DownloadSnapshot | undefined) => {
         if (!dataObjToWrite) return
@@ -36,6 +37,34 @@ const Control = ({id}: IProps) => {
         if (!controlState) return
         setEnabled(controlState.enabled)
     }, [controlState])
+
+    useEffect(() => {
+        if (!nextPublishTime) return
+
+        const updateTimeRemaining = () => {
+            const now = Date.now()
+            const diff = nextPublishTime - now
+
+            if (diff <= 0) {
+                setTimeRemaining("Publishing soon...")
+                return
+            }
+
+            const minutes = Math.floor(diff / 60000)
+            const seconds = Math.floor((diff % 60000) / 1000)
+
+            if (minutes > 0) {
+                setTimeRemaining(`${minutes}m ${seconds}s`)
+            } else {
+                setTimeRemaining(`${seconds}s`)
+            }
+        }
+
+        updateTimeRemaining()
+        const interval = setInterval(updateTimeRemaining, 1000)
+
+        return () => clearInterval(interval)
+    }, [nextPublishTime])
 
     if (!controlState || !isOwner) return null
 
@@ -72,18 +101,25 @@ const Control = ({id}: IProps) => {
                 </div>
 
                 {(localQuestions.length > 0 || polls.length > 0) && (
-                    <button 
-                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-secondary hover:bg-secondary/80 rounded-lg transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                        onClick={async () => {
-                            setPublishing(true)
-                            await qaku?.snapshotManager?.publishSnapshot(id)
-                            setPublishing(false)
-                        }}
-                        disabled={publishing}
-                    >
-                        <Camera className="w-4 h-4" />
-                        {publishing ? 'Publishing...' : 'Publish Snapshot'}
-                    </button>
+                    <div className="space-y-2">
+                        <button 
+                            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-secondary hover:bg-secondary/80 rounded-lg transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                            onClick={async () => {
+                                setPublishing(true)
+                                await qaku?.snapshotManager?.publishSnapshot(id)
+                                setPublishing(false)
+                            }}
+                            disabled={publishing}
+                        >
+                            <Camera className="w-4 h-4" />
+                            {publishing ? 'Publishing...' : 'Publish Snapshot'}
+                        </button>
+                        {timeRemaining && (
+                            <div className="text-xs text-muted-foreground text-center">
+                                Next auto-publish in {timeRemaining}
+                            </div>
+                        )}
+                    </div>
                 )}
             </div>
         </div>

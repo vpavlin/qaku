@@ -16,6 +16,7 @@ export class SnapshotManager {
     private qas: QAList;
     private intervals: Map<string,  NodeJS.Timeout>
     private processingSnapshots: Map<string, string>
+    private nextPublishTimes: Map<string, number>
 
     constructor(codexOptions: CodexOptions, wallet: Identity, qas: QAList) {
         this.codex = new Codex(codexOptions.codexURL);
@@ -25,6 +26,7 @@ export class SnapshotManager {
         this.qas = qas;
         this.intervals = new Map<string,  NodeJS.Timeout>
         this.processingSnapshots = new Map<string, string>
+        this.nextPublishTimes = new Map<string, number>
     
     }
     prepDownload(id: string):DownloadSnapshot | undefined {
@@ -252,19 +254,32 @@ export class SnapshotManager {
         if (intervalExists) return
 
         const snap = getStoredSnapshotInfo(id)
+        const now = Date.now()
+        const oneHour = 3600 * 1000
 
         //Check is stored snapshot is older than 1h and publish immediately if it is
-        if (snap && snap.timestamp < Date.now() - 3600 * 1000) {
+        if (snap && snap.timestamp < now - oneHour) {
             console.log("Publishing snapshot immediately")
             this.publishSnapshot(id)
+            this.nextPublishTimes.set(id, now + oneHour)
+        } else {
+            // Calculate next publish time based on last snapshot or now
+            const lastPublish = snap?.timestamp || now
+            this.nextPublishTimes.set(id, lastPublish + oneHour)
         }
+        
         // Publish snapshot every hour
         const interval = setInterval(() => {
             this.publishSnapshot(id)
-        }, 3600 * 1000)
+            this.nextPublishTimes.set(id, Date.now() + oneHour)
+        }, oneHour)
 
         // Record the interval ID for cleanup in intervals
         this.intervals.set(id, interval)
+    }
+
+    public getNextPublishTime(id: Id): number | undefined {
+        return this.nextPublishTimes.get(id)
     }
 
     //Add interval cleanup method
@@ -273,6 +288,7 @@ export class SnapshotManager {
         if (interval) {
             clearInterval(interval)
             this.intervals.delete(id)
+            this.nextPublishTimes.delete(id)
         }
     }
 

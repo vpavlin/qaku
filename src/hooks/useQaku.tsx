@@ -25,6 +25,7 @@ export type QakuInfo = {
     walletConnected: boolean
     externalAddr: string | undefined
     delegationValid: boolean
+    nextPublishTime: number | undefined
 }
 
 export type QakuContextData = {
@@ -81,6 +82,7 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
     const [ participated, setParticipated ] = useState<HistoryEntry[]>([])
     const [ admin, setAdminHistory ] = useState<HistoryEntry[]>([])
 
+    const [nextPublishTime, setNextPublishTime] = useState<number | undefined>()
 
     const [questions, setQuestions] = useState<Map<string, EnhancedQuestionMessage>>(new Map<string, EnhancedQuestionMessage>())
     const [localQuestions, setLocalQuestions] = useState<EnhancedQuestionMessage[]>([])
@@ -147,6 +149,12 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
             setPolls([...polls])
         }
 
+        const updateNextPublishTime = () => {
+            if (!id) return
+            const nextTime = qaku.getNextPublishTime(id)
+            setNextPublishTime(nextTime)
+        }
+
         (async () => {
             setLoading(true)
             qaku.on(QakuEvents.NEW_QUESTION, updateQuestions)
@@ -187,11 +195,17 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
             }
             updateStatus("Qaku initialized", "info", 2000)
             setLoading(false)
+            updateNextPublishTime()
          
             setLoading(false)
         })()
 
+        // Poll for next publish time updates every 10 seconds
+        const publishTimeInterval = setInterval(updateNextPublishTime, 10000)
+
         return () => {
+            clearInterval(publishTimeInterval)
+
             console.log("Clearing Qaku listeners")
             qaku.off(QakuEvents.NEW_QUESTION, updateQuestions)
             qaku.off(QakuEvents.NEW_ANSWER, updateQuestions)
@@ -406,6 +420,7 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
             walletConnected,
             externalAddr,
             delegationValid,
+            nextPublishTime,
         }),
         [
             qaku,
@@ -427,6 +442,7 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
             walletConnected,
             externalAddr,
             delegationValid,
+            nextPublishTime,
         ]
     )
 

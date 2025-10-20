@@ -827,6 +827,10 @@ export class Qaku extends EventEmitter {
         return qa.polls
     }
 
+    public getNextPublishTime(id: Id): number | undefined {
+        return this.snapshotManager?.getNextPublishTime(id)
+    }
+
     private async getDelegationInfo():Promise<DelegationInfo> {
         if(!this.externalWallet) throw new Error("External wallet not connected")
 
