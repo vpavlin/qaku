@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import { useQakuContext } from "../hooks/useQaku"
 import { DownloadSnapshot } from "../utils/messages"
 import { Settings, Power, Camera } from "lucide-react"
+import { useToastContext } from "../hooks/useToast"
 
 interface IProps {
     id: string
@@ -9,6 +10,7 @@ interface IProps {
 
 const Control = ({id}: IProps) => {
     const {controlState, qaku, isOwner, localQuestions, polls, nextPublishTime, codexAvailable} = useQakuContext()
+    const {toast} = useToastContext()
     const [enabled, setEnabled] = useState(false)
     const [switching, setSwitching] = useState(false)
     const [publishing, setPublishing] = useState(false)
@@ -106,8 +108,19 @@ const Control = ({id}: IProps) => {
                             className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-secondary hover:bg-secondary/80 rounded-lg transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                             onClick={async () => {
                                 setPublishing(true)
-                                await qaku?.snapshotManager?.publishSnapshot(id)
-                                setPublishing(false)
+                                try {
+                                    const result = await qaku?.snapshotManager?.publishSnapshot(id)
+                                    if (result) {
+                                        toast("Snapshot published successfully", "success")
+                                    } else {
+                                        toast("Failed to publish snapshot", "error")
+                                    }
+                                } catch (error) {
+                                    console.error("Error publishing snapshot:", error)
+                                    toast("Error publishing snapshot: " + (error instanceof Error ? error.message : "Unknown error"), "error")
+                                } finally {
+                                    setPublishing(false)
+                                }
                             }}
                             disabled={publishing || !codexAvailable}
                         >
