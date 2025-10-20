@@ -8,7 +8,7 @@ interface IProps {
 } 
 
 const Control = ({id}: IProps) => {
-    const {controlState, qaku, isOwner, localQuestions, polls, nextPublishTime} = useQakuContext()
+    const {controlState, qaku, isOwner, localQuestions, polls, nextPublishTime, codexAvailable} = useQakuContext()
     const [enabled, setEnabled] = useState(false)
     const [switching, setSwitching] = useState(false)
     const [publishing, setPublishing] = useState(false)
@@ -109,12 +109,12 @@ const Control = ({id}: IProps) => {
                                 await qaku?.snapshotManager?.publishSnapshot(id)
                                 setPublishing(false)
                             }}
-                            disabled={publishing}
+                            disabled={publishing || !codexAvailable}
                         >
                             <Camera className="w-4 h-4" />
-                            {publishing ? 'Publishing...' : 'Publish Snapshot'}
+                            {publishing ? 'Publishing...' : !codexAvailable ? 'Codex Unavailable' : 'Publish Snapshot'}
                         </button>
-                        {timeRemaining && (
+                        {timeRemaining && codexAvailable && (
                             <div className="text-xs text-muted-foreground text-center">
                                 Next auto-publish in {timeRemaining}
                             </div>

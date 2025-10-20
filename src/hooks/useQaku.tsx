@@ -155,6 +155,11 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
             setNextPublishTime(nextTime)
         }
 
+        const checkCodex = async () => {
+            const available = await qaku.snapshotManager?.checkCodexAvailable()
+            setCodexAvailable(available || false)
+        }
+
         (async () => {
             setLoading(true)
             qaku.on(QakuEvents.NEW_QUESTION, updateQuestions)
@@ -196,15 +201,20 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
             updateStatus("Qaku initialized", "info", 2000)
             setLoading(false)
             updateNextPublishTime()
+            checkCodex()
          
             setLoading(false)
         })()
 
         // Poll for next publish time updates every 10 seconds
         const publishTimeInterval = setInterval(updateNextPublishTime, 10000)
+        
+        // Check Codex availability every 30 seconds
+        const codexCheckInterval = setInterval(checkCodex, 30000)
 
         return () => {
             clearInterval(publishTimeInterval)
+            clearInterval(codexCheckInterval)
 
             console.log("Clearing Qaku listeners")
             qaku.off(QakuEvents.NEW_QUESTION, updateQuestions)
