@@ -209,7 +209,10 @@ export class SnapshotManager {
         if (res.error) {
             return false
         }
-        // Just check if we can reach the node, don't require minimum peers
+        // Check if we have at least 2 connected nodes
+        if (res.data.table.nodes.length < 2) {
+            return false
+        }
         return true
     }
 
