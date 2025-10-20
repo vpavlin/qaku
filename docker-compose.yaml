@@ -5,6 +5,7 @@ services:
     command:
       - codex
       - --bootstrap-node=spr:CiUIAhIhAiJvIcA_ZwPZ9ugVKDbmqwhJZaig5zKyLiuaicRcCGqLEgIDARo8CicAJQgCEiECIm8hwD9nA9n26BUoNuarCEllqKDnMrIuK5qJxFwIaosQ3d6esAYaCwoJBJ_f8zKRAnU6KkYwRAIgM0MvWNJL296kJ9gWvfatfmVvT-A7O2s8Mxp8l9c8EW0CIC-h-H-jBVSgFjg3Eny2u33qF7BDnWFzo7fGfZ7_qc9P
+      - --bootstrap-node=spr:CiUIAhIhAzCS_gDDbbohfuomYsvRChdG6z0LT-N_kkACoImmgLaVEgIDARpJCicAJQgCEiEDMJL-AMNtuiF-6iZiy9EKF0brPQtP43-SQAKgiaaAtpUQip7mxQYaCwoJBICMN4CRAh-aGgsKCQSAjDeAkQIfmipHMEUCIQD4WbtOTNAkocZSvvZJhtQnncXvZUdtH7JYjRnw_eCZywIgaZU14lI9D7Lou6IxsLNB6iVzXRYvtEd0QKWSwM0p2cs
       - --log-level=DEBUG
       - --api-cors-origin=*
     environment:
