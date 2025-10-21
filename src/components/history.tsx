@@ -29,7 +29,7 @@ const HistoryItem = ({ entry, disabled, isActive, onDelete }: { entry: HistoryEn
                 }`}
             >
                 <div className="flex items-center justify-between">
-                    <div className="flex-1 min-w-0 pr-6">
+                    <div className="flex-1 min-w-0 pr-12">
                         <div className="font-medium text-sm truncate group-hover:text-primary transition-colors">
                             {entry.title || entry.id}
                         </div>
@@ -46,18 +46,20 @@ const HistoryItem = ({ entry, disabled, isActive, onDelete }: { entry: HistoryEn
                             )}
                         </div>
                     </div>
-                    <div className={`w-2 h-2 rounded-full flex-shrink-0 ${entry.isActive ? 'bg-accent' : 'bg-muted'}`} />
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                        {onDelete && !disabled && (
+                            <button
+                                onClick={handleDelete}
+                                className="opacity-0 group-hover/item:opacity-100 transition-opacity p-1.5 hover:bg-destructive/20 rounded text-muted-foreground hover:text-destructive z-10"
+                                aria-label="Delete Q&A"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                            </button>
+                        )}
+                        <div className={`w-2 h-2 rounded-full ${entry.isActive ? 'bg-accent' : 'bg-muted'}`} />
+                    </div>
                 </div>
             </Link>
-            {onDelete && !disabled && (
-                <button
-                    onClick={handleDelete}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover/item:opacity-100 transition-opacity p-1.5 hover:bg-destructive/20 rounded text-muted-foreground hover:text-destructive"
-                    aria-label="Delete Q&A"
-                >
-                    <Trash2 className="w-4 h-4" />
-                </button>
-            )}
         </div>
     )
 }
