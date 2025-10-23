@@ -4,7 +4,7 @@ import { Link, Outlet, useNavigate, useParams } from "react-router-dom";
 import { QakuContextProvider, useQakuContext } from "../hooks/useQaku";
 import History, { Visited, Participated, Admin } from "../components/history";
 import Status from "../components/status";
-import logo from "../assets/logo512.png"
+import logo from "../assets/logo.svg"
 import { HiChevronDoubleRight, HiOutlineMenu, HiX } from "react-icons/hi"
 import User, { Wallet } from "../components/user";
 import { useToastContext } from "../hooks/useToast";
