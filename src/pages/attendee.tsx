@@ -16,13 +16,13 @@ const AttendeeContent = () => {
         <div className="min-h-screen bg-background">
             {/* Minimal header with status */}
             <div className="sticky top-0 z-50 bg-card/95 backdrop-blur-sm border-b border-border">
-                <div className="container mx-auto px-4 py-3 flex justify-between items-center">
-                    <div className="text-lg font-bold font-mono text-primary">QAKU</div>
-                    <div className="flex items-center gap-3">
+                <div className="container mx-auto px-4 py-3 flex justify-between items-center gap-2">
+                    <div className="text-base sm:text-lg font-bold font-mono text-primary">QAKU</div>
+                    <div className="flex items-center gap-2 sm:gap-3">
                         {walletConnected ? (
-                            <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 border border-primary/20 rounded-lg">
-                                <Wallet className="w-4 h-4 text-primary" />
-                                <span className="text-sm font-mono text-primary">{externalAddr}</span>
+                            <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 bg-primary/10 border border-primary/20 rounded-lg">
+                                <Wallet className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary flex-shrink-0" />
+                                <span className="text-xs sm:text-sm font-mono text-primary truncate max-w-[100px] sm:max-w-none">{externalAddr}</span>
                             </div>
                         ) : (
                             <button
@@ -35,13 +35,15 @@ const AttendeeContent = () => {
                                     }
                                 }}
                                 disabled={connecting}
-                                className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                             >
-                                <Wallet className="w-4 h-4" />
-                                {connecting ? 'Connecting...' : 'Connect Wallet'}
+                                <Wallet className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                <span className="hidden xs:inline">{connecting ? 'Connecting...' : 'Connect'}</span>
                             </button>
                         )}
-                        <Status />
+                        <div className="hidden sm:block">
+                            <Status />
+                        </div>
                     </div>
                 </div>
             </div>

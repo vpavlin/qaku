@@ -204,43 +204,45 @@ const QA = () => {
 
                 {/* Sort & Filter Controls (only show for Questions tab) */}
                 {activeTab === Tabs.Questions && (
-                    <div className="flex flex-wrap gap-3">
-                        {/* Sort Control */}
-                        <div className="flex items-center gap-2">
-                            <ArrowUpDown className="w-4 h-4 text-muted-foreground" />
-                            <select
-                                value={sortBy}
-                                onChange={(e) => setSortBy(e.target.value as QuestionSort)}
-                                className="px-3 py-2 bg-input border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring cursor-pointer"
-                            >
-                                <option value={QuestionSort.UPVOTES_DESC}>Most Upvoted</option>
-                                <option value={QuestionSort.UPVOTES_ASC}>Least Upvoted</option>
-                                <option value={QuestionSort.TIME_DESC}>Newest First</option>
-                                <option value={QuestionSort.TIME_ASC}>Oldest First</option>
-                                <option value={QuestionSort.ANSWERED_DESC}>Answered First</option>
-                                <option value={QuestionSort.ANSWERED_ASC}>Unanswered First</option>
-                            </select>
-                        </div>
+                    <div className="space-y-3">
+                        <div className="flex flex-col sm:flex-row gap-3">
+                            {/* Sort Control */}
+                            <div className="flex items-center gap-2 flex-1">
+                                <ArrowUpDown className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                                <select
+                                    value={sortBy}
+                                    onChange={(e) => setSortBy(e.target.value as QuestionSort)}
+                                    className="w-full px-3 py-2 bg-input border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring cursor-pointer"
+                                >
+                                    <option value={QuestionSort.UPVOTES_DESC}>Most Upvoted</option>
+                                    <option value={QuestionSort.UPVOTES_ASC}>Least Upvoted</option>
+                                    <option value={QuestionSort.TIME_DESC}>Newest First</option>
+                                    <option value={QuestionSort.TIME_ASC}>Oldest First</option>
+                                    <option value={QuestionSort.ANSWERED_DESC}>Answered First</option>
+                                    <option value={QuestionSort.ANSWERED_ASC}>Unanswered First</option>
+                                </select>
+                            </div>
 
-                        {/* Filter Control */}
-                        <div className="flex items-center gap-2">
-                            <Filter className="w-4 h-4 text-muted-foreground" />
-                            <select
-                                value={filterBy}
-                                onChange={(e) => setFilterBy(e.target.value as QuestionShow)}
-                                className="px-3 py-2 bg-input border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring cursor-pointer"
-                            >
-                                <option value={QuestionShow.ALL}>All Questions</option>
-                                <option value={QuestionShow.ANSWERED}>Answered Only</option>
-                                <option value={QuestionShow.UNANSWERED}>Unanswered Only</option>
-                                {(isOwner || isAdmin) && (
-                                    <option value={QuestionShow.MODERATED}>Moderated Only</option>
-                                )}
-                            </select>
+                            {/* Filter Control */}
+                            <div className="flex items-center gap-2 flex-1">
+                                <Filter className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                                <select
+                                    value={filterBy}
+                                    onChange={(e) => setFilterBy(e.target.value as QuestionShow)}
+                                    className="w-full px-3 py-2 bg-input border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring cursor-pointer"
+                                >
+                                    <option value={QuestionShow.ALL}>All Questions</option>
+                                    <option value={QuestionShow.ANSWERED}>Answered Only</option>
+                                    <option value={QuestionShow.UNANSWERED}>Unanswered Only</option>
+                                    {(isOwner || isAdmin) && (
+                                        <option value={QuestionShow.MODERATED}>Moderated Only</option>
+                                    )}
+                                </select>
+                            </div>
                         </div>
 
                         {/* Question count badge */}
-                        <div className="flex items-center px-3 py-2 bg-secondary/50 rounded-lg text-sm">
+                        <div className="flex items-center justify-center sm:justify-start px-3 py-2 bg-secondary/50 rounded-lg text-sm">
                             <span className="text-muted-foreground">
                                 Showing: <span className="font-semibold text-foreground">{filteredQuestions.length}</span>
                             </span>

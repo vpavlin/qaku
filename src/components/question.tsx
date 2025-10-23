@@ -140,8 +140,8 @@ const Question = ({id, msg, moderation}:IProps) => {
             )}
 
             {/* Actions Bar */}
-            <div className="flex items-center justify-between gap-3 pt-4 border-t border-border">
-                <div className="flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-4 border-t border-border">
+                <div className="flex items-center flex-wrap gap-2">
                     {/* Upvote Button */}
                     {!isOwner && !msg.upvotedByMe && !msg.moderated && (
                         <button 
@@ -164,7 +164,7 @@ const Question = ({id, msg, moderation}:IProps) => {
                     {hasAnswers && (
                         <div className="flex items-center gap-2 px-3 py-1.5 bg-accent/20 text-accent rounded-lg text-sm">
                             <MessageSquare className="w-4 h-4" />
-                            <span className="font-semibold">
+                            <span className="font-semibold whitespace-nowrap">
                                 {msg.answers.length} {msg.answers.length === 1 ? 'Answer' : 'Answers'}
                             </span>
                         </div>
@@ -172,26 +172,26 @@ const Question = ({id, msg, moderation}:IProps) => {
                 </div>
 
                 {/* Admin Actions */}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center flex-wrap gap-2">
                     {(isOwner || isAdmin) && !msg.moderated && (
                         <button 
-                            className="flex items-center gap-2 px-3 py-1.5 bg-secondary hover:bg-secondary/80 rounded-lg transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="flex items-center gap-2 px-3 py-1.5 bg-secondary hover:bg-secondary/80 rounded-lg transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                             onClick={() => setShowAnswerModal(true)}
                             disabled={answering}
                         >
                             <MessageSquare className="w-4 h-4" />
-                            Answer
+                            <span className="hidden sm:inline">Answer</span>
                         </button>
                     )}
 
                     {isOwner && moderation && (
                         <button 
-                            className="flex items-center gap-2 px-3 py-1.5 bg-destructive/10 hover:bg-destructive/20 text-destructive rounded-lg transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="flex items-center gap-2 px-3 py-1.5 bg-destructive/10 hover:bg-destructive/20 text-destructive rounded-lg transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                             onClick={() => moderate(!msg.moderated)}
                             disabled={moderating}
                         >
                             {msg.moderated ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                            {moderating ? 'Processing...' : msg.moderated ? 'Show' : 'Hide'}
+                            <span className="hidden sm:inline">{moderating ? 'Processing...' : msg.moderated ? 'Show' : 'Hide'}</span>
                         </button>
                     )}
                 </div>

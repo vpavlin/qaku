@@ -37,32 +37,17 @@ const MainQA = () => {
             {!id && <NewQA />}
             
             {id && (
-                <div className="grid lg:grid-cols-[1fr_300px] gap-6">
-                    {/* Main Content */}
-                    <div className="min-w-0">
-                        <QA />
-                    </div>
-
-                    {/* Sidebar */}
-                    <div className="space-y-4">
-                        {/* Share Card */}
-                        <div className="bg-card border border-border rounded-xl p-6">
-                            <div className="flex items-center gap-2 mb-4">
-                                <Share2 className="w-5 h-5 text-primary" />
-                                <h3 className="font-semibold text-lg">Share Q&A</h3>
+                <div className="space-y-6">
+                    {/* Mobile-first: Share section at top on mobile, sidebar on desktop */}
+                    <div className="lg:hidden space-y-4">
+                        {/* Compact Share Card for Mobile */}
+                        <div className="bg-card border border-border rounded-xl p-4">
+                            <div className="flex items-center gap-2 mb-3">
+                                <Share2 className="w-4 h-4 text-primary" />
+                                <h3 className="font-semibold">Share Q&A</h3>
                             </div>
                             
-                            <div className="space-y-4">
-                                <div className="flex items-center justify-center p-4 bg-background rounded-lg">
-                                    <QRCode 
-                                        value={link} 
-                                        size={180}
-                                        className="w-full h-auto"
-                                        fgColor="hsl(var(--foreground))"
-                                        bgColor="hsl(var(--background))"
-                                    />
-                                </div>
-
+                            <div className="space-y-3">
                                 <div className="space-y-2">
                                     <label className="text-xs font-medium text-muted-foreground">
                                         Attendee Link
@@ -72,13 +57,13 @@ const MainQA = () => {
                                             type="text" 
                                             value={link} 
                                             readOnly 
-                                            className="flex-1 px-3 py-2 bg-input border border-border rounded-lg text-sm font-mono"
+                                            className="flex-1 px-3 py-2 bg-input border border-border rounded-lg text-xs font-mono"
                                         />
                                         <button 
                                             onClick={() => {
                                                 navigator.clipboard.writeText(link)
                                             }}
-                                            className="px-3 py-2 bg-secondary hover:bg-secondary/80 rounded-lg transition-colors text-sm"
+                                            className="px-3 py-2 bg-secondary hover:bg-secondary/80 rounded-lg transition-colors text-xs whitespace-nowrap"
                                         >
                                             Copy
                                         </button>
@@ -89,7 +74,7 @@ const MainQA = () => {
                                     href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Come ask your questions at\n\n${link}`)}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-[#1DA1F2] hover:bg-[#1a8cd8] text-white rounded-lg transition-colors"
+                                    className="flex items-center justify-center gap-2 w-full px-4 py-2 bg-[#1DA1F2] hover:bg-[#1a8cd8] text-white rounded-lg transition-colors text-sm"
                                 >
                                     <Twitter className="w-4 h-4" />
                                     Share on Twitter
@@ -97,8 +82,74 @@ const MainQA = () => {
                             </div>
                         </div>
 
-                        {/* Control Panel */}
+                        {/* Control Panel for Mobile */}
                         <Control id={id} />
+                    </div>
+
+                    {/* Desktop Layout */}
+                    <div className="lg:grid lg:grid-cols-[1fr_300px] gap-6">
+                        {/* Main Content */}
+                        <div className="min-w-0">
+                            <QA />
+                        </div>
+
+                        {/* Desktop Sidebar */}
+                        <div className="hidden lg:block space-y-4">
+                            {/* Share Card */}
+                            <div className="bg-card border border-border rounded-xl p-6">
+                                <div className="flex items-center gap-2 mb-4">
+                                    <Share2 className="w-5 h-5 text-primary" />
+                                    <h3 className="font-semibold text-lg">Share Q&A</h3>
+                                </div>
+                                
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-center p-4 bg-background rounded-lg">
+                                        <QRCode 
+                                            value={link} 
+                                            size={180}
+                                            className="w-full h-auto"
+                                            fgColor="hsl(var(--foreground))"
+                                            bgColor="hsl(var(--background))"
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-medium text-muted-foreground">
+                                            Attendee Link
+                                        </label>
+                                        <div className="flex gap-2">
+                                            <input 
+                                                type="text" 
+                                                value={link} 
+                                                readOnly 
+                                                className="flex-1 px-3 py-2 bg-input border border-border rounded-lg text-sm font-mono"
+                                            />
+                                            <button 
+                                                onClick={() => {
+                                                    navigator.clipboard.writeText(link)
+                                                }}
+                                                className="px-3 py-2 bg-secondary hover:bg-secondary/80 rounded-lg transition-colors text-sm"
+                                            >
+                                                Copy
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <a 
+                                        href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Come ask your questions at\n\n${link}`)}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-[#1DA1F2] hover:bg-[#1a8cd8] text-white rounded-lg transition-colors"
+                                    >
+                                        <Twitter className="w-4 h-4" />
+                                        Share on Twitter
+                                    </a>
+                                </div>
+                            </div>
+
+                            {/* Control Panel */}
+                            <Control id={id} />
+                        </div>
                     </div>
                 </div>
             )}
