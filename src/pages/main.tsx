@@ -51,133 +51,136 @@ const Main = () => {
                 <aside className={`
                     fixed lg:sticky top-0 left-0 h-screen z-40
                     w-[280px] bg-card border-r border-border
-                    flex flex-col
                     transition-transform duration-200 ease-smooth
                     ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+                    flex flex-col lg:flex-col
                 `}>
                     {/* Logo */}
                     <Link 
                         to="/" 
-                        className="flex flex-col items-center py-8 px-6 border-b border-border flex-shrink-0"
+                        className="flex flex-col items-center py-6 lg:py-8 px-6 border-b border-border flex-shrink-0"
                         onClick={() => setSidebarOpen(false)}
                     >
-                        <img className="w-20 h-20 rounded-full mb-3" src={logo} alt="QAKU Logo" />
-                        <h1 className="text-2xl font-bold font-mono text-primary">QAKU</h1>
+                        <img className="w-16 lg:w-20 h-16 lg:h-20 rounded-full mb-2 lg:mb-3" src={logo} alt="QAKU Logo" />
+                        <h1 className="text-xl lg:text-2xl font-bold font-mono text-primary">QAKU</h1>
                         <p className="text-xs text-muted-foreground mt-1">Q&A powered by Waku</p>
                     </Link>
 
-                    {/* Navigation - Scrollable */}
-                    <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
-                        {/* New Q&A */}
-                        <Link 
-                            to="/" 
-                            onClick={() => setSidebarOpen(false)}
-                            className="block px-4 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
-                        >
-                            + New Q&A
-                        </Link>
-
-                        {/* Your Q&As */}
-                        <div>
-                            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 mb-2">
-                                Your Q&As
-                            </h3>
-                            <div onClick={() => setSidebarOpen(false)}>
-                                <History id={id} />
-                            </div>
-                        </div>
-
-                        {/* Admin Q&As */}
-                        <div>
-                            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 mb-2">
-                                Admin Q&As
-                            </h3>
-                            <div onClick={() => setSidebarOpen(false)}>
-                                <Admin />
-                            </div>
-                        </div>
-
-                        {/* Participated */}
-                        <div>
-                            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 mb-2">
-                                Participated
-                            </h3>
-                            <div onClick={() => setSidebarOpen(false)}>
-                                <Participated />
-                            </div>
-                        </div>
-
-                        {/* Visited */}
-                        <div>
-                            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 mb-2">
-                                Visited
-                            </h3>
-                            <div onClick={() => setSidebarOpen(false)}>
-                                <Visited />
-                            </div>
-                        </div>
-                    </nav>
-
-                    {/* Footer - Fixed at bottom */}
-                    <div className="border-t border-border flex-shrink-0">
-                        {/* Go To Q&A */}
-                        <div className="p-4">
-                            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                                Go To Q&A
-                            </h3>
-                            <div className="flex gap-2">
-                                <input 
-                                    type="text" 
-                                    className="flex-1 px-3 py-2 bg-input border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring" 
-                                    placeholder="Q&A ID" 
-                                    onChange={(e) => setSearchId(e.target.value)}
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter' && searchId) {
-                                            navigate(`/q/${searchId}`)
-                                            setSidebarOpen(false)
-                                        }
-                                    }}
-                                />
-                                <button 
-                                    className="px-3 py-2 bg-secondary hover:bg-secondary/80 rounded-lg transition-colors"
-                                    onClick={() => {
-                                        if (searchId) {
-                                            navigate(`/q/${searchId}`)
-                                            setSidebarOpen(false)
-                                        }
-                                    }}
-                                >
-                                    <HiChevronDoubleRight className="w-5 h-5" />
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Wallet & Settings */}
-                        <div className="p-4 border-t border-border space-y-3">
-                            <div>
-                                <div className="text-xs text-muted-foreground mb-2">Connected Wallet</div>
-                                <Wallet short={true} />
-                            </div>
+                    {/* Mobile: Fully scrollable content */}
+                    <div className="flex-1 overflow-y-auto lg:flex lg:flex-col">
+                        {/* Navigation */}
+                        <nav className="px-4 py-4 lg:py-6 space-y-4 lg:space-y-6 lg:flex-1 lg:overflow-y-auto">
+                            {/* New Q&A */}
                             <Link 
-                                to="/settings" 
+                                to="/" 
                                 onClick={() => setSidebarOpen(false)}
-                                className="block px-4 py-2 text-center border border-border rounded-lg hover:bg-secondary transition-colors"
+                                className="block px-4 py-2.5 lg:py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium text-sm lg:text-base"
                             >
-                                Settings
+                                + New Q&A
                             </Link>
-                        </div>
 
-                        {/* Links */}
-                        <div className="p-4 border-t border-border flex gap-4 justify-center text-sm">
-                            <a href="https://github.com/vpavlin/qaku" className="text-muted-foreground hover:text-foreground transition-colors">
-                                Github
-                            </a>
-                            <a href="https://twitter.com/vpavlin" className="text-muted-foreground hover:text-foreground transition-colors">
-                                Twitter
-                            </a>
-                            <a href="https://waku.org/" className="text-muted-foreground hover:text-foreground transition-colors">
-                                Waku
-                            </a>
+                            {/* Your Q&As */}
+                            <div>
+                                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 mb-2">
+                                    Your Q&As
+                                </h3>
+                                <div onClick={() => setSidebarOpen(false)}>
+                                    <History id={id} />
+                                </div>
+                            </div>
+
+                            {/* Admin Q&As */}
+                            <div>
+                                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 mb-2">
+                                    Admin Q&As
+                                </h3>
+                                <div onClick={() => setSidebarOpen(false)}>
+                                    <Admin />
+                                </div>
+                            </div>
+
+                            {/* Participated */}
+                            <div>
+                                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 mb-2">
+                                    Participated
+                                </h3>
+                                <div onClick={() => setSidebarOpen(false)}>
+                                    <Participated />
+                                </div>
+                            </div>
+
+                            {/* Visited */}
+                            <div>
+                                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-4 mb-2">
+                                    Visited
+                                </h3>
+                                <div onClick={() => setSidebarOpen(false)}>
+                                    <Visited />
+                                </div>
+                            </div>
+                        </nav>
+
+                        {/* Footer - Scrollable on mobile, fixed on desktop */}
+                        <div className="border-t border-border lg:flex-shrink-0">
+                            {/* Go To Q&A */}
+                            <div className="p-3 lg:p-4">
+                                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 lg:mb-3">
+                                    Go To Q&A
+                                </h3>
+                                <div className="flex gap-2">
+                                    <input 
+                                        type="text" 
+                                        className="flex-1 px-3 py-2 bg-input border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ring" 
+                                        placeholder="Q&A ID" 
+                                        onChange={(e) => setSearchId(e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' && searchId) {
+                                                navigate(`/q/${searchId}`)
+                                                setSidebarOpen(false)
+                                            }
+                                        }}
+                                    />
+                                    <button 
+                                        className="px-3 py-2 bg-secondary hover:bg-secondary/80 rounded-lg transition-colors"
+                                        onClick={() => {
+                                            if (searchId) {
+                                                navigate(`/q/${searchId}`)
+                                                setSidebarOpen(false)
+                                            }
+                                        }}
+                                    >
+                                        <HiChevronDoubleRight className="w-5 h-5" />
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Wallet & Settings */}
+                            <div className="p-3 lg:p-4 border-t border-border space-y-2 lg:space-y-3">
+                                <div>
+                                    <div className="text-xs text-muted-foreground mb-1.5 lg:mb-2">Connected Wallet</div>
+                                    <Wallet short={true} />
+                                </div>
+                                <Link 
+                                    to="/settings" 
+                                    onClick={() => setSidebarOpen(false)}
+                                    className="block px-4 py-2 text-sm text-center border border-border rounded-lg hover:bg-secondary transition-colors"
+                                >
+                                    Settings
+                                </Link>
+                            </div>
+
+                            {/* Links */}
+                            <div className="p-3 lg:p-4 border-t border-border flex gap-3 lg:gap-4 justify-center text-xs lg:text-sm">
+                                <a href="https://github.com/vpavlin/qaku" className="text-muted-foreground hover:text-foreground transition-colors">
+                                    Github
+                                </a>
+                                <a href="https://twitter.com/vpavlin" className="text-muted-foreground hover:text-foreground transition-colors">
+                                    Twitter
+                                </a>
+                                <a href="https://waku.org/" className="text-muted-foreground hover:text-foreground transition-colors">
+                                    Waku
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </aside>
