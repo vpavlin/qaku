@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQakuContext } from "../hooks/useQaku";
 import { useWakuContext } from "../hooks/useWaku";
 import { useToastContext } from "../hooks/useToast";
 import ExternalWallet from "./external_wallet";
-import { Check } from "lucide-react";
+import { Check, RefreshCw } from "lucide-react";
 import LogoSpinner from "./logo-spinner";
 
 const NewQA = () => {
@@ -13,14 +13,21 @@ const NewQA = () => {
     const { qaku, walletConnected } = useQakuContext()
     const navigate = useNavigate();
 
+    const generatePassword = () => Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10);
+
     const [title, setTitle] = useState<string>()
     const [desc, setDesc] = useState<string>()
     const [enabled, setEnabled] = useState<boolean>(true)
     const [moderation, SetModeration] = useState<boolean>(false)
-    const [password, setPassword] = useState<string>()
+    const [password, setPassword] = useState<string>('')
     const [admins, setAdmins] = useState<string[]>([])
     const [useExternal, setUseExternal] = useState(walletConnected)
     const [submitting, setSubmitting] = useState(false)
+
+    // Auto-generate password on mount
+    useEffect(() => {
+        setPassword(generatePassword());
+    }, [])
 
     const submit = async () => {
         console.log("Submitting...", qaku)
@@ -146,28 +153,29 @@ const NewQA = () => {
                 {/* Password */}
                 <div className="space-y-2 pt-4 border-t border-border">
                     <label htmlFor="password" className="block text-sm font-medium">
-                        Password (optional)
+                        Password (Recommended)
                     </label>
                     <div className="flex gap-2">
                         <input 
                             id="password"
                             type="text" 
                             name="password" 
-                            value={password || ''} 
+                            value={password} 
                             onChange={(e) => setPassword(e.target.value)} 
-                            className="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 bg-input border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring transition-all text-sm sm:text-base"
-                            placeholder="For encrypted Q&As"
+                            className="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 bg-input border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring transition-all text-sm sm:text-base font-mono"
+                            placeholder="Auto-generated password"
                         />
                         <button 
                             type="button"
-                            className="px-3 sm:px-4 py-2.5 sm:py-3 bg-secondary hover:bg-secondary/80 rounded-lg transition-colors whitespace-nowrap text-sm sm:text-base"
-                            onClick={() => setPassword(Math.random().toString(36).slice(2, 8))}
+                            className="px-3 sm:px-4 py-2.5 sm:py-3 bg-secondary hover:bg-secondary/80 rounded-lg transition-colors whitespace-nowrap text-sm sm:text-base flex items-center gap-1.5 sm:gap-2"
+                            onClick={() => setPassword(generatePassword())}
                         >
-                            Generate
+                            <RefreshCw className="w-4 h-4" />
+                            <span className="hidden sm:inline">Regenerate</span>
                         </button>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                        Set a password to encrypt the Q&A session
+                        Password encrypts the Q&A session. Clear the field to make it public (not recommended).
                     </p>
                 </div>
 
