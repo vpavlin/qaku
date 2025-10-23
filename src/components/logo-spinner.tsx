@@ -13,11 +13,14 @@ const LogoSpinner = ({ size = "md", className = "" }: LogoSpinnerProps) => {
   }
 
   return (
-    <img 
-      src={logo} 
-      alt="Loading..." 
-      className={`animate-spin ${sizeClasses[size]} ${className}`}
-    />
+    <div style={{ perspective: '1000px' }}>
+      <img 
+        src={logo} 
+        alt="Loading..." 
+        className={`animate-spin-y ${sizeClasses[size]} ${className}`}
+        style={{ transformStyle: 'preserve-3d' }}
+      />
+    </div>
   )
 }
 
