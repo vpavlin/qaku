@@ -765,7 +765,7 @@ export class Qaku extends EventEmitter {
                     case QuestionShow.MODERATED:
                         return v.moderated
                     case QuestionShow.UNANSWERED:
-                        return !(v.answers.length == 0)
+                        return v.answers.length == 0
                     default:
                         break;
                 }
@@ -798,11 +798,11 @@ export class Qaku extends EventEmitter {
                     order.push('asc')
                     break;
                 case QuestionSort.ANSWERED_ASC:
-                    by.push('answered')
+                    by.push('answers')
                     order.push('asc')    
                     break;
                 case QuestionSort.ANSWERED_DESC:
-                    by.push('answered')
+                    by.push('answers')
                     order.push('desc')    
                     break;
                 default:
