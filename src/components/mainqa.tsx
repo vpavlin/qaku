@@ -39,8 +39,11 @@ const MainQA = () => {
             
             {id && (
                 <div className="space-y-6">
-                    {/* Mobile-first: Share section at top on mobile, sidebar on desktop */}
+                    {/* Mobile Content - Q&A first, then share/control */}
                     <div className="lg:hidden space-y-4">
+                        {/* Main Q&A Content - shown first on mobile */}
+                        <QA />
+                        
                         {/* Compact Share Card for Mobile */}
                         <div className="bg-card border border-border rounded-xl p-4">
                             <div className="flex items-center gap-2 mb-3">
@@ -88,14 +91,14 @@ const MainQA = () => {
                     </div>
 
                     {/* Desktop Layout */}
-                    <div className="lg:grid lg:grid-cols-[1fr_300px] gap-6">
+                    <div className="hidden lg:grid lg:grid-cols-[1fr_300px] gap-6">
                         {/* Main Content */}
                         <div className="min-w-0">
                             <QA />
                         </div>
 
                         {/* Desktop Sidebar */}
-                        <div className="hidden lg:block space-y-4">
+                        <div className="space-y-4">
                             {/* Share Card */}
                             <div className="bg-card border border-border rounded-xl p-6">
                                 <div className="flex items-center gap-2 mb-4">
