@@ -55,15 +55,15 @@ const NewQA = () => {
     }
 
     return (
-        <div className="max-w-3xl mx-auto">
-            <div className="mb-8">
-                <h1 className="text-3xl font-bold mb-2">Create New Q&A</h1>
-                <p className="text-muted-foreground">
+        <div className="max-w-3xl mx-auto px-4 sm:px-0">
+            <div className="mb-6 sm:mb-8">
+                <h1 className="text-2xl sm:text-3xl font-bold mb-2">Create New Q&A</h1>
+                <p className="text-sm sm:text-base text-muted-foreground">
                     Set up a new Q&A session for your audience to ask questions
                 </p>
             </div>
 
-            <div className="bg-card rounded-xl border border-border p-6 md:p-8 space-y-6">
+            <div className="bg-card rounded-xl border border-border p-4 sm:p-6 md:p-8 space-y-5 sm:space-y-6">
                 {/* Title */}
                 <div className="space-y-2">
                     <label htmlFor="title" className="block text-sm font-medium">
@@ -74,7 +74,7 @@ const NewQA = () => {
                         type="text" 
                         name="title" 
                         onChange={(e) => setTitle(e.target.value)} 
-                        className="w-full px-4 py-3 bg-input border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring transition-all"
+                        className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-input border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring transition-all text-sm sm:text-base"
                         placeholder="e.g., Town Hall Meeting Q&A"
                     />
                 </div>
@@ -86,19 +86,19 @@ const NewQA = () => {
                     </label>
                     <textarea 
                         id="description"
-                        className="w-full px-4 py-3 bg-input border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring transition-all min-h-[100px] resize-y"
+                        className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-input border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring transition-all min-h-[80px] sm:min-h-[100px] resize-y text-sm sm:text-base"
                         onChange={(e) => setDesc(e.target.value)}
                         placeholder="What is this Q&A about?"
                     />
                 </div>
 
                 {/* Options */}
-                <div className="space-y-4 pt-4 border-t border-border">
-                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                <div className="space-y-3 sm:space-y-4 pt-4 border-t border-border">
+                    <h3 className="text-xs sm:text-sm font-semibold text-muted-foreground uppercase tracking-wider">
                         Options
                     </h3>
 
-                    <label className="flex items-start gap-3 cursor-pointer group">
+                    <label className="flex items-start gap-2.5 sm:gap-3 cursor-pointer group">
                         <div className="relative flex-shrink-0">
                             <input 
                                 type="checkbox" 
@@ -106,21 +106,21 @@ const NewQA = () => {
                                 onChange={(e) => setEnabled(e.target.checked)}
                                 className="sr-only peer"
                             />
-                            <div className="mt-1 w-5 h-5 rounded border-2 border-border bg-input peer-checked:bg-primary peer-checked:border-primary transition-all flex items-center justify-center">
+                            <div className="mt-0.5 sm:mt-1 w-5 h-5 rounded border-2 border-border bg-input peer-checked:bg-primary peer-checked:border-primary transition-all flex items-center justify-center">
                                 {enabled && <Check className="w-3.5 h-3.5 text-primary-foreground" strokeWidth={3} />}
                             </div>
                         </div>
                         <div className="flex-1">
-                            <div className="font-medium group-hover:text-primary transition-colors">
+                            <div className="text-sm sm:text-base font-medium group-hover:text-primary transition-colors">
                                 Enable immediately
                             </div>
-                            <div className="text-sm text-muted-foreground">
+                            <div className="text-xs sm:text-sm text-muted-foreground">
                                 Start accepting questions right away
                             </div>
                         </div>
                     </label>
 
-                    <label className="flex items-start gap-3 cursor-pointer group">
+                    <label className="flex items-start gap-2.5 sm:gap-3 cursor-pointer group">
                         <div className="relative flex-shrink-0">
                             <input 
                                 type="checkbox" 
@@ -128,15 +128,15 @@ const NewQA = () => {
                                 onChange={(e) => SetModeration(e.target.checked)}
                                 className="sr-only peer"
                             />
-                            <div className="mt-1 w-5 h-5 rounded border-2 border-border bg-input peer-checked:bg-primary peer-checked:border-primary transition-all flex items-center justify-center">
+                            <div className="mt-0.5 sm:mt-1 w-5 h-5 rounded border-2 border-border bg-input peer-checked:bg-primary peer-checked:border-primary transition-all flex items-center justify-center">
                                 {moderation && <Check className="w-3.5 h-3.5 text-primary-foreground" strokeWidth={3} />}
                             </div>
                         </div>
                         <div className="flex-1">
-                            <div className="font-medium group-hover:text-primary transition-colors">
+                            <div className="text-sm sm:text-base font-medium group-hover:text-primary transition-colors">
                                 Owner moderation
                             </div>
-                            <div className="text-sm text-muted-foreground">
+                            <div className="text-xs sm:text-sm text-muted-foreground">
                                 Manually approve questions before they appear
                             </div>
                         </div>
@@ -155,12 +155,12 @@ const NewQA = () => {
                             name="password" 
                             value={password || ''} 
                             onChange={(e) => setPassword(e.target.value)} 
-                            className="flex-1 px-4 py-3 bg-input border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring transition-all"
+                            className="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 bg-input border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring transition-all text-sm sm:text-base"
                             placeholder="For encrypted Q&As"
                         />
                         <button 
                             type="button"
-                            className="px-4 py-3 bg-secondary hover:bg-secondary/80 rounded-lg transition-colors whitespace-nowrap"
+                            className="px-3 sm:px-4 py-2.5 sm:py-3 bg-secondary hover:bg-secondary/80 rounded-lg transition-colors whitespace-nowrap text-sm sm:text-base"
                             onClick={() => setPassword(Math.random().toString(36).slice(2, 8))}
                         >
                             Generate
@@ -178,7 +178,7 @@ const NewQA = () => {
                     </label>
                     <textarea 
                         id="admins"
-                        className="w-full px-4 py-3 bg-input border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring transition-all min-h-[80px] resize-y font-mono text-sm"
+                        className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-input border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring transition-all min-h-[80px] resize-y font-mono text-xs sm:text-sm"
                         onChange={(e) => setAdmins(e.target.value.split("\n"))}
                         placeholder="0x123...&#10;0x456...&#10;(one address per line)"
                     />
@@ -196,7 +196,7 @@ const NewQA = () => {
                 <button 
                     onClick={() => submit()}  
                     disabled={!qaku || !title || submitting} 
-                    className="w-full px-6 py-4 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all mt-6"
+                    className="w-full px-4 sm:px-6 py-3 sm:py-4 bg-primary text-primary-foreground rounded-lg text-sm sm:text-base font-semibold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all mt-4 sm:mt-6"
                 >
                     {submitting ? 'Creating...' : !qaku ? 'Initializing...' : !title ? 'Enter a title to continue' : 'Create Q&A Session'}
                 </button>
