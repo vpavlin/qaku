@@ -5,6 +5,7 @@ import { useWakuContext } from "../hooks/useWaku";
 import { useToastContext } from "../hooks/useToast";
 import ExternalWallet from "./external_wallet";
 import { Check } from "lucide-react";
+import LogoSpinner from "./logo-spinner";
 
 const NewQA = () => {
     const { error } = useToastContext()
@@ -46,7 +47,7 @@ const NewQA = () => {
         return (
             <div className="h-[calc(100vh-200px)] w-full flex justify-center items-center">
                 <div className="flex flex-col items-center gap-4">
-                    <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                    <LogoSpinner />
                     <p className="text-muted-foreground">Connecting to network...</p>
                 </div>
             </div>

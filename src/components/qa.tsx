@@ -7,6 +7,7 @@ import Polls from "./polls/poll";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { User, Lock, AlertTriangle, ArrowUpDown, Filter } from "lucide-react";
 import { QuestionSort, QuestionShow, EnhancedQuestionMessage } from "qakulib";
+import LogoSpinner from "./logo-spinner";
 
 enum Tabs {
     Questions = "questions",
@@ -105,7 +106,7 @@ const QA = () => {
         return (
             <div className="h-64 flex justify-center items-center">
                 <div className="flex flex-col items-center gap-4">
-                    <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                    <LogoSpinner />
                     <p className="text-muted-foreground">Loading Q&A session...</p>
                 </div>
             </div>
