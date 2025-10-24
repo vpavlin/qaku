@@ -16,7 +16,13 @@ const MainQA = () => {
     const {loading} = useQakuContext()
     const [showShare, setShowShare] = useState(false)
 
-    let link = `${window.location.protocol}//${window.location.host}/a/${id}`
+    const isTauri = typeof (window as any).__TAURI_INTERNALS__ !== 'undefined'
+    let link = `${window.location.protocol}//${window.location.host}`
+
+    if (isTauri) {
+        link = `https://qaku.app`
+    }
+    link += `/a/${id}`
 
     if (password) {
         link = `${link}/${password}`
@@ -78,7 +84,7 @@ const MainQA = () => {
                                     href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Come ask your questions at\n\n${link}`)}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="flex items-center justify-center gap-2 w-full px-4 py-2 bg-[#1DA1F2] hover:bg-[#1a8cd8] text-white rounded-lg transition-colors text-sm"
+                                    className="flex items-center justify-center gap-2 w-full px-4 py-2 bg-secondary hover:bg-[#1a8cd8] text-white rounded-lg transition-colors text-sm"
                                 >
                                     <Twitter className="w-4 h-4" />
                                     Share on Twitter

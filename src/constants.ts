@@ -26,3 +26,8 @@ export const WAKU_SHARD_ID = "qaku_waku-shard-id"
 
 
 export const DEFAULT_PUBLISH_INTERVAL = 2*60*60*1000
+
+// Codex management configuration
+export const CODEX_AUTO_START_STORAGE_KEY = "qaku:codex-auto-start"
+export const CODEX_CUSTOM_API_ENDPOINT_KEY = "qaku:codex-custom-api-endpoint"
+export const TAURI_ENV_DETECTION_KEY = "qaku:tauri-env"

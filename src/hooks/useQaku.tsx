@@ -1,5 +1,6 @@
 import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
-import { CODEX_PUBLIC_URL_STORAGE_KEY, CODEX_URL_STORAGE_KEY, DEFAULT_CODEX_URL, DEFAULT_PUBLIC_CODEX_URL, DEFAULT_PUBLISH_INTERVAL } from "../constants";
+import { invoke } from '@tauri-apps/api/core';
+import { CODEX_PUBLIC_URL_STORAGE_KEY, CODEX_URL_STORAGE_KEY, DEFAULT_CODEX_URL, DEFAULT_PUBLIC_CODEX_URL, DEFAULT_PUBLISH_INTERVAL, CODEX_AUTO_START_STORAGE_KEY, CODEX_CUSTOM_API_ENDPOINT_KEY } from "../constants";
 import { useWakuContext } from "./useWaku";
 import {HistoryTypes, HistoryEntry, LocalPoll, Qaku, QakuEvents, QakuState, QuestionSort, History, HistoryEvents, Id, ControlMessage, EnhancedQuestionMessage, ActivityMessage, DelegationInfo, ExternalWallet} from "qakulib"
 import { ethers } from "ethers";
@@ -93,7 +94,46 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
 
     const [ loading, setLoading ] = useState<boolean>(false)
 
-    const codexURL = localStorage.getItem(CODEX_URL_STORAGE_KEY) || DEFAULT_CODEX_URL
+    // Enhanced Codex URL determination with Tauri environment awareness
+    // @ts-ignore
+    const isTauri = !!(window && window.__TAURI_INTERNALS__);
+    const autoStartEnabled = localStorage.getItem(CODEX_AUTO_START_STORAGE_KEY) === 'true';
+    const customEndpoint = localStorage.getItem(CODEX_CUSTOM_API_ENDPOINT_KEY);
+    
+    // Hook to get the Codex port from Tauri
+    const useCodexPort = () => {
+        const [port, setPort] = useState<number>(3213);
+        
+        useEffect(() => {
+            if (isTauri) {
+                invoke<number>('get_codex_port')
+                    .then(setPort)
+                    .catch(error => {
+                        console.error('Failed to get Codex port from Tauri:', error);
+                        // Fallback to default port
+                    });
+            }
+        }, [isTauri]);
+        
+        return port;
+    };
+    
+    // Get the port from Tauri or use default
+    const codexPort = useCodexPort();
+    const tauriCodexURL = `http://localhost:${codexPort}`;
+    
+    // Determine the appropriate Codex URL based on environment and user preferences
+    const codexURL = useMemo(() => {
+        console.log("Determining Codex URL with Tauri:", isTauri, "Auto-start enabled:", autoStartEnabled, "Custom endpoint:", customEndpoint);
+        // If in Tauri environment and auto-start is enabled, use Tauri-managed Codex
+        if (isTauri && autoStartEnabled) {
+            console.log("Using Tauri Codex URL:", tauriCodexURL);
+            return tauriCodexURL;
+        }
+        // Otherwise use custom endpoint or fallback to default
+        return customEndpoint || DEFAULT_CODEX_URL;
+    }, [isTauri, autoStartEnabled, customEndpoint]);
+    
     const publicCodexURL = localStorage.getItem(CODEX_PUBLIC_URL_STORAGE_KEY) || DEFAULT_PUBLIC_CODEX_URL
 
     const [codexAvailable, setCodexAvailable] = useState(false)
@@ -113,6 +153,7 @@ export const QakuContextProvider = ({ id, password, updateStatus, children }: Pr
                 walletProvider = new ethers.BrowserProvider(window.ethereum as ethers.Eip1193Provider);
             }
 
+            console.log("Initializing Qaku with Codex URL:", codexURL, "and Public Codex URL:", publicCodexURL)
             await q.init(codexURL, publicCodexURL, walletProvider as any)
             console.log("Qaku is ready")
             setQaku(q)

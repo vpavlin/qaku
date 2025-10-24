@@ -80,6 +80,11 @@ export const WakuContextProvider = ({ children, updateStatus }: Props) => {
 
         const ln = await createLightNode({
             defaultBootstrap: true,
+            discovery: {
+                dns:true,
+                localPeerCache: true,
+                peerExchange: true,
+            }
         })
         await ln.start()
         if (node) return

@@ -16,6 +16,9 @@ const Control = ({id}: IProps) => {
     const [publishing, setPublishing] = useState(false)
     const [timeRemaining, setTimeRemaining] = useState<string>("")
 
+    const isTauri = typeof (window as any).__TAURI_INTERNALS__ !== 'undefined'
+
+
     const saveTemplateAsFile = (filename:string, dataObjToWrite:DownloadSnapshot | undefined) => {
         if (!dataObjToWrite) return
         const blob = new Blob([JSON.stringify(dataObjToWrite, null, 2)], { type: "text/json" });
