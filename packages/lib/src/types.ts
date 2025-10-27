@@ -55,7 +55,7 @@ export enum QuestionShow {
     ALL = "all",
     ANSWERED = "answered",
     UNANSWERED = "unanswered",
-    MODERATED = "moderated"
+    MODERATED = "moderated",
 }
 
 export type QuestionMessage = {

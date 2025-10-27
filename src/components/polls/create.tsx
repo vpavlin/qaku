@@ -3,6 +3,7 @@ import { useQakuContext } from "../../hooks/useQaku"
 import { useToastContext } from "../../hooks/useToast"
 import { Id, PollOption } from "qakulib"
 import { BarChart3, Plus, X, Send } from "lucide-react"
+import Collapsible from "../Collapsible"
 
 interface IOptionProps {
     title: string
@@ -99,24 +100,12 @@ const CreatePoll = ({id}: IProps) => {
     }
 
     return (
-        <div className="bg-card border border-border rounded-xl overflow-hidden">
-            {/* Header */}
-            <button
-                onClick={() => setCollapsed(!collapsed)}
-                className="w-full flex items-center justify-between p-6 hover:bg-secondary/30 transition-colors"
-            >
-                <div className="flex items-center gap-2">
-                    <BarChart3 className="w-5 h-5 text-primary" />
-                    <h3 className="font-semibold text-lg">Create Poll</h3>
-                </div>
-                <div className={`text-muted-foreground transition-transform ${collapsed ? '' : 'rotate-180'}`}>
-                    ▼
-                </div>
-            </button>
-
-            {/* Content */}
-            {!collapsed && (
-                <div className="p-6 pt-0 space-y-6">
+        <Collapsible
+            title="Create Poll"
+            icon={<BarChart3 className="w-5 h-5 text-primary" />}
+            isOpen={!collapsed}
+            onToggle={() => setCollapsed(!collapsed)}
+        >
                     {/* Title (optional) */}
                     <div className="space-y-2">
                         <label className="block text-sm font-medium">
@@ -196,9 +185,7 @@ const CreatePoll = ({id}: IProps) => {
                         <Send className="w-4 h-4" />
                         {submitting ? 'Publishing...' : 'Publish Poll'}
                     </button>
-                </div>
-            )}
-        </div>
+        </Collapsible>
     )
 }
 

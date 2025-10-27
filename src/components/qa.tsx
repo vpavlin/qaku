@@ -5,7 +5,7 @@ import CreatePoll from "./polls/create";
 import { useEffect, useState } from "react";
 import Polls from "./polls/poll";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { User, Lock, AlertTriangle, ArrowUpDown, Filter } from "lucide-react";
+import { User, Lock, AlertTriangle, ArrowUpDown, Filter, MessageSquarePlus } from "lucide-react";
 import { QuestionSort, QuestionShow, EnhancedQuestionMessage } from "qakulib";
 import LogoSpinner from "./logo-spinner";
 
@@ -62,7 +62,7 @@ const QA = () => {
         if (!qaku || !id) return
         
         try {
-            const questions = qaku.getQuestions(id, [sortBy], [filterBy])
+            const questions = qaku.getQuestions(id, [sortBy], [filterBy]).filter((msg) => filterBy === QuestionShow.MODERATED || (isAdmin || isOwner || !msg.moderated))
             setFilteredQuestions(questions)
         } catch (e) {
             console.error("Failed to get questions:", e)
@@ -156,7 +156,7 @@ const QA = () => {
 
             {/* New Question Form */}
             {controlState.enabled && (
-                <NewQuestion id={controlState.id} />
+                <NewQuestion id={controlState.id} isOwner={isOwner} />
             )}
 
             {/* Create Poll (Owner/Admin only) */}
@@ -235,9 +235,7 @@ const QA = () => {
                                     <option value={QuestionShow.ALL}>All Questions</option>
                                     <option value={QuestionShow.ANSWERED}>Answered Only</option>
                                     <option value={QuestionShow.UNANSWERED}>Unanswered Only</option>
-                                    {(isOwner || isAdmin) && (
-                                        <option value={QuestionShow.MODERATED}>Moderated Only</option>
-                                    )}
+                                    <option value={QuestionShow.MODERATED}>Moderated Only</option>
                                 </select>
                             </div>
                         </div>
@@ -267,7 +265,6 @@ const QA = () => {
                             </div>
                         ) : (
                             filteredQuestions
-                                .filter((msg) => isAdmin || isOwner || !msg.moderated)
                                 .map((msg, i) => (
                                     <Question 
                                         id={controlState.id} 
